@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -61,9 +62,11 @@ export default function LoginScreen() {
     >
       <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.header}>
-          <View style={[styles.logoBox, { borderColor: colors.accent }]}>
-            <Feather name="navigation" size={28} color={colors.accent} />
-          </View>
+          <Image
+            source={require("@/assets/images/icon.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={[styles.title, { color: colors.foreground }]}>
             CA OFFROAD <Text style={{ color: colors.accent }}>HQ</Text>
           </Text>
@@ -140,13 +143,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 28, justifyContent: "space-between" },
   header: { alignItems: "center", gap: 12 },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 4,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+  logoImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 18,
     marginBottom: 8,
   },
   title: { fontSize: 28, fontWeight: "900", letterSpacing: 2 },
