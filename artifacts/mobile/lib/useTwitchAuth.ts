@@ -129,8 +129,16 @@ export function useTwitchAuth(uid: string | undefined) {
 
     try {
       const apiBase = getApiBase();
-      const url = `${apiBase}/api/auth/twitch?uid=${encodeURIComponent(uid)}&platform=native`;
-      const result = await WebBrowser.openAuthSessionAsync(url, "mobile://twitch-callback");
+      // Linking.createURL works correctly in both Expo Go (exp://...) and
+      // standalone builds (mobile://...), unlike a hardcoded mobile:// scheme.
+      const redirectUrl = Linking.createURL("twitch-callback");
+      const url =
+        `${apiBase}/api/auth/twitch` +
+        `?uid=${encodeURIComponent(uid)}` +
+        `&platform=native` +
+        `&mobileRedirect=${encodeURIComponent(redirectUrl)}`;
+
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
 
       if (result.type === "success") {
         const parsed = Linking.parse(result.url);

@@ -8,6 +8,7 @@ const router = Router();
 interface PendingEntry {
   uid: string;
   platform: string;
+  mobileRedirect: string;
   expiresAt: number;
 }
 const pending = new Map<string, PendingEntry>();
@@ -43,11 +44,15 @@ router.get("/twitch", (req, res) => {
 
   cleanupExpired();
 
-  // Store uid + platform server-side; pass only the token to Twitch
+  // Store uid + platform + mobileRedirect server-side; pass only the token to Twitch
   const stateToken = randomUUID();
+  const mobileRedirect = typeof req.query.mobileRedirect === "string"
+    ? req.query.mobileRedirect
+    : "mobile://twitch-callback";
   pending.set(stateToken, {
     uid,
     platform: String(platform),
+    mobileRedirect,
     expiresAt: Date.now() + 15 * 60 * 1000,
   });
 
@@ -117,8 +122,10 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
 </html>`);
   }
 
+  const nativeRedirectBase = entry?.mobileRedirect ?? "mobile://twitch-callback";
   function redirectNative(params: URLSearchParams) {
-    res.redirect(`mobile://twitch-callback?${params.toString()}`);
+    const sep = nativeRedirectBase.includes("?") ? "&" : "?";
+    res.redirect(`${nativeRedirectBase}${sep}${params.toString()}`);
   }
 
   if (error || !code || typeof code !== "string") {
