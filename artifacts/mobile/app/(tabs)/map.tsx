@@ -16,7 +16,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 // react-native-maps is native-only; web preview shows a fallback
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -302,7 +302,7 @@ export default function MapScreen() {
           latitudeDelta: 6.0,
           longitudeDelta: 6.0,
         }}
-        showsUserLocation={false}
+        showsUserLocation={!!userLocation}
         showsMyLocationButton={false}
         toolbarEnabled={false}
         customMapStyle={darkMapStyle}
@@ -316,13 +316,6 @@ export default function MapScreen() {
             title={trail.title}
           />
         ))}
-        {userLocation && (
-          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-            <View style={styles.userDot}>
-              <View style={styles.userDotInner} />
-            </View>
-          </Marker>
-        )}
       </MapView>
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -349,7 +342,7 @@ export default function MapScreen() {
         onPress={locateMe}
         activeOpacity={0.8}
       >
-        <Feather name="crosshair" size={18} color={userLocation ? colors.accent : colors.mutedForeground} />
+        <MaterialIcons name="my-location" size={20} color={userLocation ? colors.accent : colors.mutedForeground} />
       </TouchableOpacity>
 
       <TouchableOpacity
