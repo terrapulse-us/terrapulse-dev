@@ -13,7 +13,9 @@ import {
   Clipboard,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import type { CameraType } from "expo-camera";
+import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
@@ -24,7 +26,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useTwitchAuth } from "@/lib/useTwitchAuth";
 
-// WebView: native only — on web we render an iframe fallback
+// ── RTMP publisher — only available in standalone/EAS builds, not Expo Go ──
+// To enable: run `npx expo prebuild` then `eas build --profile development`
+let NodePublisher: React.ComponentType<any> | null = null;
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+if (!isExpoGo) {
+  try {
+    NodePublisher = require("react-native-nodemediaclient").NodePublisher;
+  } catch {}
+}
+const rtmpAvailable = NodePublisher !== null;
+
+// WebView: native only
 let WebView: React.ComponentType<{ source: { uri: string }; style?: object }> | null = null;
 if (Platform.OS !== "web") {
   try {
@@ -44,7 +57,6 @@ interface Coords {
 
 function TwitchChat({ channel }: { channel: string }) {
   const chatUrl = `https://www.twitch.tv/embed/${encodeURIComponent(channel)}/chat?darkpopout&parent=localhost`;
-
   if (Platform.OS === "web") {
     const webUrl = typeof window !== "undefined"
       ? `https://www.twitch.tv/embed/${encodeURIComponent(channel)}/chat?darkpopout&parent=${window.location.hostname}`
@@ -56,7 +68,6 @@ function TwitchChat({ channel }: { channel: string }) {
       </View>
     );
   }
-
   if (!WebView) {
     return (
       <View style={styles.chatFallback}>
@@ -65,7 +76,6 @@ function TwitchChat({ channel }: { channel: string }) {
       </View>
     );
   }
-
   return <WebView source={{ uri: chatUrl }} style={{ flex: 1 }} />;
 }
 
@@ -77,6 +87,8 @@ export default function StreamScreen() {
   // Camera
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
+  const [cameraId, setCameraId] = useState(0); // 0 = back, 1 = front (NodePublisher)
+  const publisherRef = useRef<any>(null);
 
   // Stream state
   const [isStreaming, setIsStreaming] = useState(false);
@@ -85,6 +97,7 @@ export default function StreamScreen() {
   const [streamKeySaved, setStreamKeySaved] = useState(false);
   const [rtmpEndpoint, setRtmpEndpoint] = useState("rtmp://live.twitch.tv/app/");
   const [elapsed, setElapsed] = useState(0);
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Rig + HUD
@@ -100,7 +113,7 @@ export default function StreamScreen() {
   const twitchChannel = twitchAuth?.channel ?? "";
   const [showTwitchSettings, setShowTwitchSettings] = useState(false);
 
-  // Load persisted stream key + endpoint on mount
+  // Load persisted stream key + endpoint
   useEffect(() => {
     (async () => {
       try {
@@ -159,11 +172,17 @@ export default function StreamScreen() {
     }
     Clipboard.setString(full);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      "RTMP URL Copied",
-      "Paste this into Streamlabs, OBS, or any RTMP-capable app to go live on Twitch.\n\n" + full,
-    );
+    Alert.alert("RTMP URL Copied", "Paste into Streamlabs or OBS to go live:\n\n" + full);
   }, [rtmpEndpoint, streamKey]);
+
+  const flipCamera = useCallback(() => {
+    if (rtmpAvailable && publisherRef.current) {
+      const next = cameraId === 0 ? 1 : 0;
+      setCameraId(next);
+    } else {
+      setFacing((f) => (f === "back" ? "front" : "back"));
+    }
+  }, [cameraId]);
 
   const formatTime = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -183,8 +202,13 @@ export default function StreamScreen() {
     if (isStreaming) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      // Stop native RTMP if available
+      if (rtmpAvailable && publisherRef.current) {
+        publisherRef.current.stop();
+      }
       try { await deleteDoc(doc(db, "live_streams", user.uid)); } catch {}
       setIsStreaming(false);
+      setStreamStatus(null);
     } else {
       if (!streamKey.trim()) {
         Alert.alert("Stream Key Required", "Enter and save your Twitch stream key to go live.");
@@ -203,36 +227,68 @@ export default function StreamScreen() {
           startedAt: serverTimestamp(),
         });
       } catch {}
+      // Start native RTMP if available
+      if (rtmpAvailable && publisherRef.current) {
+        publisherRef.current.start();
+        setStreamStatus("Connecting…");
+      }
       setElapsed(0);
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       setIsStreaming(true);
     }
   }, [user, isStreaming, streamKey, streamTitle, rigModel, rigTires, rigLift, coords, rtmpEndpoint, updateTwitchTitle]);
 
-  // ── LIVE / BROADCASTING VIEW ──
+  // RTMP event handler (standalone only)
+  const onPublishEvent = useCallback((code: number, msg: string) => {
+    if (code === 2001) setStreamStatus("Live on Twitch ✓");
+    else if (code >= 2000 && code < 3000) setStreamStatus(msg ?? "Connecting…");
+    else if (code >= 3000) setStreamStatus("Stream error — check your key");
+  }, []);
+
+  // ── LIVE VIEW ──
   if (isStreaming) {
+    const outputUrl = `${rtmpEndpoint}${streamKey}`;
     return (
       <View style={[styles.container, { backgroundColor: "#000" }]}>
         <View style={[styles.liveCameraArea, { paddingTop: insets.top }]}>
-          {/* Live camera */}
-          {cameraPermission?.granted ? (
-            <CameraView style={StyleSheet.absoluteFill} facing={facing}>
-              {/* Flip button */}
-              <TouchableOpacity
-                style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
-                onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
-              >
-                <Feather name="refresh-cw" size={18} color="#fff" />
-              </TouchableOpacity>
-            </CameraView>
+
+          {/* Live camera — NodePublisher (standalone) or CameraView (Expo Go) */}
+          {rtmpAvailable && NodePublisher ? (
+            <NodePublisher
+              ref={publisherRef}
+              style={StyleSheet.absoluteFill}
+              url={outputUrl}
+              cameraId={cameraId}
+              videoParam={{
+                cameraId,
+                videoFrontMirror: cameraId === 1,
+                framerate: 30,
+                bitrate: 1500000,
+                width: 720,
+                height: 1280,
+              }}
+              audioParam={{
+                samplerate: 44100,
+                channel: 2,
+                encodeBitrate: 128000,
+              }}
+              onEvent={onPublishEvent}
+            />
+          ) : cameraPermission?.granted ? (
+            <CameraView style={StyleSheet.absoluteFill} facing={facing} />
           ) : (
             <View style={styles.livePlaceholder}>
-              <Feather name="camera-off" size={48} color="#666" />
-              <Text style={{ color: "#666", fontSize: 12, fontWeight: "700", letterSpacing: 1 }}>
-                CAMERA PERMISSION DENIED
-              </Text>
+              <Feather name="camera-off" size={48} color="#444" />
             </View>
           )}
+
+          {/* Flip camera */}
+          <TouchableOpacity
+            style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
+            onPress={flipCamera}
+          >
+            <Feather name="refresh-cw" size={18} color="#fff" />
+          </TouchableOpacity>
 
           {/* LIVE badge + elapsed */}
           <View style={[styles.liveBadgeRow, { top: insets.top + 12 }]}>
@@ -243,9 +299,21 @@ export default function StreamScreen() {
             <Text style={styles.elapsedText}>{formatTime(elapsed)}</Text>
           </View>
 
-          {/* HUD Telemetry */}
+          {/* RTMP status (standalone) or Expo Go notice */}
+          {streamStatus ? (
+            <View style={[styles.statusBanner, { top: insets.top + 48 }]}>
+              <Text style={styles.statusText}>{streamStatus}</Text>
+            </View>
+          ) : isExpoGo ? (
+            <View style={[styles.expoGoBanner, { top: insets.top + 48 }]}>
+              <Feather name="info" size={11} color="#f5a623" />
+              <Text style={styles.expoGoText}>Video streaming requires a standalone build — community presence is live</Text>
+            </View>
+          ) : null}
+
+          {/* HUD */}
           {showHUD && (
-            <View style={[styles.hud, { top: insets.top + 48, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
+            <View style={[styles.hud, { top: insets.top + 90, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
               <Text style={[styles.hudTitle, { color: colors.accent }]}>TELEMETRY</Text>
               <Text style={[styles.hudSpeed, { color: colors.success }]}>
                 {coords.speed}<Text style={styles.hudSpeedUnit}> MPH</Text>
@@ -261,9 +329,8 @@ export default function StreamScreen() {
             </View>
           )}
 
-          {/* Bottom controls overlay */}
+          {/* End stream */}
           <View style={[styles.liveControls, { bottom: 12 }]}>
-            {/* Stop stream */}
             <TouchableOpacity
               style={[styles.stopBtn, { backgroundColor: colors.destructive }]}
               onPress={toggleStream}
@@ -275,14 +342,12 @@ export default function StreamScreen() {
           </View>
         </View>
 
-        {/* TWITCH CHAT */}
+        {/* Twitch Chat */}
         <View style={[styles.chatArea, { backgroundColor: "#18131b", borderTopColor: "#6441a5", paddingBottom: insets.bottom }]}>
           <View style={styles.chatHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <View style={[styles.twitchDot, { backgroundColor: "#6441a5" }]} />
-              <Text style={styles.chatTitle}>
-                {twitchChannel ? `${twitchChannel} — CHAT` : "TWITCH CHAT"}
-              </Text>
+              <Text style={styles.chatTitle}>{twitchChannel ? `${twitchChannel} — CHAT` : "TWITCH CHAT"}</Text>
             </View>
           </View>
           {twitchChannel ? (
@@ -303,9 +368,18 @@ export default function StreamScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* CAMERA PREVIEW */}
+      {/* Camera Preview */}
       <View style={styles.cameraArea}>
-        {cameraPermission == null ? null : !cameraPermission.granted ? (
+        {/* NodePublisher preview (standalone) */}
+        {rtmpAvailable && NodePublisher ? (
+          <NodePublisher
+            ref={publisherRef}
+            style={StyleSheet.absoluteFill}
+            cameraId={cameraId}
+            videoParam={{ cameraId, videoFrontMirror: cameraId === 1, framerate: 30, bitrate: 1500000, width: 720, height: 1280 }}
+            audioParam={{ samplerate: 44100, channel: 2, encodeBitrate: 128000 }}
+          />
+        ) : cameraPermission == null ? null : !cameraPermission.granted ? (
           <TouchableOpacity
             style={[styles.cameraPlaceholder, { backgroundColor: "#111" }]}
             onPress={requestCameraPermission}
@@ -315,18 +389,20 @@ export default function StreamScreen() {
             <Text style={[styles.cameraLabel, { color: "#555" }]}>TAP TO ENABLE CAMERA</Text>
           </TouchableOpacity>
         ) : (
-          <CameraView style={StyleSheet.absoluteFill} facing={facing}>
-            {/* Flip camera button */}
-            <TouchableOpacity
-              style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
-              onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
-            >
-              <Feather name="refresh-cw" size={18} color="#fff" />
-            </TouchableOpacity>
-          </CameraView>
+          <CameraView style={StyleSheet.absoluteFill} facing={facing} />
         )}
 
-        {/* HUD overlay (pre-stream) */}
+        {/* Flip */}
+        {(cameraPermission?.granted || rtmpAvailable) && (
+          <TouchableOpacity
+            style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
+            onPress={flipCamera}
+          >
+            <Feather name="refresh-cw" size={18} color="#fff" />
+          </TouchableOpacity>
+        )}
+
+        {/* HUD */}
         {showHUD && (
           <View style={[styles.hud, { top: insets.top + 60, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
             <Text style={[styles.hudTitle, { color: colors.accent }]}>TELEMETRY</Text>
@@ -343,6 +419,14 @@ export default function StreamScreen() {
           </View>
         )}
 
+        {/* Expo Go streaming notice */}
+        {isExpoGo && (
+          <View style={[styles.expoGoBanner, { top: insets.top + 8 }]}>
+            <Feather name="info" size={11} color="#f5a623" />
+            <Text style={styles.expoGoText}>Streaming active in standalone build — camera preview only</Text>
+          </View>
+        )}
+
         {/* ENGAGE BROADCAST */}
         <TouchableOpacity
           style={[styles.floatingStreamBtn, { backgroundColor: colors.accent }]}
@@ -354,12 +438,11 @@ export default function StreamScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SETTINGS PANEL */}
+      {/* Settings Panel */}
       <View style={[styles.settingsSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.sheetHandleRow}>
           <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
         </View>
-
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom }}
           showsVerticalScrollIndicator={false}
@@ -367,7 +450,6 @@ export default function StreamScreen() {
         >
           <Text style={[styles.panelTitle, { color: colors.foreground }]}>BROADCAST STATION</Text>
 
-          {/* Stream Title */}
           <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM TITLE</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
@@ -377,7 +459,6 @@ export default function StreamScreen() {
             onChangeText={setStreamTitle}
           />
 
-          {/* RTMP */}
           <Text style={[styles.fieldLabel, { color: colors.accent }]}>RTMP SERVER</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
@@ -389,7 +470,6 @@ export default function StreamScreen() {
             autoCorrect={false}
           />
 
-          {/* Stream Key */}
           <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM KEY</Text>
           <View style={styles.keyRow}>
             <TextInput
@@ -411,17 +491,18 @@ export default function StreamScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Copy RTMP URL */}
           <TouchableOpacity
             style={[styles.copyRtmpBtn, { borderColor: colors.border }]}
             onPress={copyRtmpUrl}
             activeOpacity={0.8}
           >
             <Feather name="copy" size={12} color={colors.mutedForeground} />
-            <Text style={[styles.copyRtmpText, { color: colors.mutedForeground }]}>COPY FULL RTMP URL → USE IN STREAMLABS / OBS</Text>
+            <Text style={[styles.copyRtmpText, { color: colors.mutedForeground }]}>
+              COPY FULL RTMP URL → USE IN STREAMLABS / OBS
+            </Text>
           </TouchableOpacity>
 
-          {/* Twitch Settings (collapsible) */}
+          {/* Twitch Settings */}
           <TouchableOpacity
             style={[styles.collapsibleHeader, { borderColor: colors.border }]}
             onPress={() => setShowTwitchSettings((v) => !v)}
@@ -445,7 +526,7 @@ export default function StreamScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.helpText, { color: colors.mutedForeground, marginTop: 4 }]}>
-                    Stream title will auto-update on Twitch when you go live. Chat is embedded below during your stream.
+                    Stream title auto-updates on Twitch when you go live. Chat is embedded during your stream.
                   </Text>
                   <TouchableOpacity
                     style={[styles.twitchDisconnectBtn, { borderColor: "#6441a5" }]}
@@ -458,12 +539,10 @@ export default function StreamScreen() {
               ) : (
                 <>
                   {twitchError ? (
-                    <Text style={[styles.helpText, { color: "#ff4444", marginBottom: 8 }]}>
-                      Error: {twitchError}
-                    </Text>
+                    <Text style={[styles.helpText, { color: "#ff4444", marginBottom: 8 }]}>Error: {twitchError}</Text>
                   ) : null}
                   <Text style={[styles.helpText, { color: colors.mutedForeground, marginBottom: 12 }]}>
-                    Connect your Twitch account to auto-update your stream title and see live chat during your broadcast.
+                    Connect your Twitch account to auto-update your stream title and see live chat.
                   </Text>
                   <TouchableOpacity
                     style={[styles.twitchConnectBtn, twitchLoading && { opacity: 0.6 }]}
@@ -528,8 +607,6 @@ export default function StreamScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
-  // Camera area
   cameraArea: { flex: 1, position: "relative" },
   cameraPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   cameraLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 2 },
@@ -540,7 +617,6 @@ const styles = StyleSheet.create({
     padding: 10,
     zIndex: 10,
   },
-
   floatingStreamBtn: {
     position: "absolute",
     bottom: 20,
@@ -558,26 +634,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-
-  settingsSheet: {
-    height: 310,
-    borderTopWidth: 2,
-  },
+  settingsSheet: { height: 310, borderTopWidth: 2 },
   sheetHandleRow: { alignItems: "center", paddingVertical: 8 },
   sheetHandle: { width: 36, height: 4, borderRadius: 2 },
-
-  // Live mode
   liveCameraArea: { flex: 1, position: "relative", backgroundColor: "#000" },
   livePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-
-  // Live badge
   liveBadgeRow: { position: "absolute", left: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   liveBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(211,47,47,0.9)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#fff" },
   liveText: { color: "#fff", fontWeight: "900", fontSize: 11, letterSpacing: 2 },
   elapsedText: { color: "#fff", fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", fontSize: 13, fontWeight: "700", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
-
-  // HUD
+  statusBanner: { position: "absolute", left: 14, right: 14, backgroundColor: "rgba(0,179,0,0.15)", borderRadius: 4, paddingHorizontal: 10, paddingVertical: 5 },
+  statusText: { color: "#00b300", fontSize: 10, fontWeight: "700", letterSpacing: 1 },
+  expoGoBanner: { position: "absolute", left: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(245,166,35,0.15)", borderRadius: 4, paddingHorizontal: 10, paddingVertical: 5 },
+  expoGoText: { color: "#f5a623", fontSize: 9, fontWeight: "700", letterSpacing: 0.5, flex: 1 },
   hud: { position: "absolute", right: 14, padding: 12, borderRadius: 6, borderWidth: 1, minWidth: 110 },
   hudTitle: { fontSize: 9, fontWeight: "900", letterSpacing: 2, marginBottom: 6 },
   hudSpeed: { fontSize: 32, fontWeight: "900", lineHeight: 36 },
@@ -585,47 +655,27 @@ const styles = StyleSheet.create({
   hudData: { fontSize: 11, fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", marginTop: 2 },
   hudAlt: { fontSize: 10, fontWeight: "700", marginTop: 4 },
   hudRig: { fontSize: 9, fontWeight: "900", letterSpacing: 1, marginTop: 4 },
-
-  // Live controls overlay
-  liveControls: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingHorizontal: 16,
-  },
+  liveControls: { position: "absolute", left: 0, right: 0, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingHorizontal: 16 },
   stopBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 4 },
   stopBtnText: { color: "#fff", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
-
-  // Twitch Chat
   chatArea: { height: 260, borderTopWidth: 2 },
   chatHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 8 },
   chatTitle: { color: "#9b59e8", fontWeight: "900", fontSize: 11, letterSpacing: 2 },
   twitchDot: { width: 8, height: 8, borderRadius: 4 },
   chatFallback: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
   chatFallbackText: { color: "#666", fontSize: 12, textAlign: "center", lineHeight: 18 },
-
-  // Settings panel
   panelTitle: { fontWeight: "900", fontSize: 14, letterSpacing: 2, marginBottom: 14 },
   fieldLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 2, marginBottom: 6 },
   input: { padding: 12, borderRadius: 4, marginBottom: 10, borderWidth: 1, fontSize: 12, fontWeight: "600" },
   row: { flexDirection: "row", gap: 8 },
   inputFlex2: { flex: 2 },
   inputFlex1: { flex: 1 },
-
-  // Stream key row
-  keyRow: { flexDirection: "row", gap: 8, marginBottom: 0, alignItems: "flex-start" },
+  keyRow: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
   keyInput: { flex: 1, marginBottom: 10 },
   saveKeyBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 4, marginBottom: 10 },
   saveKeyText: { fontWeight: "900", fontSize: 11, letterSpacing: 1, color: "#000" },
-
-  // Copy RTMP
   copyRtmpBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 4, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 12 },
   copyRtmpText: { fontSize: 9, fontWeight: "700", letterSpacing: 1.2, flex: 1 },
-
-  // Twitch collapsible
   collapsibleHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 },
   twitchBox: { borderWidth: 1, borderRadius: 4, padding: 12, marginBottom: 10 },
   helpText: { fontSize: 10, lineHeight: 15, marginTop: -4, marginBottom: 8 },
@@ -635,7 +685,6 @@ const styles = StyleSheet.create({
   twitchConnectedText: { fontWeight: "700", fontSize: 12 },
   twitchDisconnectBtn: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 12, marginTop: 8 },
   twitchDisconnectText: { color: "#9b59e8", fontWeight: "700", fontSize: 10, letterSpacing: 1 },
-
   toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
   toggleLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
   toggleText: { fontWeight: "700", fontSize: 12, letterSpacing: 1 },

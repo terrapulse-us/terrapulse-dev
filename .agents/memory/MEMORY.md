@@ -1,1 +1,6 @@
 - [Android map icon rendering](android-map-icons.md) — Feather `crosshair` renders broken on Android; use `MaterialIcons` `my-location` for GPS/locate buttons.
+- [Twitch OAuth native redirect](twitch-oauth-native.md) — must use Linking.createURL(), not hardcoded mobile:// scheme; pass as mobileRedirect param to server
+- [Firebase auth persistence](firebase-auth-persistence.md) — Platform.OS split: initializeAuth+AsyncStorage on native, getAuth on web; AsyncStorage v2 uses default export
+- [expo-camera version](expo-camera-version.md) — Expo SDK 54 requires expo-camera@~17.0.10; 16.x and 56.x cause runtime errors
+- [RTMP streaming limitation](rtmp-streaming.md) — RTMP requires native module (react-native-nodemediaclient); not available in Expo Go; detect with Constants.executionEnvironment === 'storeClient'
+- [App scheme](app-scheme.md) — scheme changed from "mobile" to "terrapulse" for App Store; Expo Go always uses exp:// regardless of scheme

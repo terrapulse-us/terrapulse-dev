@@ -227,6 +227,9 @@ importers:
       react-native-maps:
         specifier: 1.18.0
         version: 1.18.0(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-nodemediaclient:
+        specifier: ^0.3.6
+        version: 0.3.6
       react-native-webview:
         specifier: ^13.16.2
         version: 13.16.2(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -5182,6 +5185,9 @@ packages:
     peerDependenciesMeta:
       react-native-web:
         optional: true
+
+  react-native-nodemediaclient@0.3.6:
+    resolution: {integrity: sha512-MX45g/9sH/hzaHKvtA/LP6T5gaYG6+BCmrJiD73+wLlgX7W0q9obEAp3iZ3FJWvWoOSn3xfOS1OtKcuCQfe9xQ==}
 
   react-native-reanimated@4.1.7:
     resolution: {integrity: sha512-Q4H6xA3Tn7QL0/E/KjI86I1KK4tcf+ErRE04LH34Etka2oVQhW6oXQ+Q8ZcDCVxiWp5vgbBH6XcH8BOo4w/Rhg==}
@@ -11833,6 +11839,8 @@ snapshots:
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
     optionalDependencies:
       react-native-web: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+
+  react-native-nodemediaclient@0.3.6: {}
 
   react-native-reanimated@4.1.7(react-native-worklets@0.5.1(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:

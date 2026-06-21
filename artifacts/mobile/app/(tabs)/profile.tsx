@@ -16,6 +16,7 @@ import {
   Switch,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -113,6 +114,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<Section>("gallery");
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -604,6 +606,14 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
 
+      {/* FOOTER */}
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.push("/privacy")} activeOpacity={0.7}>
+          <Text style={[styles.footerLink, { color: colors.mutedForeground }]}>Privacy Policy</Text>
+        </TouchableOpacity>
+        <Text style={[styles.footerVersion, { color: colors.border }]}>TerraPulse v1.0.0</Text>
+      </View>
+
       {/* LIGHTBOX */}
       <Modal visible={!!lightboxUri} transparent animationType="fade" onRequestClose={() => setLightboxUri(null)}>
         <View style={styles.lightbox}>
@@ -781,4 +791,7 @@ const styles = StyleSheet.create({
   },
   lightboxClose: { position: "absolute", top: 50, right: 20, zIndex: 10 },
   lightboxImg: { width: "100%", height: "80%" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 10, borderTopWidth: 1 },
+  footerLink: { fontSize: 11, fontWeight: "600" },
+  footerVersion: { fontSize: 10, fontWeight: "700", letterSpacing: 1 },
 });

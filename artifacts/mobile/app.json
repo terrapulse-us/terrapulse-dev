@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "terrapulse",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -15,16 +15,23 @@
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.terrapulse.app",
       "infoPlist": {
+        "NSCameraUsageDescription": "TerraPulse uses your camera to broadcast live off-road streams.",
+        "NSMicrophoneUsageDescription": "TerraPulse uses your microphone to capture audio during live broadcasts.",
         "NSLocationWhenInUseUsageDescription": "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
         "NSPhotoLibraryUsageDescription": "TerraPulse needs photo library access to upload trail community photos."
       }
     },
     "android": {
+      "package": "com.terrapulse.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "READ_EXTERNAL_STORAGE"
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -39,6 +46,14 @@
       ],
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TerraPulse uses your camera to broadcast live off-road streams.",
+          "microphonePermission": "TerraPulse uses your microphone to capture audio during live broadcasts.",
+          "recordAudioAndroid": true
+        }
+      ],
       [
         "expo-image-picker",
         {
