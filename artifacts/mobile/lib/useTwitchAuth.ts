@@ -14,6 +14,10 @@ interface TwitchAuth {
 }
 
 function getApiBase(): string {
+  // EXPO_PUBLIC_API_URL is set in eas.json for standalone builds (points to deployed API)
+  // EXPO_PUBLIC_DOMAIN is set by the Replit dev script for local development
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (apiUrl) return apiUrl.replace(/\/$/, "");
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
   return "";
