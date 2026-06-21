@@ -307,12 +307,13 @@ export default function StreamScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* CAMERA PREVIEW */}
+      {/* CAMERA PREVIEW — takes all space above the panel */}
       <View style={styles.cameraArea}>
         <View style={[styles.cameraPlaceholder, { backgroundColor: "#000" }]}>
           <Image source={require("@/assets/icons/camera.png")} style={styles.cameraIcon} resizeMode="contain" />
           <Text style={[styles.cameraLabel, { color: colors.mutedForeground }]}>CAMERA PREVIEW</Text>
         </View>
+
         {showHUD && (
           <View style={[styles.hud, { top: insets.top + 60, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
             <Text style={[styles.hudTitle, { color: colors.accent }]}>TELEMETRY</Text>
@@ -328,154 +329,160 @@ export default function StreamScreen() {
             <Text style={[styles.hudAlt, { color: colors.mutedForeground }]}>ALT: {coords.altitude}m</Text>
           </View>
         )}
-      </View>
 
-      {/* SETTINGS PANEL */}
-      <ScrollView
-        style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}
-        contentContainerStyle={{ paddingBottom }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={[styles.panelTitle, { color: colors.foreground }]}>BROADCAST STATION</Text>
-
-        {/* Stream Title */}
-        <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM TITLE</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-          placeholder="e.g. Rubicon Run — Day 1"
-          placeholderTextColor={colors.mutedForeground}
-          value={streamTitle}
-          onChangeText={setStreamTitle}
-        />
-
-        {/* RTMP */}
-        <Text style={[styles.fieldLabel, { color: colors.accent }]}>RTMP SERVER</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-          placeholder="rtmp://live.twitch.tv/app/"
-          placeholderTextColor={colors.mutedForeground}
-          value={rtmpEndpoint}
-          onChangeText={setRtmpEndpoint}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        {/* Stream Key */}
-        <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM KEY</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-          placeholder="YOUR STREAM KEY"
-          placeholderTextColor={colors.mutedForeground}
-          secureTextEntry
-          value={streamKey}
-          onChangeText={setStreamKey}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        {/* Twitch Settings (collapsible) */}
+        {/* Floating ENGAGE BROADCAST button — bottom center of preview */}
         <TouchableOpacity
-          style={[styles.collapsibleHeader, { borderColor: colors.border }]}
-          onPress={() => setShowTwitchSettings((v) => !v)}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={[styles.twitchDot, { backgroundColor: "#6441a5" }]} />
-            <Text style={[styles.fieldLabel, { color: "#9b59e8", marginBottom: 0 }]}>TWITCH SETTINGS</Text>
-          </View>
-          <Feather name={showTwitchSettings ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
-        </TouchableOpacity>
-
-        {showTwitchSettings && (
-          <View style={[styles.twitchBox, { borderColor: "#6441a5", backgroundColor: colors.secondary }]}>
-            <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>TWITCH CHANNEL</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-              placeholder="your_channel_name"
-              placeholderTextColor={colors.mutedForeground}
-              value={twitchChannel}
-              onChangeText={setTwitchChannel}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>CLIENT ID (for title update)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-              placeholder="Twitch app Client-ID"
-              placeholderTextColor={colors.mutedForeground}
-              value={twitchClientId}
-              onChangeText={setTwitchClientId}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>OAUTH TOKEN (for title update)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-              placeholder="User access token"
-              placeholderTextColor={colors.mutedForeground}
-              secureTextEntry
-              value={twitchToken}
-              onChangeText={setTwitchToken}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-              Channel name is used for the chat embed. Client ID + OAuth token are only needed if you want the stream title auto-updated on Twitch when you go live.
-            </Text>
-          </View>
-        )}
-
-        {/* Rig Specs */}
-        <Text style={[styles.fieldLabel, { color: colors.accent, marginTop: 8 }]}>RIG SPECS</Text>
-        <View style={styles.row}>
-          <TextInput
-            style={[styles.input, styles.inputFlex2, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-            placeholder="Vehicle (e.g. Tacoma)"
-            placeholderTextColor={colors.mutedForeground}
-            value={rigModel}
-            onChangeText={setRigModel}
-          />
-          <TextInput
-            style={[styles.input, styles.inputFlex1, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-            placeholder='Tires (37")'
-            placeholderTextColor={colors.mutedForeground}
-            value={rigTires}
-            onChangeText={setRigTires}
-          />
-        </View>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-          placeholder="Lift height (e.g. 4 inch)"
-          placeholderTextColor={colors.mutedForeground}
-          value={rigLift}
-          onChangeText={setRigLift}
-        />
-
-        {/* HUD Toggle */}
-        <View style={[styles.toggleRow, { borderColor: colors.border }]}>
-          <View style={styles.toggleLabel}>
-            <Feather name="map-pin" size={14} color={colors.foreground} />
-            <Text style={[styles.toggleText, { color: colors.foreground }]}>HUD TELEMETRY OVERLAY</Text>
-          </View>
-          <Switch
-            value={showHUD}
-            onValueChange={setShowHUD}
-            thumbColor={colors.accent}
-            trackColor={{ false: colors.border, true: "#8B3000" }}
-          />
-        </View>
-
-        {/* Go Live */}
-        <TouchableOpacity
-          style={[styles.streamBtn, { backgroundColor: colors.accent }]}
+          style={[styles.floatingStreamBtn, { backgroundColor: colors.accent }]}
           onPress={toggleStream}
           activeOpacity={0.85}
         >
           <Feather name="radio" size={18} color="#000" />
           <Text style={[styles.streamBtnText, { color: "#000" }]}>ENGAGE BROADCAST</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
+
+      {/* SETTINGS PANEL — fixed height scrollable sheet */}
+      <View style={[styles.settingsSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* Drag handle */}
+        <View style={styles.sheetHandleRow}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={[styles.panelTitle, { color: colors.foreground }]}>BROADCAST STATION</Text>
+
+          {/* Stream Title */}
+          <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM TITLE</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+            placeholder="e.g. Rubicon Run — Day 1"
+            placeholderTextColor={colors.mutedForeground}
+            value={streamTitle}
+            onChangeText={setStreamTitle}
+          />
+
+          {/* RTMP */}
+          <Text style={[styles.fieldLabel, { color: colors.accent }]}>RTMP SERVER</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+            placeholder="rtmp://live.twitch.tv/app/"
+            placeholderTextColor={colors.mutedForeground}
+            value={rtmpEndpoint}
+            onChangeText={setRtmpEndpoint}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {/* Stream Key */}
+          <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM KEY</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+            placeholder="YOUR STREAM KEY"
+            placeholderTextColor={colors.mutedForeground}
+            secureTextEntry
+            value={streamKey}
+            onChangeText={setStreamKey}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {/* Twitch Settings (collapsible) */}
+          <TouchableOpacity
+            style={[styles.collapsibleHeader, { borderColor: colors.border }]}
+            onPress={() => setShowTwitchSettings((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={[styles.twitchDot, { backgroundColor: "#6441a5" }]} />
+              <Text style={[styles.fieldLabel, { color: "#9b59e8", marginBottom: 0 }]}>TWITCH SETTINGS</Text>
+            </View>
+            <Feather name={showTwitchSettings ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+          </TouchableOpacity>
+
+          {showTwitchSettings && (
+            <View style={[styles.twitchBox, { borderColor: "#6441a5", backgroundColor: colors.secondary }]}>
+              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>TWITCH CHANNEL</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
+                placeholder="your_channel_name"
+                placeholderTextColor={colors.mutedForeground}
+                value={twitchChannel}
+                onChangeText={setTwitchChannel}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>CLIENT ID (for title update)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
+                placeholder="Twitch app Client-ID"
+                placeholderTextColor={colors.mutedForeground}
+                value={twitchClientId}
+                onChangeText={setTwitchClientId}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>OAUTH TOKEN (for title update)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
+                placeholder="User access token"
+                placeholderTextColor={colors.mutedForeground}
+                secureTextEntry
+                value={twitchToken}
+                onChangeText={setTwitchToken}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+                Channel name is used for the chat embed. Client ID + OAuth token are only needed if you want the stream title auto-updated on Twitch when you go live.
+              </Text>
+            </View>
+          )}
+
+          {/* Rig Specs */}
+          <Text style={[styles.fieldLabel, { color: colors.accent, marginTop: 8 }]}>RIG SPECS</Text>
+          <View style={styles.row}>
+            <TextInput
+              style={[styles.input, styles.inputFlex2, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+              placeholder="Vehicle (e.g. Tacoma)"
+              placeholderTextColor={colors.mutedForeground}
+              value={rigModel}
+              onChangeText={setRigModel}
+            />
+            <TextInput
+              style={[styles.input, styles.inputFlex1, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+              placeholder='Tires (37")'
+              placeholderTextColor={colors.mutedForeground}
+              value={rigTires}
+              onChangeText={setRigTires}
+            />
+          </View>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
+            placeholder="Lift height (e.g. 4 inch)"
+            placeholderTextColor={colors.mutedForeground}
+            value={rigLift}
+            onChangeText={setRigLift}
+          />
+
+          {/* HUD Toggle */}
+          <View style={[styles.toggleRow, { borderColor: colors.border }]}>
+            <View style={styles.toggleLabel}>
+              <Feather name="map-pin" size={14} color={colors.foreground} />
+              <Text style={[styles.toggleText, { color: colors.foreground }]}>HUD TELEMETRY OVERLAY</Text>
+            </View>
+            <Switch
+              value={showHUD}
+              onValueChange={setShowHUD}
+              thumbColor={colors.accent}
+              trackColor={{ false: colors.border, true: "#8B3000" }}
+            />
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -484,9 +491,32 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   // Pre-stream
-  cameraArea: { height: 180, position: "relative" },
+  cameraArea: { flex: 1, position: "relative" },
   cameraPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   cameraLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 2 },
+  floatingStreamBtn: {
+    position: "absolute",
+    bottom: 20,
+    left: 40,
+    right: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 16,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  settingsSheet: {
+    height: 280,
+    borderTopWidth: 2,
+  },
+  sheetHandleRow: { alignItems: "center", paddingVertical: 8 },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2 },
 
   // Live mode
   liveCameraArea: { flex: 1, position: "relative", backgroundColor: "#000" },
@@ -545,7 +575,6 @@ const styles = StyleSheet.create({
   chatFallbackText: { color: "#666", fontSize: 12, textAlign: "center", lineHeight: 18 },
 
   // Settings panel
-  panel: { flex: 1, borderTopWidth: 2, paddingHorizontal: 20, paddingTop: 16 },
   panelTitle: { fontWeight: "900", fontSize: 14, letterSpacing: 2, marginBottom: 14 },
   fieldLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 2, marginBottom: 6 },
   input: { padding: 12, borderRadius: 4, marginBottom: 10, borderWidth: 1, fontSize: 12, fontWeight: "600" },
