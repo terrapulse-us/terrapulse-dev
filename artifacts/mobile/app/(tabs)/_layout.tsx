@@ -76,7 +76,7 @@ export default function TabLayout() {
         name="leaderboard"
         options={{
           title: "RANKS",
-          tabBarIcon: ({ color }) => <Feather name="award" size={28} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="award" size={34} color={color} />,
         }}
       />
       <Tabs.Screen
