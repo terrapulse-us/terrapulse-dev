@@ -1,0 +1,423 @@
+Dependency Installation
+Run the following commands in your project root to install the necessary native modules:
+
+Bash
+# Core Navigation & UI
+npm install @react-navigation/native @react-navigation/stack react-native-gesture-handler react-native-reanimated react-native-screens react-native-vector-icons
+
+# Firebase Integration
+npm install @react-native-firebase/app @react-native-firebase/auth @react-native-firebase/firestore @react-native-firebase/storage
+
+# Maps & Location Tracking
+npm install react-native-maps react-native-geolocation-service
+
+# RTMP Streaming & Image Picking
+npm install react-native-nodemediaclient react-native-image-picker
+Essential Android Configurations
+Add these permissions to your android/app/src/main/AndroidManifest.xml inside the <manifest> tag:
+
+XML
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+🎨 2. App Theme Styling (Edgy Dark-Mode)
+Create a file at src/styles/theme.js to handle the aesthetics (Neon Orange, Dark Charcoal, Off-White, aggressively styled buttons).
+
+JavaScript
+// src/styles/theme.js
+export const Colors = {
+  background: '#121212', // Deep Matte Black
+  surface: '#1E1E1E',    // Dark Charcoal Carbon
+  accent: '#FF5500',     // High-Vis Offroad Orange
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A0A0A0',
+  border: '#333333',
+  success: '#00E676',
+};
+
+export const Typography = {
+  fontFamily: 'sans-serif-condensed',
+  heading: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: 1.5 },
+  body: { fontSize: 14, color: '#A0A0A0' },
+};
+💻 3. Complete Source Code Files
+Entry Point (App.js)
+Handles Firebase initialization verification and global authentication routing status.
+
+JavaScript
+// App.js
+import React, { useState, useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import auth from '@react-native-firebase/auth';
+
+import LoginScreen from './src/screens/LoginScreen';
+import MapScreen from './src/screens/MapScreen';
+import StreamScreen from './src/screens/StreamScreen';
+
+const Stack = createStackNavigator();
+
+export default function App() {
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const subscriber = auth().onAuthStateChanged((userState) => {
+      setUser(userState);
+      if (initializing) setInitializing(false);
+    });
+    return subscriber;
+  }, [initializing]);
+
+  if (initializing) return null;
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!user ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="Map" component={MapScreen} />
+            <Stack.Screen name="Stream" component={StreamScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+Authentication Screen (LoginScreen.js)
+JavaScript
+// src/screens/LoginScreen.js
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
+import auth from '@react-native-firebase/auth';
+import { Colors, Typography } from '../styles/theme';
+
+export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleAuth = async (type) => {
+    if (!email || !password) return Alert.alert('Error', 'Fill out all fields!');
+    try {
+      if (type === 'login') {
+        await auth().signInWithEmailAndPassword(email, password);
+      } else {
+        await auth().createUserWithEmailAndPassword(email, password);
+      }
+    } catch (error) {
+      Alert.alert('Auth Failed', error.message);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={Typography.heading}>CA OFFROAD <Text style={{ color: Colors.accent }}>HQ</Text></Text>
+      <Text style={styles.subtitle}>LOCK IN TO DISCOVER TRAILS</Text>
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="EMAIL ADDRESS" 
+        placeholderTextColor={Colors.textSecondary}
+        value={email} onChangeText={setEmail} autoCapitalize="none"
+      />
+      <TextInput 
+        style={styles.input} 
+        placeholder="PASSWORD" 
+        placeholderTextColor={Colors.textSecondary} 
+        secureTextEntry 
+        value={password} onChangeText={setPassword}
+      />
+
+      <TouchableOpacity style={styles.btnAccent} onPress={() => handleAuth('login')}>
+        <Text style={styles.btnText}>LOG IN</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.btnSecondary} onPress={() => handleAuth('register')}>
+        <Text style={[styles.btnText, { color: Colors.textPrimary }]}>CREATE ACCOUNT</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', padding: 30 },
+  subtitle: { color: Colors.textSecondary, letterSpacing: 2, marginBottom: 40, marginTop: 5, fontSize: 12 },
+  input: { backgroundColor: Colors.surface, color: '#FFF', padding: 15, borderRadius: 4, marginBottom: 15, borderWidth: 1, borderColor: Colors.border, fontFamily: 'sans-serif-medium' },
+  btnAccent: { backgroundColor: Colors.accent, padding: 16, borderRadius: 4, alignItems: 'center', marginBottom: 12 },
+  btnSecondary: { backgroundColor: 'transparent', padding: 16, borderRadius: 4, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
+  btnText: { fontWeight: '900', letterSpacing: 1.5, color: '#000' }
+});
+Maps & Trails Screen (MapScreen.js)
+This screen maps mock California OHV data points embedded with your requested custom metrics (difficulty, vehicle limits, suspension guidelines).
+
+JavaScript
+// src/screens/MapScreen.js
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Modal, Image } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import firestore from '@react-native-firebase/firestore';
+import { launchImageLibrary } from 'react-native-image-picker';
+import storage from '@react-native-firebase/storage';
+import auth from '@react-native-firebase/auth';
+import { Colors, Typography } from '../styles/theme';
+
+// Pre-populated California Trails Mock Data
+const CA_TRAILS = [
+  { id: '1', title: 'Rubicon Trail', coords: { latitude: 39.0041, longitude: -120.3122 }, difficulty: '10/10 Hardcore', size: 'Jeep/Short Wheelbase', suspension: '3-4" Lift + Lockers' },
+  { id: '2', title: 'Hungry Valley SVRA', coords: { latitude: 34.7578, longitude: -118.8788 }, difficulty: '4/10 Moderate', size: 'All Sizes / Side-by-Side', suspension: 'Stock Friendly' },
+  { id: '3', title: 'Johnson Valley (Hammertown)', coords: { latitude: 34.4214, longitude: -116.6833 }, difficulty: '9/10 Extreme', size: 'Full Size / Rock Crawlers', suspension: 'Long Travel Required' },
+];
+
+export default function MapScreen({ navigation }) {
+  const [selectedTrail, setSelectedTrail] = useState(null);
+  const [galleryPhotos, setGalleryPhotos] = useState([]);
+
+  useEffect(() => {
+    if (selectedTrail) {
+      const unsub = firestore().collection('trails').doc(selectedTrail.id).collection('photos')
+        .onSnapshot(snap => {
+          const photos = [];
+          snap?.forEach(doc => photos.push(doc.data()));
+          setGalleryPhotos(photos);
+        });
+      return unsub;
+    }
+  }, [selectedTrail]);
+
+  const uploadPhoto = async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
+    if (result.assets && selectedTrail) {
+      const sourceUri = result.assets[0].uri;
+      const filename = `${Date.now()}_${auth().currentUser.uid}.jpg`;
+      const reference = storage().ref(`trails/${selectedTrail.id}/${filename}`);
+      
+      await reference.putFile(sourceUri);
+      const downloadURL = await reference.getDownloadURL();
+
+      await firestore().collection('trails').doc(selectedTrail.id).collection('photos').add({
+        url: downloadURL,
+        uploadedBy: auth().currentUser.uid,
+        createdAt: firestore.FieldValue.serverTimestamp()
+      });
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <MapView 
+        provider={PROVIDER_GOOGLE} 
+        style={styles.map} 
+        initialRegion={{ latitude: 36.7783, longitude: -119.4179, latitudeDelta: 6.0, longitudeDelta: 6.0 }}
+        customMapStyle={darkMapStyle}
+      >
+        {CA_TRAILS.map(trail => (
+          <Marker key={trail.id} coordinate={trail.coords} pinColor={Colors.accent} onPress={() => setSelectedTrail(trail)} />
+        ))}
+      </MapView>
+
+      <TouchableOpacity style={styles.floatingLiveBtn} onPress={() => navigation.navigate('Stream')}>
+        <Text style={styles.liveBtnText}>⚡ GO LIVE PANEL</Text>
+      </TouchableOpacity>
+
+      {selectedTrail && (
+        <Modal animationType="slide" transparent={true} visible={!!selectedTrail}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalContent}>
+              <Text style={Typography.heading}>{selectedTrail.title.toUpperCase()}</Text>
+              <Text style={styles.specText}>⚠️ DIFFICULTY: <Text style={styles.highlight}>{selectedTrail.difficulty}</Text></Text>
+              <Text style={styles.specText}>🚘 VEHICLE SIZE: <Text style={styles.highlight}>{selectedTrail.size}</Text></Text>
+              <Text style={styles.specText}>🔧 SUSPENSION: <Text style={styles.highlight}>{selectedTrail.suspension}</Text></Text>
+              
+              <Text style={[Typography.heading, { fontSize: 16, marginTop: 15 }]}>COMMUNITY PICS</Text>
+              <ScrollView horizontal style={styles.gallery}>
+                {galleryPhotos.map((p, i) => <Image key={i} source={{ uri: p.url }} style={styles.img} />)}
+              </ScrollView>
+
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity style={styles.uploadBtn} onPress={uploadPhoto}><Text style={styles.btnTxt}>ADD PIC</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedTrail(null)}><Text style={styles.btnTxt}>CLOSE</Text></TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  map: { flex: 1 },
+  floatingLiveBtn: { position: 'absolute', bottom: 30, left: 20, right: 20, backgroundColor: Colors.accent, padding: 16, alignItems: 'center', borderRadius: 4, elevation: 8 },
+  liveBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1.5 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.surface, padding: 25, borderTopLeftRadius: 12, borderTopRightRadius: 12, borderTopWidth: 2, borderColor: Colors.accent },
+  specText: { color: Colors.textSecondary, marginTop: 6, fontWeight: 'bold' },
+  highlight: { color: '#FFF' },
+  gallery: { flexDirection: 'row', marginVertical: 12 },
+  img: { width: 100, height: 100, marginRight: 10, borderRadius: 4, borderWidth: 1, borderColor: Colors.border },
+  modalActionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
+  uploadBtn: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.textSecondary, padding: 12, width: '48%', alignItems: 'center' },
+  closeBtn: { backgroundColor: Colors.accent, padding: 12, width: '48%', alignItems: 'center' },
+  btnTxt: { fontWeight: '900', color: '#FFF' }
+});
+
+const darkMapStyle = [{"elementType":"geometry","stylers":[{"color":"#212121"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#212121"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},{"featureType":"road","elementType":"geometry.fill","stylers":[{"color":"#2c2c2c"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"}]}];
+Stream & GPS HUD Overlay Screen (StreamScreen.js)
+This component maps continuous high-accuracy live GPS telemetry coordinates onto a floating visual UI layer that layers directly above the active camera preview frame.
+
+JavaScript
+// src/screens/StreamScreen.js
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, Switch, ScrollView } from 'react-native';
+import { NodePublisherView } from 'react-native-nodemediaclient';
+import Geolocation from 'react-native-geolocation-service';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { Colors, Typography } from '../styles/theme';
+
+export default function StreamScreen({ navigation }) {
+  const publisherRef = useRef(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  
+  // Custom Rig Specifications Setup
+  const [streamKey, setStreamKey] = useState('');
+  const [rtmpEndpoint, setRtmpEndpoint] = useState('rtmp://live.twitch.tv/app/'); // Fallback default
+  const [rigSpecs, setRigSpecs] = useState({ model: '', tireSize: '', lift: '' });
+  const [showGPSOverlay, setShowGPSOverlay] = useState(true);
+  const [coords, setCoords] = useState({ latitude: 0, longitude: 0, speed: 0 });
+
+  // Stream-Time Telemetry Tracking Loop
+  useEffect(() => {
+    let watchId = null;
+    if (showGPSOverlay) {
+      watchId = Geolocation.watchPosition(
+        (position) => {
+          setCoords({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            speed: Math.max(0, Math.round(position.coords.speed * 2.23694)) // Convert m/s to MPH
+          });
+        },
+        (err) => console.log(err),
+        { enableHighAccuracy: true, distanceFilter: 1, interval: 1000 }
+      );
+    }
+    return () => watchId && Geolocation.clearWatch(watchId);
+  }, [showGPSOverlay]);
+
+  const togglePublishing = async () => {
+    if (isStreaming) {
+      publisherRef.current?.stop();
+      setIsStreaming(false);
+      await firestore().collection('live_streams').doc(auth().currentUser.uid).delete();
+    } else {
+      if (!streamKey) return alert('Enter Stream Key!');
+      
+      // Save metadata configurations back to Firebase
+      await firestore().collection('live_streams').doc(auth().currentUser.uid).set({
+        streamer: auth().currentUser.email,
+        rig: rigSpecs,
+        location: coords,
+        active: true
+      });
+
+      publisherRef.current?.start();
+      setIsStreaming(false); // Simulate status toggle update safely
+      setIsStreaming(true);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <NodePublisherView
+        style={styles.cameraPreview}
+        ref={publisherRef}
+        outputUrl={`${rtmpEndpoint}${streamKey}`}
+        camera={{ cameraId: 0, cameraFrontMirror: false }} // Back Camera
+        audio={{ bitrate: 64000, profile: 1 }}
+        video={{ fps: 30, bitrate: 1200000, profile: 1, videoFrontMirror: false }}
+        autopreview={true}
+      />
+
+      {/* OVERLAY MAP TELEMETRY LAYER */}
+      {showGPSOverlay && (
+        <View style={styles.hudOverlay}>
+          <Text style={styles.hudTitle}>Telemetry HUD</Text>
+          <Text style={styles.hudData}>LAT: {coords.latitude.toFixed(4)}</Text>
+          <Text style={styles.hudData}>LNG: {coords.longitude.toFixed(4)}</Text>
+          <Text style={styles.hudSpeed}>{coords.speed} <Text style={{ fontSize: 12 }}>MPH</Text></Text>
+          {rigSpecs.model ? <Text style={styles.hudRig}>{rigSpecs.model.toUpperCase()}</Text> : null}
+        </View>
+      )}
+
+      {/* DASHBOARD CONFIGURATION COMPONENT PANEL */}
+      <ScrollView style={styles.controlPanel}>
+        <Text style={Typography.heading}>BROADCAST STATION</Text>
+        
+        <TextInput 
+          style={styles.input} placeholder="RTMP SERVER INGEST URL" placeholderTextColor="#666" 
+          value={rtmpEndpoint} onChangeText={setRtmpEndpoint}
+        />
+        <TextInput 
+          style={styles.input} placeholder="STREAM KEY (TWITCH/YOUTUBE)" placeholderTextColor="#666" secureTextEntry
+          value={streamKey} onChangeText={setStreamKey}
+        />
+
+        <Text style={styles.sectionTitle}>RIG CUSTOM OVERLAY SETTINGS</Text>
+        <View style={styles.row}>
+          <TextInput style={[styles.input, { flex: 2, marginRight: 5 }]} placeholder="Rig Model (e.g Tacoma)" placeholderTextColor="#666" value={rigSpecs.model} onChangeText={t => setRigSpecs({...rigSpecs, model: t})} />
+          <TextInput style={[styles.input, { flex: 1 }]} placeholder="Tires" placeholderTextColor="#666" value={rigSpecs.tireSize} onChangeText={t => setRigSpecs({...rigSpecs, tireSize: t})} />
+        </View>
+
+        <View style={styles.rowContainer}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold' }}>HUD TELEMETRY OVERLAY</Text>
+          <Switch value={showGPSOverlay} onValueChange={setShowGPSOverlay} thumbColor={Colors.accent} trackColor={{ false: '#222', true: '#444' }} />
+        </View>
+
+        <TouchableOpacity style={[styles.streamBtn, isStreaming && styles.btnStop]} onPress={togglePublishing}>
+          <Text style={styles.streamBtnText}>{isStreaming ? 'STOP STREAM' : 'ENGAGE BROADCAST'}</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={{ color: Colors.textSecondary, fontWeight: 'bold' }}>✕ BACK TO MAP</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  cameraPreview: { flex: 1 },
+  hudOverlay: { position: 'absolute', top: 40, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', padding: 15, borderRadius: 4, borderWidth: 1, borderColor: Colors.accent },
+  hudTitle: { color: Colors.accent, fontWeight: '900', fontSize: 10, letterSpacing: 1, marginBottom: 4 },
+  hudData: { color: '#FFF', fontSize: 11, fontFamily: 'monospace' },
+  hudSpeed: { color: Colors.success, fontSize: 28, fontWeight: '900', marginTop: 5 },
+  hudRig: { color: '#AAA', fontSize: 10, fontWeight: 'bold', marginTop: 2 },
+  controlPanel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(18,18,18,0.95)', padding: 20, borderTopWidth: 2, borderColor: Colors.border, maxHeight: '50%' },
+  input: { backgroundColor: '#252525', color: '#FFF', padding: 12, borderRadius: 4, marginBottom: 10, borderWidth: 1, borderColor: '#444', fontSize: 12 },
+  sectionTitle: { color: Colors.accent, fontSize: 11, fontWeight: '900', marginVertical: 8, letterSpacing: 1 },
+  row: { flexDirection: 'row' },
+  rowContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
+  streamBtn: { backgroundColor: Colors.accent, padding: 15, borderRadius: 4, alignItems: 'center', marginTop: 10 },
+  btnStop: { backgroundColor: '#D32F2F' },
+  streamBtnText: { color: '#FFF', fontWeight: '900', letterSpacing: 1.5 },
+  backBtn: { alignItems: 'center', padding: 15 }
+});
+🛠️ 4. Quick Implementation & Launch Guide
+Initialize Project: Create your foundation with npx react-native init OffroadApp. Replace the respective configuration scripts and component files inside a newly made src/ folder structure matching the layout above.
+
+Firebase Connection: Visit the Firebase Console, spin up an Android App target project, register your native Android package namespace ID (com.offroadapp), and download the generated google-services.json file. Direct drop this file straight inside your local workspace directory path at android/app/.
+
+Run Environment Compile Execution: Boot up an emulator instance or attach an active hardware developer device via USB debug routing. Fire off your terminal execution setup sequence to launch and verify your build compilation live onto the device:
+
+Bash
+npx react-native run-android
+This video on React Native Geolocation Tracking offers a step-by-step walkthrough on setting up and utilizing location hooks and permissions efficiently within standard React Native map interfaces.
