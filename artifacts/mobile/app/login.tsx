@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+"use no memo";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,19 +13,26 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { login, register } = useAuth();
+  const { user, login, register } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      router.replace("/(tabs)/map");
+    }
+  }, [user]);
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
