@@ -25,6 +25,9 @@ import {
   setDoc,
   onSnapshot,
   collection,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import {
   ref,
@@ -60,6 +63,17 @@ interface Achievement {
   icon: string;
   unlockedAt?: number;
   unlocked: boolean;
+}
+
+interface RideRecord {
+  id: string;
+  startedAt: number;
+  endedAt: number;
+  durationSecs: number;
+  distanceMiles: number;
+  topSpeedMph: number;
+  avgSpeedMph: number;
+  elevationGainFt: number;
 }
 
 const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = [
@@ -107,7 +121,16 @@ const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = [
   { id: "trail_plumas",         title: "Sierra Norte Shredder",  description: "Shred Plumas Eureka OHV trails",            icon: "triangle" },
 ];
 
-const SECTIONS = ["gallery", "specs", "achievements"] as const;
+function formatDuration(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+const SECTIONS = ["gallery", "specs", "achievements", "rides"] as const;
 type Section = typeof SECTIONS[number];
 
 export default function ProfileScreen() {
@@ -124,6 +147,7 @@ export default function ProfileScreen() {
   const [savingSpecs, setSavingSpecs] = useState(false);
   const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [rides, setRides] = useState<RideRecord[]>([]);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
@@ -150,6 +174,21 @@ export default function ProfileScreen() {
         unlockedAt: data.achievementDates?.[a.id],
       }));
       setAchievements(mapped);
+    });
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const ridesQuery = query(
+      collection(db, "users", user.uid, "rides"),
+      orderBy("startedAt", "desc"),
+      limit(50)
+    );
+    const unsub = onSnapshot(ridesQuery, (snap) => {
+      const items: RideRecord[] = [];
+      snap.forEach((d) => items.push({ id: d.id, ...d.data() } as RideRecord));
+      setRides(items);
     });
     return unsub;
   }, [user]);
@@ -375,7 +414,7 @@ export default function ProfileScreen() {
             {user?.email ?? ""}
           </Text>
           <Text style={[styles.statsText, { color: colors.mutedForeground }]}>
-            {media.length} PHOTOS · {unlockedCount}/{ALL_ACHIEVEMENTS.length} BADGES
+            {media.length} PHOTOS · {unlockedCount}/{ALL_ACHIEVEMENTS.length} BADGES · {rides.length} RIDES
           </Text>
         </View>
 
@@ -424,7 +463,7 @@ export default function ProfileScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Feather
-              name={s === "gallery" ? "image" : s === "specs" ? "truck" : "award"}
+              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : "award"}
               size={16}
               color={activeSection === s ? colors.accent : colors.mutedForeground}
             />
@@ -603,6 +642,77 @@ export default function ProfileScreen() {
               )}
             </View>
           ))}
+        </ScrollView>
+      )}
+
+      {/* MY RIDES */}
+      {activeSection === "rides" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.ridesContainer, { paddingBottom: insets.bottom + 20 }]}
+        >
+          {rides.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="activity" size={40} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No rides yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Tap RECORD on the map to log your first ride
+              </Text>
+            </View>
+          ) : (
+            rides.map((ride) => (
+              <View key={ride.id} style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.rideCardHeader}>
+                  <View style={[styles.rideIconWrap, { backgroundColor: colors.accent + "22" }]}>
+                    <Feather name="activity" size={18} color={colors.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rideDate, { color: colors.foreground }]}>
+                      {new Date(ride.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                    </Text>
+                    <Text style={[styles.rideTime, { color: colors.mutedForeground }]}>
+                      {new Date(ride.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    </Text>
+                  </View>
+                  <View style={[styles.rideDurationBadge, { backgroundColor: colors.secondary }]}>
+                    <Text style={[styles.rideDurationText, { color: colors.mutedForeground }]}>
+                      {formatDuration(ride.durationSecs)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={[styles.rideStatsRow, { borderTopColor: colors.border }]}>
+                  <View style={styles.rideStat}>
+                    <Text style={[styles.rideStatValue, { color: colors.foreground }]}>
+                      {ride.distanceMiles.toFixed(2)}
+                    </Text>
+                    <Text style={[styles.rideStatLabel, { color: colors.mutedForeground }]}>MILES</Text>
+                  </View>
+                  <View style={[styles.rideStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.rideStat}>
+                    <Text style={[styles.rideStatValue, { color: colors.foreground }]}>
+                      {ride.topSpeedMph.toFixed(1)}
+                    </Text>
+                    <Text style={[styles.rideStatLabel, { color: colors.mutedForeground }]}>TOP MPH</Text>
+                  </View>
+                  <View style={[styles.rideStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.rideStat}>
+                    <Text style={[styles.rideStatValue, { color: colors.foreground }]}>
+                      {ride.avgSpeedMph.toFixed(1)}
+                    </Text>
+                    <Text style={[styles.rideStatLabel, { color: colors.mutedForeground }]}>AVG MPH</Text>
+                  </View>
+                  <View style={[styles.rideStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.rideStat}>
+                    <Text style={[styles.rideStatValue, { color: colors.foreground }]}>
+                      +{ride.elevationGainFt}
+                    </Text>
+                    <Text style={[styles.rideStatLabel, { color: colors.mutedForeground }]}>ELEV FT</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
         </ScrollView>
       )}
 
@@ -794,4 +904,33 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 10, borderTopWidth: 1 },
   footerLink: { fontSize: 11, fontWeight: "600" },
   footerVersion: { fontSize: 10, fontWeight: "700", letterSpacing: 1 },
+  // ── Rides ──────────────────────────────────────────────────────────────────
+  ridesContainer: { padding: 14, gap: 12 },
+  rideCard: { borderRadius: 10, borderWidth: 1, overflow: "hidden" },
+  rideCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+  },
+  rideIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rideDate: { fontWeight: "900", fontSize: 13 },
+  rideTime: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+  rideDurationBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  rideDurationText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
+  rideStatsRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    paddingVertical: 12,
+  },
+  rideStat: { flex: 1, alignItems: "center" },
+  rideStatValue: { fontSize: 17, fontWeight: "900" },
+  rideStatLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
+  rideStatDivider: { width: 1 },
 });

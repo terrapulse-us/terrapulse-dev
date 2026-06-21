@@ -1,3 +1,4 @@
+"use no memo";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
@@ -13,7 +14,6 @@ import {
   FlatList,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-// react-native-maps is native-only; web preview shows a fallback
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -36,17 +36,7 @@ import { db, storage } from "@/lib/firebase";
 import { markTrailComplete } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-
-interface Trail {
-  id: string;
-  title: string;
-  coords: { latitude: number; longitude: number };
-  difficulty: string;
-  difficultyRating: number;
-  size: string;
-  suspension: string;
-  region: string;
-}
+import { ALL_TRAILS, US_STATES, STATE_NAMES, getTrailsByState, type Trail } from "@/lib/trails";
 
 interface TrailPhoto {
   url: string;
@@ -54,298 +44,50 @@ interface TrailPhoto {
   createdAt: unknown;
 }
 
-const CA_TRAILS: Trail[] = [
-  {
-    id: "1",
-    title: "Rubicon Trail",
-    coords: { latitude: 39.0041, longitude: -120.3122 },
-    difficulty: "10/10 Hardcore",
-    difficultyRating: 10,
-    size: "Jeep / Short Wheelbase",
-    suspension: "3-4\" Lift + Lockers",
-    region: "El Dorado County",
-  },
-  {
-    id: "2",
-    title: "Hungry Valley SVRA",
-    coords: { latitude: 34.7578, longitude: -118.8788 },
-    difficulty: "4/10 Moderate",
-    difficultyRating: 4,
-    size: "All Sizes / Side-by-Side",
-    suspension: "Stock Friendly",
-    region: "Los Angeles County",
-  },
-  {
-    id: "3",
-    title: "Johnson Valley (King of the Hammers)",
-    coords: { latitude: 34.4214, longitude: -116.6833 },
-    difficulty: "9/10 Extreme",
-    difficultyRating: 9,
-    size: "Full Size / Rock Crawlers",
-    suspension: "Long Travel Required",
-    region: "San Bernardino County",
-  },
-  {
-    id: "4",
-    title: "Big Bear OHV Trails",
-    coords: { latitude: 34.2439, longitude: -116.8824 },
-    difficulty: "6/10 Challenging",
-    difficultyRating: 6,
-    size: "Mid-Size & Larger",
-    suspension: "2\" Lift Recommended",
-    region: "San Bernardino County",
-  },
-  {
-    id: "5",
-    title: "Ocotillo Wells SVRA",
-    coords: { latitude: 33.1536, longitude: -116.1334 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes",
-    suspension: "Stock OK",
-    region: "San Diego County",
-  },
-  {
-    id: "6",
-    title: "Fordyce Lake Trail",
-    coords: { latitude: 39.3697, longitude: -120.5125 },
-    difficulty: "8/10 Very Hard",
-    difficultyRating: 8,
-    size: "Jeep / Short Wheelbase",
-    suspension: "3\" Lift + Skid Plates",
-    region: "Nevada County",
-  },
-  {
-    id: "7",
-    title: "Hollister Hills SVRA",
-    coords: { latitude: 36.8341, longitude: -121.3974 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes / Dirt Bikes",
-    suspension: "Stock OK",
-    region: "San Benito County",
-  },
-  {
-    id: "8",
-    title: "Oceano Dunes SVRA (Pismo)",
-    coords: { latitude: 35.0997, longitude: -120.6318 },
-    difficulty: "3/10 Beginner",
-    difficultyRating: 3,
-    size: "All Sizes / ATVs",
-    suspension: "Stock Friendly",
-    region: "San Luis Obispo County",
-  },
-  {
-    id: "9",
-    title: "Dumont Dunes OHV",
-    coords: { latitude: 35.6658, longitude: -116.2279 },
-    difficulty: "4/10 Moderate",
-    difficultyRating: 4,
-    size: "All Sizes / Sand Vehicles",
-    suspension: "Stock OK",
-    region: "San Bernardino County",
-  },
-  {
-    id: "10",
-    title: "Stoddard Valley OHV",
-    coords: { latitude: 34.5836, longitude: -117.0753 },
-    difficulty: "6/10 Challenging",
-    difficultyRating: 6,
-    size: "Mid-Size & Larger",
-    suspension: "2\" Lift Recommended",
-    region: "San Bernardino County",
-  },
-  {
-    id: "11",
-    title: "Dove Springs OHV (Jawbone)",
-    coords: { latitude: 35.2677, longitude: -118.0355 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes",
-    suspension: "Stock OK",
-    region: "Kern County",
-  },
-  {
-    id: "12",
-    title: "Carnegie SVRA",
-    coords: { latitude: 37.6777, longitude: -121.6130 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes / Dirt Bikes",
-    suspension: "Stock OK",
-    region: "Alameda County",
-  },
-  {
-    id: "13",
-    title: "Prairie City SVRA",
-    coords: { latitude: 38.6221, longitude: -121.2046 },
-    difficulty: "3/10 Beginner",
-    difficultyRating: 3,
-    size: "All Sizes / ATVs",
-    suspension: "Stock Friendly",
-    region: "Sacramento County",
-  },
-  {
-    id: "14",
-    title: "El Mirage OHV",
-    coords: { latitude: 34.6436, longitude: -117.5847 },
-    difficulty: "2/10 Easy",
-    difficultyRating: 2,
-    size: "All Sizes",
-    suspension: "Stock Friendly",
-    region: "San Bernardino County",
-  },
-  {
-    id: "15",
-    title: "Ballinger Canyon OHV",
-    coords: { latitude: 34.8658, longitude: -119.7561 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes",
-    suspension: "Stock OK",
-    region: "Santa Barbara County",
-  },
-  {
-    id: "16",
-    title: "Rowher Flats OHV",
-    coords: { latitude: 34.4522, longitude: -118.4736 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "All Sizes / Dirt Bikes",
-    suspension: "Stock OK",
-    region: "Los Angeles County",
-  },
-  {
-    id: "17",
-    title: "Corral Canyon OHV",
-    coords: { latitude: 32.9783, longitude: -116.6039 },
-    difficulty: "7/10 Hard",
-    difficultyRating: 7,
-    size: "Mid-Size & Larger",
-    suspension: "2-3\" Lift",
-    region: "San Diego County",
-  },
-  {
-    id: "18",
-    title: "Cleghorn Ridge OHV",
-    coords: { latitude: 34.3319, longitude: -117.4081 },
-    difficulty: "7/10 Hard",
-    difficultyRating: 7,
-    size: "Mid-Size & Larger",
-    suspension: "3\" Lift Recommended",
-    region: "San Bernardino County",
-  },
-  {
-    id: "19",
-    title: "Saline Valley Road",
-    coords: { latitude: 36.7455, longitude: -117.7697 },
-    difficulty: "4/10 Moderate",
-    difficultyRating: 4,
-    size: "High Clearance",
-    suspension: "Stock w/ Clearance",
-    region: "Inyo County",
-  },
-  {
-    id: "20",
-    title: "Mojave Road",
-    coords: { latitude: 34.9747, longitude: -116.6303 },
-    difficulty: "4/10 Moderate",
-    difficultyRating: 4,
-    size: "High Clearance",
-    suspension: "Stock w/ Clearance",
-    region: "San Bernardino County",
-  },
-  {
-    id: "21",
-    title: "Mammoth Bar OHV",
-    coords: { latitude: 39.0069, longitude: -120.9533 },
-    difficulty: "6/10 Challenging",
-    difficultyRating: 6,
-    size: "Mid-Size & Larger",
-    suspension: "2\" Lift Recommended",
-    region: "El Dorado County",
-  },
-  {
-    id: "22",
-    title: "Alamo Mountain OHV",
-    coords: { latitude: 34.6983, longitude: -118.9192 },
-    difficulty: "6/10 Challenging",
-    difficultyRating: 6,
-    size: "High Clearance",
-    suspension: "2\" Lift Recommended",
-    region: "Los Angeles / Ventura County",
-  },
-  {
-    id: "23",
-    title: "Surprise Canyon (Panamint)",
-    coords: { latitude: 36.1783, longitude: -117.2461 },
-    difficulty: "8/10 Very Hard",
-    difficultyRating: 8,
-    size: "Jeep / Short Wheelbase",
-    suspension: "3\" Lift + Lockers",
-    region: "Inyo County",
-  },
-  {
-    id: "24",
-    title: "Picacho State Recreation Area",
-    coords: { latitude: 32.9397, longitude: -114.6247 },
-    difficulty: "3/10 Beginner",
-    difficultyRating: 3,
-    size: "All Sizes",
-    suspension: "Stock Friendly",
-    region: "Imperial County",
-  },
-  {
-    id: "25",
-    title: "Randsburg OHV",
-    coords: { latitude: 35.3683, longitude: -117.6503 },
-    difficulty: "4/10 Moderate",
-    difficultyRating: 4,
-    size: "All Sizes / ATVs",
-    suspension: "Stock OK",
-    region: "Kern County",
-  },
-  {
-    id: "26",
-    title: "Bodie Hills OHV",
-    coords: { latitude: 38.2128, longitude: -119.0061 },
-    difficulty: "5/10 Moderate",
-    difficultyRating: 5,
-    size: "High Clearance",
-    suspension: "Stock w/ Clearance",
-    region: "Mono County",
-  },
-  {
-    id: "27",
-    title: "Plumas Eureka OHV Trails",
-    coords: { latitude: 39.7519, longitude: -120.7058 },
-    difficulty: "6/10 Challenging",
-    difficultyRating: 6,
-    size: "Mid-Size & Larger",
-    suspension: "2\" Lift Recommended",
-    region: "Plumas County",
-  },
-];
+interface RidePoint {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  speed: number;
+  timestamp: number;
+}
+
+// ── Haversine distance in miles ───────────────────────────────────────────────
+function distanceMiles(a: RidePoint, b: RidePoint): number {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.latitude * Math.PI) / 180) *
+      Math.cos((b.latitude * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+function mpsToMph(mps: number): number {
+  return mps * 2.23694;
+}
+
+function metersToFeet(m: number): number {
+  return m * 3.28084;
+}
+
+function formatElapsed(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 function DifficultyBar({ rating }: { rating: number }) {
   const colors = useColors();
-  const color =
-    rating <= 3
-      ? colors.success
-      : rating <= 6
-      ? "#FFC107"
-      : colors.destructive;
-
+  const color = rating <= 3 ? colors.success : rating <= 6 ? "#FFC107" : colors.destructive;
   return (
     <View style={diffStyles.row}>
       {Array.from({ length: 10 }).map((_, i) => (
-        <View
-          key={i}
-          style={[
-            diffStyles.bar,
-            { backgroundColor: i < rating ? color : colors.border },
-          ]}
-        />
+        <View key={i} style={[diffStyles.bar, { backgroundColor: i < rating ? color : colors.border }]} />
       ))}
     </View>
   );
@@ -361,23 +103,42 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const mapRef = useRef<MapView>(null);
+
+  // ── Trail filter ────────────────────────────────────────────────────────────
+  const [selectedState, setSelectedState] = useState("All States");
+  const filteredTrails = getTrailsByState(selectedState);
+
+  // ── Trail detail ────────────────────────────────────────────────────────────
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [completedTrails, setCompletedTrails] = useState<string[]>([]);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
 
-  // Load user's completed trails from Firestore
+  // ── Location ────────────────────────────────────────────────────────────────
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // ── Ride recording ──────────────────────────────────────────────────────────
+  const [isRecording, setIsRecording] = useState(false);
+  const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
+  const [rideTotalMiles, setRideTotalMiles] = useState(0);
+  const [rideTopSpeedMph, setRideTopSpeedMph] = useState(0);
+  const [rideElevGainFt, setRideElevGainFt] = useState(0);
+  const [rideElapsed, setRideElapsed] = useState(0);
+  const [rideStartTime, setRideStartTime] = useState(0);
+  const [rideCurSpeedMph, setRideCurSpeedMph] = useState(0);
+  const watchRef = useRef<Location.LocationSubscription | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ridePointsRef = useRef<RidePoint[]>([]);
+  const rideMilesRef = useRef(0);
+  const rideTopRef = useRef(0);
+  const rideElevRef = useRef(0);
+
+  // ── Load user data ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
-      if (snap.exists()) {
-        setCompletedTrails(snap.data().completedTrails ?? []);
-      }
+      if (snap.exists()) setCompletedTrails(snap.data().completedTrails ?? []);
     });
   }, [user]);
 
@@ -385,22 +146,14 @@ export default function MapScreen() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        setUserLocation({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (!selectedTrail) {
-      setPhotos([]);
-      return;
-    }
+    if (!selectedTrail) { setPhotos([]); return; }
     const unsub = onSnapshot(
       collection(db, "trails", selectedTrail.id, "photos"),
       (snap) => {
@@ -412,39 +165,154 @@ export default function MapScreen() {
     return unsub;
   }, [selectedTrail]);
 
-  const uploadPhoto = useCallback(async () => {
-    if (!selectedTrail || !user) return;
+  // ── Zoom to state when filter changes ──────────────────────────────────────
+  useEffect(() => {
+    if (selectedState === "All States") {
+      mapRef.current?.animateToRegion(
+        { latitude: 39.8283, longitude: -98.5795, latitudeDelta: 30, longitudeDelta: 55 },
+        600
+      );
+    } else {
+      const trails = getTrailsByState(selectedState);
+      if (trails.length === 0) return;
+      const lats = trails.map((t) => t.coords.latitude);
+      const lons = trails.map((t) => t.coords.longitude);
+      const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+      const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+      const pad = 1.5;
+      mapRef.current?.animateToRegion(
+        {
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLon + maxLon) / 2,
+          latitudeDelta: Math.max(maxLat - minLat + pad, 2),
+          longitudeDelta: Math.max(maxLon - minLon + pad, 2),
+        },
+        600
+      );
+    }
+  }, [selectedState]);
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  // ── Ride recording callbacks ────────────────────────────────────────────────
+  const startRecording = useCallback(async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow photo library access.");
+      Alert.alert("Location required", "Enable location to record rides.");
+      return;
+    }
+    ridePointsRef.current = [];
+    rideMilesRef.current = 0;
+    rideTopRef.current = 0;
+    rideElevRef.current = 0;
+    setRidePoints([]);
+    setRideTotalMiles(0);
+    setRideTopSpeedMph(0);
+    setRideElevGainFt(0);
+    setRideElapsed(0);
+    setRideCurSpeedMph(0);
+    const start = Date.now();
+    setRideStartTime(start);
+    setIsRecording(true);
+
+    timerRef.current = setInterval(() => {
+      setRideElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+
+    watchRef.current = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5, timeInterval: 2000 },
+      (loc) => {
+        const pt: RidePoint = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          altitude: loc.coords.altitude ?? 0,
+          speed: Math.max(loc.coords.speed ?? 0, 0),
+          timestamp: loc.timestamp,
+        };
+        const prev = ridePointsRef.current[ridePointsRef.current.length - 1];
+        if (prev) {
+          const d = distanceMiles(prev, pt);
+          rideMilesRef.current += d;
+          setRideTotalMiles(parseFloat(rideMilesRef.current.toFixed(2)));
+          if (pt.altitude > prev.altitude) {
+            const gain = metersToFeet(pt.altitude - prev.altitude);
+            rideElevRef.current += gain;
+            setRideElevGainFt(Math.round(rideElevRef.current));
+          }
+        }
+        const speedMph = mpsToMph(pt.speed);
+        if (speedMph > rideTopRef.current) {
+          rideTopRef.current = speedMph;
+          setRideTopSpeedMph(parseFloat(speedMph.toFixed(1)));
+        }
+        setRideCurSpeedMph(parseFloat(speedMph.toFixed(1)));
+        ridePointsRef.current = [...ridePointsRef.current, pt];
+        setRidePoints((prev) => [...prev, pt]);
+      }
+    );
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    watchRef.current?.remove();
+    watchRef.current = null;
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setIsRecording(false);
+
+    const pts = ridePointsRef.current;
+    if (pts.length < 2 || !user) {
+      Alert.alert("Ride ended", "Not enough GPS data to save this ride.");
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
+    const durationSecs = Math.floor((Date.now() - rideStartTime) / 1000);
+    const distanceMi = parseFloat(rideMilesRef.current.toFixed(2));
+    const topSpeedMph = parseFloat(rideTopRef.current.toFixed(1));
+    const avgSpeedMph = durationSecs > 0
+      ? parseFloat(((distanceMi / durationSecs) * 3600).toFixed(1))
+      : 0;
+    const elevGainFt = Math.round(rideElevRef.current);
 
+    try {
+      await addDoc(collection(db, "users", user.uid, "rides"), {
+        startedAt: rideStartTime,
+        endedAt: Date.now(),
+        durationSecs,
+        distanceMiles: distanceMi,
+        topSpeedMph,
+        avgSpeedMph,
+        elevationGainFt: elevGainFt,
+        pointCount: pts.length,
+        createdAt: serverTimestamp(),
+      });
+      Alert.alert(
+        "Ride Saved!",
+        `${distanceMi} mi · ${formatElapsed(durationSecs)} · Top: ${topSpeedMph} mph`,
+        [{ text: "View in Profile", onPress: () => router.push("/(tabs)/profile") }, { text: "OK" }]
+      );
+    } catch {
+      Alert.alert("Error", "Could not save ride. Try again.");
+    }
+  }, [user, rideStartTime]);
+
+  // ── Trail actions ───────────────────────────────────────────────────────────
+  const uploadPhoto = useCallback(async () => {
+    if (!selectedTrail || !user) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") { Alert.alert("Permission needed", "Please allow photo library access."); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
     if (result.canceled || !result.assets[0]) return;
-
     setUploading(true);
     try {
       const uri = result.assets[0].uri;
       const filename = `${Date.now()}_${user.uid}.jpg`;
       const storageRef = ref(storage, `trails/${selectedTrail.id}/${filename}`);
-
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const blob = await (await fetch(uri)).blob();
       await uploadBytesResumable(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
-
       await addDoc(collection(db, "trails", selectedTrail.id, "photos"), {
         url: downloadURL,
         uploadedBy: user.uid,
         createdAt: serverTimestamp(),
       });
-    } catch (e) {
+    } catch {
       Alert.alert("Upload failed", "Could not upload photo. Try again.");
     } finally {
       setUploading(false);
@@ -455,18 +323,12 @@ export default function MapScreen() {
     if (!user || !selectedTrail) return;
     setCompleting(true);
     try {
-      const newAchievements = await markTrailComplete(user.uid, selectedTrail.id);
-      setCompletedTrails((prev) =>
-        prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]
-      );
-      if (newAchievements.length > 0) {
-        Alert.alert(
-          "🏆 Achievement Unlocked!",
-          `You earned ${newAchievements.length} badge${newAchievements.length > 1 ? "s" : ""}! Check your profile to see them.`,
-          [{ text: "NICE!", style: "default" }]
-        );
+      const newAch = await markTrailComplete(user.uid, selectedTrail.id);
+      setCompletedTrails((prev) => prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]);
+      if (newAch.length > 0) {
+        Alert.alert("🏆 Achievement Unlocked!", `You earned ${newAch.length} badge${newAch.length > 1 ? "s" : ""}! Check your profile.`, [{ text: "NICE!" }]);
       } else {
-        Alert.alert("Trail Logged!", "This trail is already marked complete.", [{ text: "OK" }]);
+        Alert.alert("Trail Logged!", "Already marked complete.", [{ text: "OK" }]);
       }
     } catch {
       Alert.alert("Error", "Could not log trail. Try again.");
@@ -477,12 +339,7 @@ export default function MapScreen() {
 
   const locateMe = useCallback(async () => {
     if (userLocation) {
-      mapRef.current?.animateToRegion({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 600);
+      mapRef.current?.animateToRegion({ ...userLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 600);
     } else {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
@@ -500,24 +357,22 @@ export default function MapScreen() {
     return "#FF5500";
   };
 
+  const TOP_BAR_HEIGHT = insets.top + 64;
+  const STATE_BAR_HEIGHT = 48;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
         ref={mapRef}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         style={styles.map}
-        initialRegion={{
-          latitude: 36.7783,
-          longitude: -119.4179,
-          latitudeDelta: 6.0,
-          longitudeDelta: 6.0,
-        }}
+        initialRegion={{ latitude: 39.8283, longitude: -98.5795, latitudeDelta: 30, longitudeDelta: 55 }}
         showsUserLocation={!!userLocation}
         showsMyLocationButton={false}
         toolbarEnabled={false}
         customMapStyle={darkMapStyle}
       >
-        {CA_TRAILS.map((trail) => (
+        {filteredTrails.map((trail) => (
           <Marker
             key={trail.id}
             coordinate={trail.coords}
@@ -528,12 +383,13 @@ export default function MapScreen() {
         ))}
       </MapView>
 
+      {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={[styles.topBarInner, { backgroundColor: "rgba(18,18,18,0.92)" }]}>
           <View>
             <Text style={[styles.topTitle, { color: colors.foreground }]}>TERRAPULSE</Text>
             <Text style={[styles.topSub, { color: colors.mutedForeground }]}>
-              {CA_TRAILS.length} TRAILS
+              {filteredTrails.length} TRAILS · {selectedState === "All States" ? "NATIONWIDE" : STATE_NAMES[selectedState] ?? selectedState}
             </Text>
           </View>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
@@ -542,7 +398,69 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Custom locate button — bottom-right, above safe area */}
+      {/* STATE FILTER BAR */}
+      <View style={[styles.stateBar, { top: TOP_BAR_HEIGHT }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.stateBarContent}
+        >
+          {US_STATES.map((state) => {
+            const active = selectedState === state;
+            return (
+              <TouchableOpacity
+                key={state}
+                style={[
+                  styles.statePill,
+                  {
+                    backgroundColor: active ? colors.accent : "rgba(18,18,18,0.9)",
+                    borderColor: active ? colors.accent : colors.border,
+                  },
+                ]}
+                onPress={() => setSelectedState(state)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.statePillText, { color: active ? "#000" : colors.mutedForeground }]}>
+                  {state === "All States" ? "ALL" : state}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* RECORDING HUD */}
+      {isRecording && (
+        <View style={[styles.recHud, { top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + 8, backgroundColor: "rgba(0,0,0,0.88)", borderColor: colors.destructive }]}>
+          <View style={styles.recIndicator}>
+            <View style={[styles.recDot, { backgroundColor: colors.destructive }]} />
+            <Text style={[styles.recLabel, { color: colors.destructive }]}>REC</Text>
+          </View>
+          <View style={styles.recStats}>
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{formatElapsed(rideElapsed)}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>TIME</Text>
+            </View>
+            <View style={styles.recDivider} />
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{rideTotalMiles.toFixed(2)}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>MI</Text>
+            </View>
+            <View style={styles.recDivider} />
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{rideCurSpeedMph.toFixed(0)}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>MPH</Text>
+            </View>
+            <View style={styles.recDivider} />
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>+{rideElevGainFt}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>FT</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* LOCATE BUTTON */}
       <TouchableOpacity
         style={[styles.locateBtn, {
           bottom: insets.bottom + 100,
@@ -555,21 +473,30 @@ export default function MapScreen() {
         <MaterialIcons name="my-location" size={20} color={userLocation ? colors.accent : colors.mutedForeground} />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.liveBtn, { backgroundColor: colors.accent }]}
-        onPress={() => router.push("/(tabs)/stream")}
-        activeOpacity={0.85}
-      >
-        <Feather name="radio" size={16} color="#000" />
-        <Text style={styles.liveBtnText}>GO LIVE</Text>
-      </TouchableOpacity>
+      {/* BOTTOM BUTTONS */}
+      <View style={[styles.bottomBtns, { bottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          style={[styles.recordBtn, { backgroundColor: isRecording ? colors.destructive : colors.card, borderColor: isRecording ? colors.destructive : colors.border }]}
+          onPress={isRecording ? stopRecording : startRecording}
+          activeOpacity={0.85}
+        >
+          <Feather name={isRecording ? "square" : "circle"} size={14} color={isRecording ? "#fff" : colors.accent} />
+          <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : colors.accent }]}>
+            {isRecording ? "STOP" : "RECORD"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.liveBtn, { backgroundColor: colors.accent }]}
+          onPress={() => router.push("/(tabs)/stream")}
+          activeOpacity={0.85}
+        >
+          <Feather name="radio" size={14} color="#000" />
+          <Text style={styles.liveBtnText}>GO LIVE</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Modal
-        animationType="slide"
-        transparent
-        visible={!!selectedTrail}
-        onRequestClose={() => setSelectedTrail(null)}
-      >
+      {/* TRAIL DETAIL MODAL */}
+      <Modal animationType="slide" transparent visible={!!selectedTrail} onRequestClose={() => setSelectedTrail(null)}>
         {selectedTrail && (
           <View style={styles.modalBackdrop}>
             <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.accent }]}>
@@ -581,7 +508,7 @@ export default function MapScreen() {
                     {selectedTrail.title.toUpperCase()}
                   </Text>
                   <Text style={[styles.trailRegion, { color: colors.mutedForeground }]}>
-                    {selectedTrail.region}
+                    {selectedTrail.region} · {STATE_NAMES[selectedTrail.state] ?? selectedTrail.state}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setSelectedTrail(null)}>
@@ -592,9 +519,7 @@ export default function MapScreen() {
               <View style={[styles.diffRow, { backgroundColor: colors.secondary }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.specLabel, { color: colors.mutedForeground }]}>DIFFICULTY</Text>
-                  <Text style={[styles.specValue, { color: colors.foreground }]}>
-                    {selectedTrail.difficulty}
-                  </Text>
+                  <Text style={[styles.specValue, { color: colors.foreground }]}>{selectedTrail.difficulty}</Text>
                   <DifficultyBar rating={selectedTrail.difficultyRating} />
                 </View>
               </View>
@@ -603,27 +528,19 @@ export default function MapScreen() {
                 <View style={[styles.specCard, { backgroundColor: colors.secondary }]}>
                   <Feather name="truck" size={16} color={colors.accent} />
                   <Text style={[styles.specLabel, { color: colors.mutedForeground }]}>VEHICLE SIZE</Text>
-                  <Text style={[styles.specValue, { color: colors.foreground }]}>
-                    {selectedTrail.size}
-                  </Text>
+                  <Text style={[styles.specValue, { color: colors.foreground }]}>{selectedTrail.size}</Text>
                 </View>
                 <View style={[styles.specCard, { backgroundColor: colors.secondary }]}>
                   <Feather name="settings" size={16} color={colors.accent} />
                   <Text style={[styles.specLabel, { color: colors.mutedForeground }]}>SUSPENSION</Text>
-                  <Text style={[styles.specValue, { color: colors.foreground }]}>
-                    {selectedTrail.suspension}
-                  </Text>
+                  <Text style={[styles.specValue, { color: colors.foreground }]}>{selectedTrail.suspension}</Text>
                 </View>
               </View>
 
               <View style={styles.photosSection}>
                 <View style={styles.photosHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.foreground }]}>COMMUNITY PICS</Text>
-                  <TouchableOpacity
-                    onPress={uploadPhoto}
-                    disabled={uploading}
-                    style={[styles.addPicBtn, { borderColor: colors.accent }]}
-                  >
+                  <TouchableOpacity onPress={uploadPhoto} disabled={uploading} style={[styles.addPicBtn, { borderColor: colors.accent }]}>
                     {uploading ? (
                       <ActivityIndicator size="small" color={colors.accent} />
                     ) : (
@@ -638,9 +555,7 @@ export default function MapScreen() {
                 {photos.length === 0 ? (
                   <View style={styles.noPhotos}>
                     <Feather name="image" size={24} color={colors.border} />
-                    <Text style={[styles.noPhotosText, { color: colors.mutedForeground }]}>
-                      No photos yet. Be the first!
-                    </Text>
+                    <Text style={[styles.noPhotosText, { color: colors.mutedForeground }]}>No photos yet. Be the first!</Text>
                   </View>
                 ) : (
                   <FlatList
@@ -649,25 +564,17 @@ export default function MapScreen() {
                     keyExtractor={(_, i) => String(i)}
                     showsHorizontalScrollIndicator={false}
                     renderItem={({ item }) => (
-                      <Image
-                        source={{ uri: item.url }}
-                        style={[styles.photo, { borderColor: colors.border }]}
-                      />
+                      <Image source={{ uri: item.url }} style={[styles.photo, { borderColor: colors.border }]} />
                     )}
                   />
                 )}
               </View>
 
-              {/* MARK COMPLETE */}
               {(() => {
                 const done = completedTrails.includes(selectedTrail.id);
                 return (
                   <TouchableOpacity
-                    style={[
-                      styles.completeBtn,
-                      { backgroundColor: done ? colors.secondary : colors.success, borderColor: done ? colors.success : "transparent", borderWidth: done ? 1 : 0 },
-                      completing && { opacity: 0.6 },
-                    ]}
+                    style={[styles.completeBtn, { backgroundColor: done ? colors.secondary : colors.success, borderColor: done ? colors.success : "transparent", borderWidth: done ? 1 : 0 }, completing && { opacity: 0.6 }]}
                     onPress={completeTrail}
                     disabled={completing}
                     activeOpacity={0.85}
@@ -698,81 +605,53 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   topBar: { position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: 16 },
   topBarInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8,
   },
   topTitle: { fontWeight: "900", fontSize: 15, letterSpacing: 2 },
   topSub: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 1 },
   logoutBtn: { padding: 6 },
-  userDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,85,0,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#FF5500",
+  stateBar: { position: "absolute", left: 0, right: 0, height: 48 },
+  stateBarContent: { paddingHorizontal: 12, alignItems: "center", gap: 8 },
+  statePill: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
+    elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2,
   },
-  userDotInner: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: "#FF5500",
+  statePillText: { fontSize: 11, fontWeight: "900", letterSpacing: 1 },
+  recHud: {
+    position: "absolute", left: 12, right: 12, borderRadius: 8, borderWidth: 1.5,
+    flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 14,
+    elevation: 6, shadowColor: "#FF0000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6,
   },
+  recIndicator: { flexDirection: "row", alignItems: "center", gap: 5 },
+  recDot: { width: 8, height: 8, borderRadius: 4 },
+  recLabel: { fontWeight: "900", fontSize: 11, letterSpacing: 2 },
+  recStats: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  recStat: { alignItems: "center" },
+  recValue: { fontSize: 16, fontWeight: "900", letterSpacing: 0.5 },
+  recUnit: { fontSize: 9, fontWeight: "700", letterSpacing: 1 },
+  recDivider: { width: 1, height: 28, backgroundColor: "#333" },
   locateBtn: {
-    position: "absolute",
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    position: "absolute", right: 16, width: 44, height: 44, borderRadius: 8, borderWidth: 1,
+    alignItems: "center", justifyContent: "center",
+    elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
   },
+  bottomBtns: { position: "absolute", left: 16, right: 16, flexDirection: "row", gap: 10 },
+  recordBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    padding: 14, borderRadius: 4, borderWidth: 1,
+    elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
+  },
+  recordBtnText: { fontWeight: "900", letterSpacing: 2, fontSize: 13 },
   liveBtn: {
-    position: "absolute",
-    bottom: 30,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 16,
-    borderRadius: 4,
-    elevation: 8,
-    shadowColor: "#FF5500",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    padding: 14, borderRadius: 4,
+    elevation: 8, shadowColor: "#FF5500", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8,
   },
-  liveBtnText: { fontWeight: "900", letterSpacing: 2, color: "#000", fontSize: 14 },
+  liveBtnText: { fontWeight: "900", letterSpacing: 2, color: "#000", fontSize: 13 },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalContent: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 2,
-    padding: 20,
-    paddingBottom: 34,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#444",
-    alignSelf: "center",
-    marginBottom: 16,
-  },
+  modalContent: { borderTopLeftRadius: 16, borderTopRightRadius: 16, borderTopWidth: 2, padding: 20, paddingBottom: 34 },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#444", alignSelf: "center", marginBottom: 16 },
   modalHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
   trailTitle: { fontSize: 20, fontWeight: "900", letterSpacing: 1.5 },
   trailRegion: { fontSize: 11, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
@@ -784,28 +663,12 @@ const styles = StyleSheet.create({
   photosSection: { gap: 10 },
   photosHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionTitle: { fontWeight: "900", fontSize: 13, letterSpacing: 1 },
-  addPicBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
+  addPicBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 6 },
   addPicText: { fontWeight: "900", fontSize: 11, letterSpacing: 1 },
   noPhotos: { alignItems: "center", paddingVertical: 24, gap: 8 },
   noPhotosText: { fontSize: 12, fontWeight: "600" },
   photo: { width: 100, height: 100, borderRadius: 4, marginRight: 8, borderWidth: 1 },
-  completeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 14,
-    borderRadius: 4,
-    marginTop: 12,
-  },
+  completeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 4, marginTop: 12 },
   completeBtnText: { fontWeight: "900", fontSize: 13, letterSpacing: 2 },
 });
 
