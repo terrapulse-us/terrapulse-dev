@@ -341,7 +341,7 @@ export default function MapScreen() {
         onPress={locateMe}
         activeOpacity={0.8}
       >
-        <Feather name="navigation" size={18} color={userLocation ? colors.accent : colors.mutedForeground} />
+        <Feather name="crosshair" size={18} color={userLocation ? colors.accent : colors.mutedForeground} />
       </TouchableOpacity>
 
       <TouchableOpacity
