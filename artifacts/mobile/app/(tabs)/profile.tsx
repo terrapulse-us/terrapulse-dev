@@ -14,7 +14,6 @@ import {
   Modal,
   Dimensions,
   Switch,
-  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
@@ -29,9 +28,8 @@ import {
 import {
   ref,
   getDownloadURL,
-  uploadString,
+  uploadBytes,
 } from "firebase/storage";
-import * as FileSystem from "expo-file-system/legacy";
 import { db, storage } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -180,17 +178,18 @@ export default function ProfileScreen() {
         const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const storageRef = ref(storage, `users/${user.uid}/gallery/${filename}`);
 
-        // Get base64 — picker provides it directly on web and native
-        let base64 = asset.base64 ?? null;
-        if (!base64) {
-          // Fallback: read from disk on native if picker didn't return base64
-          base64 = await FileSystem.readAsStringAsync(asset.uri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-        }
-        await uploadString(storageRef, base64, "base64", {
-          contentType: "image/jpeg",
+        // XHR blob approach — only method proven to work with Firebase Storage
+        // in both React Native (Hermes/JSC) and browser environments.
+        // fetch().blob() and uploadString() both fail on RN due to Blob constructor limits.
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = () => resolve(xhr.response as Blob);
+          xhr.onerror = () => reject(new Error("Failed to read image file"));
+          xhr.responseType = "blob";
+          xhr.open("GET", asset.uri, true);
+          xhr.send(null);
         });
+        await uploadBytes(storageRef, blob);
         const url = await getDownloadURL(storageRef);
 
         await setDoc(doc(db, "users", user.uid, "gallery", filename), {
