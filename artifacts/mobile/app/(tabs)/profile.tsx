@@ -28,10 +28,8 @@ import {
 } from "firebase/firestore";
 import {
   ref,
-  uploadBytesResumable,
   getDownloadURL,
   uploadString,
-  uploadBytes,
 } from "firebase/storage";
 import * as FileSystem from "expo-file-system/legacy";
 import { db, storage } from "@/lib/firebase";
@@ -160,10 +158,11 @@ export default function ProfileScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
+      mediaTypes: ["images"],
       allowsMultipleSelection: true,
-      quality: 0.85,
+      quality: 0.7,
       selectionLimit: 10,
+      base64: true,
     });
     if (result.canceled || !result.assets.length) return;
 
@@ -181,23 +180,18 @@ export default function ProfileScreen() {
         const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const storageRef = ref(storage, `users/${user.uid}/gallery/${filename}`);
 
-        let url: string;
-
-        if (Platform.OS === "web") {
-          // On web, ImagePicker returns blob: or data: URIs — fetch gives a real Blob
-          const response = await fetch(asset.uri);
-          const blob = await response.blob();
-          await uploadBytes(storageRef, blob);
-          url = await getDownloadURL(storageRef);
-        } else {
-          // On native, read the local file:// URI as base64 then upload
-          const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        // Get base64 — picker provides it directly on web and native
+        let base64 = asset.base64 ?? null;
+        if (!base64) {
+          // Fallback: read from disk on native if picker didn't return base64
+          base64 = await FileSystem.readAsStringAsync(asset.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
-          const mimeType = isVideo ? "video/mp4" : "image/jpeg";
-          await uploadString(storageRef, base64, "base64", { contentType: mimeType });
-          url = await getDownloadURL(storageRef);
         }
+        await uploadString(storageRef, base64, "base64", {
+          contentType: "image/jpeg",
+        });
+        const url = await getDownloadURL(storageRef);
 
         await setDoc(doc(db, "users", user.uid, "gallery", filename), {
           url,
