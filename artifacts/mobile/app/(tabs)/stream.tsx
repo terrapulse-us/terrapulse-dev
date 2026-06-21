@@ -20,6 +20,7 @@ import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useTwitchAuth } from "@/lib/useTwitchAuth";
 
 // WebView: native only — on web we render an iframe fallback
 let WebView: React.ComponentType<{ source: { uri: string }; style?: object }> | null = null;
@@ -90,9 +91,8 @@ export default function StreamScreen() {
   const [permGranted, setPermGranted] = useState(false);
 
   // Twitch integration
-  const [twitchChannel, setTwitchChannel] = useState("");
-  const [twitchToken, setTwitchToken] = useState("");
-  const [twitchClientId, setTwitchClientId] = useState("");
+  const { auth: twitchAuth, loading: twitchLoading, error: twitchError, connect: connectTwitch, disconnect: disconnectTwitch, updateTitle: updateTwitchTitleViaApi } = useTwitchAuth(user?.uid);
+  const twitchChannel = twitchAuth?.channel ?? "";
   const [showTwitchSettings, setShowTwitchSettings] = useState(false);
 
   useEffect(() => {
@@ -128,32 +128,9 @@ export default function StreamScreen() {
   };
 
   const updateTwitchTitle = useCallback(async () => {
-    if (!twitchChannel || !twitchToken || !twitchClientId || !streamTitle) return;
-    try {
-      // Get broadcaster ID
-      const userRes = await fetch(
-        `https://api.twitch.tv/helix/users?login=${encodeURIComponent(twitchChannel)}`,
-        { headers: { "Client-ID": twitchClientId, "Authorization": `Bearer ${twitchToken}` } }
-      );
-      const userData = await userRes.json();
-      const broadcasterId = userData?.data?.[0]?.id;
-      if (!broadcasterId) return;
-
-      // Update title
-      await fetch(
-        `https://api.twitch.tv/helix/channels?broadcaster_id=${broadcasterId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Client-ID": twitchClientId,
-            "Authorization": `Bearer ${twitchToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ title: streamTitle }),
-        }
-      );
-    } catch {}
-  }, [twitchChannel, twitchToken, twitchClientId, streamTitle]);
+    if (!twitchAuth || !streamTitle) return;
+    await updateTwitchTitleViaApi(streamTitle);
+  }, [twitchAuth, streamTitle, updateTwitchTitleViaApi]);
 
   const toggleStream = useCallback(async () => {
     if (!user) return;
@@ -405,40 +382,48 @@ export default function StreamScreen() {
 
           {showTwitchSettings && (
             <View style={[styles.twitchBox, { borderColor: "#6441a5", backgroundColor: colors.secondary }]}>
-              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>TWITCH CHANNEL</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-                placeholder="your_channel_name"
-                placeholderTextColor={colors.mutedForeground}
-                value={twitchChannel}
-                onChangeText={setTwitchChannel}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>CLIENT ID (for title update)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-                placeholder="Twitch app Client-ID"
-                placeholderTextColor={colors.mutedForeground}
-                value={twitchClientId}
-                onChangeText={setTwitchClientId}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Text style={[styles.fieldLabel, { color: "#9b59e8" }]}>OAUTH TOKEN (for title update)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: "#6441a5" }]}
-                placeholder="User access token"
-                placeholderTextColor={colors.mutedForeground}
-                secureTextEntry
-                value={twitchToken}
-                onChangeText={setTwitchToken}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-                Channel name is used for the chat embed. Client ID + OAuth token are only needed if you want the stream title auto-updated on Twitch when you go live.
-              </Text>
+              {twitchAuth ? (
+                <>
+                  <View style={styles.twitchConnectedRow}>
+                    <View style={[styles.twitchDot, { backgroundColor: "#00b300" }]} />
+                    <Text style={[styles.twitchConnectedText, { color: "#00b300" }]}>
+                      Connected as {twitchAuth.displayName || twitchAuth.channel}
+                    </Text>
+                  </View>
+                  <Text style={[styles.helpText, { color: colors.mutedForeground, marginTop: 4 }]}>
+                    Stream title will auto-update on Twitch when you go live. Chat is embedded below during your stream.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.twitchDisconnectBtn, { borderColor: "#6441a5" }]}
+                    onPress={disconnectTwitch}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.twitchDisconnectText}>DISCONNECT</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {twitchError ? (
+                    <Text style={[styles.helpText, { color: "#ff4444", marginBottom: 8 }]}>
+                      Error: {twitchError}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.helpText, { color: colors.mutedForeground, marginBottom: 12 }]}>
+                    Connect your Twitch account to auto-update your stream title and see live chat during your broadcast.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.twitchConnectBtn, twitchLoading && { opacity: 0.6 }]}
+                    onPress={connectTwitch}
+                    disabled={twitchLoading}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.twitchDot, { backgroundColor: "#fff" }]} />
+                    <Text style={styles.twitchConnectText}>
+                      {twitchLoading ? "CONNECTING…" : "CONNECT WITH TWITCH"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
 
@@ -586,6 +571,12 @@ const styles = StyleSheet.create({
   collapsibleHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 },
   twitchBox: { borderWidth: 1, borderRadius: 4, padding: 12, marginBottom: 10 },
   helpText: { fontSize: 10, lineHeight: 15, marginTop: -4, marginBottom: 8 },
+  twitchConnectBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#6441a5", borderRadius: 6, paddingVertical: 12, paddingHorizontal: 16 },
+  twitchConnectText: { color: "#fff", fontWeight: "900", fontSize: 12, letterSpacing: 1.5 },
+  twitchConnectedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  twitchConnectedText: { fontWeight: "700", fontSize: 12 },
+  twitchDisconnectBtn: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 12, marginTop: 8 },
+  twitchDisconnectText: { color: "#9b59e8", fontWeight: "700", fontSize: 10, letterSpacing: 1 },
 
   toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
   toggleLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
