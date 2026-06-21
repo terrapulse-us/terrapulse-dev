@@ -12,9 +12,9 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
-  Platform,
   Dimensions,
   Switch,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
@@ -31,6 +31,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   uploadString,
+  uploadBytes,
 } from "firebase/storage";
 import * as FileSystem from "expo-file-system/legacy";
 import { db, storage } from "@/lib/firebase";
@@ -182,12 +183,14 @@ export default function ProfileScreen() {
 
         let url: string;
 
-        if (asset.uri.startsWith("data:")) {
-          // web data URI — upload directly
-          await uploadString(storageRef, asset.uri, "data_url");
+        if (Platform.OS === "web") {
+          // On web, ImagePicker returns blob: or data: URIs — fetch gives a real Blob
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          await uploadBytes(storageRef, blob);
           url = await getDownloadURL(storageRef);
         } else {
-          // native file:// URI — read as base64 then upload
+          // On native, read the local file:// URI as base64 then upload
           const base64 = await FileSystem.readAsStringAsync(asset.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
