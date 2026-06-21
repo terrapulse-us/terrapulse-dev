@@ -10,8 +10,10 @@ import {
   ScrollView,
   Alert,
   Platform,
-  Image,
+  Clipboard,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CameraView, useCameraPermissions, CameraType } from "expo-camera";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
@@ -29,6 +31,9 @@ if (Platform.OS !== "web") {
     WebView = require("react-native-webview").WebView;
   } catch {}
 }
+
+const STORAGE_KEY_STREAM_KEY = "@terrapulse/stream_key";
+const STORAGE_KEY_RTMP = "@terrapulse/rtmp_endpoint";
 
 interface Coords {
   latitude: number;
@@ -69,18 +74,18 @@ export default function StreamScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
+  // Camera
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<CameraType>("back");
+
   // Stream state
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamTitle, setStreamTitle] = useState("");
   const [streamKey, setStreamKey] = useState("");
+  const [streamKeySaved, setStreamKeySaved] = useState(false);
   const [rtmpEndpoint, setRtmpEndpoint] = useState("rtmp://live.twitch.tv/app/");
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Recording state
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordElapsed, setRecordElapsed] = useState(0);
-  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Rig + HUD
   const [rigModel, setRigModel] = useState("");
@@ -95,12 +100,26 @@ export default function StreamScreen() {
   const twitchChannel = twitchAuth?.channel ?? "";
   const [showTwitchSettings, setShowTwitchSettings] = useState(false);
 
+  // Load persisted stream key + endpoint on mount
   useEffect(() => {
+    (async () => {
+      try {
+        const savedKey = await AsyncStorage.getItem(STORAGE_KEY_STREAM_KEY);
+        const savedRtmp = await AsyncStorage.getItem(STORAGE_KEY_RTMP);
+        if (savedKey) { setStreamKey(savedKey); setStreamKeySaved(true); }
+        if (savedRtmp) setRtmpEndpoint(savedRtmp);
+      } catch {}
+    })();
+  }, []);
+
+  // Location watcher
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       setPermGranted(status === "granted");
       if (status === "granted") {
-        await Location.watchPositionAsync(
+        sub = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 1, timeInterval: 1000 },
           (loc) => {
             const spd = loc.coords.speed ?? 0;
@@ -115,10 +134,36 @@ export default function StreamScreen() {
       }
     })();
     return () => {
+      sub?.remove();
       if (timerRef.current) clearInterval(timerRef.current);
-      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
     };
   }, []);
+
+  const saveStreamKey = useCallback(async () => {
+    if (!streamKey.trim()) return;
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_STREAM_KEY, streamKey.trim());
+      await AsyncStorage.setItem(STORAGE_KEY_RTMP, rtmpEndpoint.trim());
+      setStreamKeySaved(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert("Error", "Could not save stream key.");
+    }
+  }, [streamKey, rtmpEndpoint]);
+
+  const copyRtmpUrl = useCallback(() => {
+    const full = `${rtmpEndpoint.trim()}${streamKey.trim()}`;
+    if (!streamKey.trim()) {
+      Alert.alert("No Stream Key", "Enter and save your stream key first.");
+      return;
+    }
+    Clipboard.setString(full);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert(
+      "RTMP URL Copied",
+      "Paste this into Streamlabs, OBS, or any RTMP-capable app to go live on Twitch.\n\n" + full,
+    );
+  }, [rtmpEndpoint, streamKey]);
 
   const formatTime = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -138,14 +183,11 @@ export default function StreamScreen() {
     if (isStreaming) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
-      setIsRecording(false);
-      setRecordElapsed(0);
       try { await deleteDoc(doc(db, "live_streams", user.uid)); } catch {}
       setIsStreaming(false);
     } else {
       if (!streamKey.trim()) {
-        Alert.alert("Stream Key Required", "Enter your stream key to go live.");
+        Alert.alert("Stream Key Required", "Enter and save your Twitch stream key to go live.");
         return;
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -167,33 +209,30 @@ export default function StreamScreen() {
     }
   }, [user, isStreaming, streamKey, streamTitle, rigModel, rigTires, rigLift, coords, rtmpEndpoint, updateTwitchTitle]);
 
-  const toggleRecording = useCallback(() => {
-    if (isRecording) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
-      setIsRecording(false);
-      Alert.alert("Recording Saved", `Clip saved — ${formatTime(recordElapsed)}`);
-      setRecordElapsed(0);
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      setRecordElapsed(0);
-      recordTimerRef.current = setInterval(() => setRecordElapsed((e) => e + 1), 1000);
-      setIsRecording(true);
-    }
-  }, [isRecording, recordElapsed]);
-
+  // ── LIVE / BROADCASTING VIEW ──
   if (isStreaming) {
     return (
       <View style={[styles.container, { backgroundColor: "#000" }]}>
-        {/* LIVE CAMERA AREA */}
         <View style={[styles.liveCameraArea, { paddingTop: insets.top }]}>
-          {/* Camera placeholder */}
-          <View style={styles.livePlaceholder}>
-            <Image source={require("@/assets/icons/camera.png")} style={styles.cameraIcon} resizeMode="contain" />
-            {streamTitle ? (
-              <Text style={styles.liveTitleOverlay}>{streamTitle.toUpperCase()}</Text>
-            ) : null}
-          </View>
+          {/* Live camera */}
+          {cameraPermission?.granted ? (
+            <CameraView style={StyleSheet.absoluteFill} facing={facing}>
+              {/* Flip button */}
+              <TouchableOpacity
+                style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
+                onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
+              >
+                <Feather name="refresh-cw" size={18} color="#fff" />
+              </TouchableOpacity>
+            </CameraView>
+          ) : (
+            <View style={styles.livePlaceholder}>
+              <Feather name="camera-off" size={48} color="#666" />
+              <Text style={{ color: "#666", fontSize: 12, fontWeight: "700", letterSpacing: 1 }}>
+                CAMERA PERMISSION DENIED
+              </Text>
+            </View>
+          )}
 
           {/* LIVE badge + elapsed */}
           <View style={[styles.liveBadgeRow, { top: insets.top + 12 }]}>
@@ -206,7 +245,7 @@ export default function StreamScreen() {
 
           {/* HUD Telemetry */}
           {showHUD && (
-            <View style={[styles.hud, { top: insets.top + 12, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
+            <View style={[styles.hud, { top: insets.top + 48, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
               <Text style={[styles.hudTitle, { color: colors.accent }]}>TELEMETRY</Text>
               <Text style={[styles.hudSpeed, { color: colors.success }]}>
                 {coords.speed}<Text style={styles.hudSpeedUnit}> MPH</Text>
@@ -224,26 +263,6 @@ export default function StreamScreen() {
 
           {/* Bottom controls overlay */}
           <View style={[styles.liveControls, { bottom: 12 }]}>
-            {/* Record button */}
-            <TouchableOpacity
-              style={[styles.recordBtn, { borderColor: isRecording ? "#ff0000" : "#fff" }]}
-              onPress={toggleRecording}
-              activeOpacity={0.8}
-            >
-              {isRecording ? (
-                <View style={styles.recordingSquare} />
-              ) : (
-                <View style={styles.recordCircle} />
-              )}
-            </TouchableOpacity>
-
-            {isRecording && (
-              <View style={styles.recBadge}>
-                <View style={[styles.liveDot, { backgroundColor: "#ff0000" }]} />
-                <Text style={styles.recText}>REC {formatTime(recordElapsed)}</Text>
-              </View>
-            )}
-
             {/* Stop stream */}
             <TouchableOpacity
               style={[styles.stopBtn, { backgroundColor: colors.destructive }]}
@@ -271,7 +290,7 @@ export default function StreamScreen() {
           ) : (
             <View style={styles.chatFallback}>
               <Feather name="message-square" size={28} color="#6441a5" />
-              <Text style={styles.chatFallbackText}>Enter your Twitch channel{"\n"}in settings to see chat here</Text>
+              <Text style={styles.chatFallbackText}>Connect Twitch in settings to see chat here</Text>
             </View>
           )}
         </View>
@@ -284,13 +303,30 @@ export default function StreamScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* CAMERA PREVIEW — takes all space above the panel */}
+      {/* CAMERA PREVIEW */}
       <View style={styles.cameraArea}>
-        <View style={[styles.cameraPlaceholder, { backgroundColor: "#000" }]}>
-          <Image source={require("@/assets/icons/camera.png")} style={styles.cameraIcon} resizeMode="contain" />
-          <Text style={[styles.cameraLabel, { color: colors.mutedForeground }]}>CAMERA PREVIEW</Text>
-        </View>
+        {cameraPermission == null ? null : !cameraPermission.granted ? (
+          <TouchableOpacity
+            style={[styles.cameraPlaceholder, { backgroundColor: "#111" }]}
+            onPress={requestCameraPermission}
+            activeOpacity={0.8}
+          >
+            <Feather name="camera-off" size={40} color="#555" />
+            <Text style={[styles.cameraLabel, { color: "#555" }]}>TAP TO ENABLE CAMERA</Text>
+          </TouchableOpacity>
+        ) : (
+          <CameraView style={StyleSheet.absoluteFill} facing={facing}>
+            {/* Flip camera button */}
+            <TouchableOpacity
+              style={[styles.flipBtn, { top: insets.top + 12, right: 14 }]}
+              onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
+            >
+              <Feather name="refresh-cw" size={18} color="#fff" />
+            </TouchableOpacity>
+          </CameraView>
+        )}
 
+        {/* HUD overlay (pre-stream) */}
         {showHUD && (
           <View style={[styles.hud, { top: insets.top + 60, backgroundColor: "rgba(0,0,0,0.8)", borderColor: colors.accent }]}>
             <Text style={[styles.hudTitle, { color: colors.accent }]}>TELEMETRY</Text>
@@ -307,7 +343,7 @@ export default function StreamScreen() {
           </View>
         )}
 
-        {/* Floating ENGAGE BROADCAST button — bottom center of preview */}
+        {/* ENGAGE BROADCAST */}
         <TouchableOpacity
           style={[styles.floatingStreamBtn, { backgroundColor: colors.accent }]}
           onPress={toggleStream}
@@ -318,9 +354,8 @@ export default function StreamScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SETTINGS PANEL — fixed height scrollable sheet */}
+      {/* SETTINGS PANEL */}
       <View style={[styles.settingsSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {/* Drag handle */}
         <View style={styles.sheetHandleRow}>
           <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
         </View>
@@ -349,23 +384,42 @@ export default function StreamScreen() {
             placeholder="rtmp://live.twitch.tv/app/"
             placeholderTextColor={colors.mutedForeground}
             value={rtmpEndpoint}
-            onChangeText={setRtmpEndpoint}
+            onChangeText={(v) => { setRtmpEndpoint(v); setStreamKeySaved(false); }}
             autoCapitalize="none"
             autoCorrect={false}
           />
 
           {/* Stream Key */}
           <Text style={[styles.fieldLabel, { color: colors.accent }]}>STREAM KEY</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: colors.border }]}
-            placeholder="YOUR STREAM KEY"
-            placeholderTextColor={colors.mutedForeground}
-            secureTextEntry
-            value={streamKey}
-            onChangeText={setStreamKey}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <View style={styles.keyRow}>
+            <TextInput
+              style={[styles.input, styles.keyInput, { backgroundColor: colors.secondary, color: colors.foreground, borderColor: streamKeySaved ? "#00b300" : colors.border }]}
+              placeholder="YOUR STREAM KEY"
+              placeholderTextColor={colors.mutedForeground}
+              secureTextEntry
+              value={streamKey}
+              onChangeText={(v) => { setStreamKey(v); setStreamKeySaved(false); }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={[styles.saveKeyBtn, { backgroundColor: streamKeySaved ? "#00b300" : colors.accent }]}
+              onPress={saveStreamKey}
+            >
+              <Feather name={streamKeySaved ? "check" : "save"} size={14} color="#000" />
+              <Text style={styles.saveKeyText}>{streamKeySaved ? "SAVED" : "SAVE"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Copy RTMP URL */}
+          <TouchableOpacity
+            style={[styles.copyRtmpBtn, { borderColor: colors.border }]}
+            onPress={copyRtmpUrl}
+            activeOpacity={0.8}
+          >
+            <Feather name="copy" size={12} color={colors.mutedForeground} />
+            <Text style={[styles.copyRtmpText, { color: colors.mutedForeground }]}>COPY FULL RTMP URL → USE IN STREAMLABS / OBS</Text>
+          </TouchableOpacity>
 
           {/* Twitch Settings (collapsible) */}
           <TouchableOpacity
@@ -475,10 +529,18 @@ export default function StreamScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Pre-stream
+  // Camera area
   cameraArea: { flex: 1, position: "relative" },
   cameraPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   cameraLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 2 },
+  flipBtn: {
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 22,
+    padding: 10,
+    zIndex: 10,
+  },
+
   floatingStreamBtn: {
     position: "absolute",
     bottom: 20,
@@ -496,8 +558,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+
   settingsSheet: {
-    height: 280,
+    height: 310,
     borderTopWidth: 2,
   },
   sheetHandleRow: { alignItems: "center", paddingVertical: 8 },
@@ -506,8 +569,6 @@ const styles = StyleSheet.create({
   // Live mode
   liveCameraArea: { flex: 1, position: "relative", backgroundColor: "#000" },
   livePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-  cameraIcon: { width: 80, height: 80, tintColor: "#ffffff" },
-  liveTitleOverlay: { color: "#fff", fontWeight: "900", fontSize: 13, letterSpacing: 2, textAlign: "center", paddingHorizontal: 20 },
 
   // Live badge
   liveBadgeRow: { position: "absolute", left: 14, flexDirection: "row", alignItems: "center", gap: 10 },
@@ -532,22 +593,9 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     paddingHorizontal: 16,
   },
-  recordBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  recordCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#ff0000" },
-  recordingSquare: { width: 18, height: 18, borderRadius: 3, backgroundColor: "#ff0000" },
-  recBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.7)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4 },
-  recText: { color: "#ff0000", fontWeight: "900", fontSize: 11, letterSpacing: 1 },
   stopBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 4 },
   stopBtnText: { color: "#fff", fontWeight: "900", fontSize: 12, letterSpacing: 1 },
 
@@ -567,6 +615,16 @@ const styles = StyleSheet.create({
   inputFlex2: { flex: 2 },
   inputFlex1: { flex: 1 },
 
+  // Stream key row
+  keyRow: { flexDirection: "row", gap: 8, marginBottom: 0, alignItems: "flex-start" },
+  keyInput: { flex: 1, marginBottom: 10 },
+  saveKeyBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 4, marginBottom: 10 },
+  saveKeyText: { fontWeight: "900", fontSize: 11, letterSpacing: 1, color: "#000" },
+
+  // Copy RTMP
+  copyRtmpBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 4, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 12 },
+  copyRtmpText: { fontSize: 9, fontWeight: "700", letterSpacing: 1.2, flex: 1 },
+
   // Twitch collapsible
   collapsibleHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 },
   twitchBox: { borderWidth: 1, borderRadius: 4, padding: 12, marginBottom: 10 },
@@ -581,6 +639,5 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
   toggleLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
   toggleText: { fontWeight: "700", fontSize: 12, letterSpacing: 1 },
-  streamBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, padding: 16, borderRadius: 4 },
   streamBtnText: { fontWeight: "900", fontSize: 14, letterSpacing: 2 },
 });
