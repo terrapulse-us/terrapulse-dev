@@ -57,11 +57,14 @@ export default function CommunityScreen() {
       const list: PublicUser[] = [];
       snap.forEach((d) => {
         const data = d.data() as PublicUser;
-        if (d.id !== user?.uid) {
-          list.push({ ...data, uid: d.id });
-        }
+        list.push({ ...data, uid: d.id });
       });
-      list.sort((a, b) => b.achievements.length - a.achievements.length);
+      // Sort: current user first, then by badge count
+      list.sort((a, b) => {
+        if (a.uid === user?.uid) return -1;
+        if (b.uid === user?.uid) return 1;
+        return b.achievements.length - a.achievements.length;
+      });
       setRiders(list);
       setLoading(false);
     });
@@ -88,6 +91,7 @@ export default function CommunityScreen() {
       : null;
     const trailsCompleted = item.completedTrails?.length ?? 0;
     const badgesEarned = item.achievements?.length ?? 0;
+    const isMe = item.uid === user?.uid;
 
     const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
     const isTop3 = index < 3;
@@ -120,7 +124,14 @@ export default function CommunityScreen() {
             <Text style={[styles.handle, { color: colors.foreground }]} numberOfLines={1}>
               {handle.toUpperCase()}
             </Text>
-            <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {isMe && (
+                <View style={[styles.youBadge, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.youBadgeText}>YOU</Text>
+                </View>
+              )}
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </View>
           </View>
           {rig && (
             <Text style={[styles.rig, { color: colors.accent }]} numberOfLines={1}>
@@ -267,6 +278,8 @@ const styles = StyleSheet.create({
   statText: { fontSize: 10, fontWeight: "700" },
   trailPill: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   trailPillText: { fontSize: 9, fontWeight: "700" },
+  youBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  youBadgeText: { fontSize: 9, fontWeight: "900", color: "#000", letterSpacing: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 40 },
   loadingText: { fontSize: 11, fontWeight: "700", letterSpacing: 2, marginTop: 8 },
   emptyTitle: { fontWeight: "900", fontSize: 16, textAlign: "center" },
