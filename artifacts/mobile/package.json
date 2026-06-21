@@ -58,6 +58,7 @@
   "dependencies": {
     "expo-file-system": "^56.0.8",
     "firebase": "^12.15.0",
-    "react-native-maps": "1.18.0"
+    "react-native-maps": "1.18.0",
+    "react-native-webview": "^13.16.2"
   }
 }
