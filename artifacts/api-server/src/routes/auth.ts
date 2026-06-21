@@ -11,23 +11,19 @@ function getCallbackUri(): string {
 }
 
 function encodeState(uid: string, platform: string): string {
-  return Buffer.from(JSON.stringify({ uid, platform })).toString("base64url");
+  // Simple separator — no encoding that can be mangled by OAuth roundtrip
+  return `${platform}:${uid}`;
 }
 
-function decodeState(state: string): { uid: string; platform: string } | null {
-  try {
-    const parsed = JSON.parse(Buffer.from(state, "base64url").toString()) as {
-      uid?: string;
-      platform?: string;
-    };
-    if (parsed.uid && parsed.platform) {
-      return { uid: parsed.uid, platform: parsed.platform };
-    }
-    // Legacy: plain uid string
-    return { uid: state, platform: "native" };
-  } catch {
-    return { uid: state, platform: "native" };
+function decodeState(raw: string): { uid: string; platform: string } {
+  const idx = raw.indexOf(":");
+  if (idx > 0) {
+    const platform = raw.slice(0, idx);
+    const uid = raw.slice(idx + 1);
+    if (platform && uid) return { uid, platform };
   }
+  // Legacy fallback: plain uid
+  return { uid: raw, platform: "native" };
 }
 
 // GET /api/auth/twitch?uid=<firebase_uid>&platform=<web|native>
