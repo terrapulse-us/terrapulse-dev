@@ -10,22 +10,6 @@ function getCallbackUri(): string {
   return `https://${domain}/api/auth/twitch/callback`;
 }
 
-function encodeState(uid: string, platform: string): string {
-  // Simple separator — no encoding that can be mangled by OAuth roundtrip
-  return `${platform}:${uid}`;
-}
-
-function decodeState(raw: string): { uid: string; platform: string } {
-  const idx = raw.indexOf(":");
-  if (idx > 0) {
-    const platform = raw.slice(0, idx);
-    const uid = raw.slice(idx + 1);
-    if (platform && uid) return { uid, platform };
-  }
-  // Legacy fallback: plain uid
-  return { uid: raw, platform: "native" };
-}
-
 // GET /api/auth/twitch?uid=<firebase_uid>&platform=<web|native>
 router.get("/twitch", (req, res) => {
   const { uid, platform = "native" } = req.query;
@@ -40,61 +24,78 @@ router.get("/twitch", (req, res) => {
     return;
   }
 
-  const state = encodeState(uid, String(platform));
+  // Store platform in a cookie so the callback can read it regardless of
+  // how the OAuth state param is handled by Twitch.
+  const platformVal = String(platform);
+  res.cookie("tp_platform", platformVal, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    maxAge: 10 * 60 * 1000, // 10 minutes
+  });
 
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: getCallbackUri(),
     response_type: "code",
     scope: "channel:manage:broadcast user:read:email",
-    state,
+    state: uid,
     force_verify: "true",
   });
 
   res.redirect(`https://id.twitch.tv/oauth2/authorize?${params.toString()}`);
 });
 
-// GET /api/auth/twitch/callback?code=<code>&state=<encoded>
+// GET /api/auth/twitch/callback?code=<code>&state=<uid>
 router.get("/twitch/callback", async (req, res) => {
-  const { code, state: rawState, error } = req.query;
+  const { code, state: uid, error } = req.query;
 
-  const stateObj = decodeState(typeof rawState === "string" ? rawState : "");
-  const platform = stateObj?.platform ?? "native";
+  // Read platform from cookie (set when auth flow started)
+  const platform: string = (req.cookies as Record<string, string>)["tp_platform"] ?? "native";
+  res.clearCookie("tp_platform");
 
-  function redirectResult(params: URLSearchParams, isError = false) {
-    if (platform === "web") {
-      // Render a page that postMessages the result back to the opener
-      const data = isError
-        ? JSON.stringify({ error: params.get("error") })
-        : JSON.stringify({
-            token: params.get("token"),
-            channel: params.get("channel"),
-            display_name: params.get("display_name"),
-          });
-      res.setHeader("Content-Type", "text/html");
-      res.send(`<!DOCTYPE html>
+  function sendWebResult(data: Record<string, string | null>) {
+    const json = JSON.stringify(data);
+    res.setHeader("Content-Type", "text/html");
+    res.send(`<!DOCTYPE html>
 <html>
 <head><title>TerraPulse — Twitch Auth</title>
-<style>body{background:#0e0e10;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px;}
-h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}</style>
+<style>
+body{background:#0e0e10;color:#fff;font-family:system-ui;display:flex;align-items:center;
+justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px;}
+h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
+</style>
 </head>
 <body>
-<h2>✓ Connected</h2><p>You can close this window.</p>
+<h2>✓ Connected to Twitch</h2>
+<p>You can close this window.</p>
 <script>
-var data = ${data};
-try { localStorage.setItem('tp_twitch_auth', JSON.stringify(data)); } catch(e) {}
-try { if(window.opener && !window.opener.closed){ window.opener.postMessage({type:'twitch-auth',payload:data},'*'); } } catch(e) {}
-setTimeout(function(){window.close();},1500);
-</script>
-</body></html>`);
-    } else {
-      res.redirect(`mobile://twitch-callback?${params.toString()}`);
+(function(){
+  var data = ${json};
+  try { localStorage.setItem('tp_twitch_auth', JSON.stringify(data)); } catch(e) {}
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'twitch-auth', payload: data }, '*');
     }
+  } catch(e) {}
+  setTimeout(function(){ window.close(); }, 1500);
+})();
+</script>
+</body>
+</html>`);
+  }
+
+  function redirectNative(params: URLSearchParams) {
+    res.redirect(`mobile://twitch-callback?${params.toString()}`);
   }
 
   if (error || !code || typeof code !== "string") {
-    const p = new URLSearchParams({ error: String(error ?? "no_code") });
-    redirectResult(p, true);
+    const errVal = String(error ?? "no_code");
+    if (platform === "web") {
+      sendWebResult({ error: errVal });
+    } else {
+      redirectNative(new URLSearchParams({ error: errVal }));
+    }
     return;
   }
 
@@ -102,8 +103,11 @@ setTimeout(function(){window.close();},1500);
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    const p = new URLSearchParams({ error: "not_configured" });
-    redirectResult(p, true);
+    if (platform === "web") {
+      sendWebResult({ error: "not_configured" });
+    } else {
+      redirectNative(new URLSearchParams({ error: "not_configured" }));
+    }
     return;
   }
 
@@ -126,8 +130,12 @@ setTimeout(function(){window.close();},1500);
     };
 
     if (!tokenData.access_token) {
-      const p = new URLSearchParams({ error: tokenData.error ?? "token_failed" });
-      redirectResult(p, true);
+      const errVal = tokenData.error ?? "token_failed";
+      if (platform === "web") {
+        sendWebResult({ error: errVal });
+      } else {
+        redirectNative(new URLSearchParams({ error: errVal }));
+      }
       return;
     }
 
@@ -148,11 +156,17 @@ setTimeout(function(){window.close();},1500);
     const channel = twitchUser?.login ?? "";
     const displayName = twitchUser?.display_name ?? "";
 
-    const p = new URLSearchParams({ token: accessToken, channel, display_name: displayName });
-    redirectResult(p);
+    if (platform === "web") {
+      sendWebResult({ token: accessToken, channel, display_name: displayName });
+    } else {
+      redirectNative(new URLSearchParams({ token: accessToken, channel, display_name: displayName }));
+    }
   } catch {
-    const p = new URLSearchParams({ error: "server_error" });
-    redirectResult(p, true);
+    if (platform === "web") {
+      sendWebResult({ error: "server_error" });
+    } else {
+      redirectNative(new URLSearchParams({ error: "server_error" }));
+    }
   }
 });
 
