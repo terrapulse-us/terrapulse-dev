@@ -30,7 +30,9 @@ import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
+  uploadString,
 } from "firebase/storage";
+import * as FileSystem from "expo-file-system";
 import { db, storage } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -169,29 +171,50 @@ export default function ProfileScreen() {
     const total = result.assets.length;
     let done = 0;
 
+    const errors: string[] = [];
+
     for (const asset of result.assets) {
       try {
         const isVideo = asset.type === "video";
         const ext = isVideo ? "mp4" : "jpg";
         const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const storageRef = ref(storage, `users/${user.uid}/gallery/${filename}`);
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
-        const task = uploadBytesResumable(storageRef, blob);
-        await new Promise<void>((resolve, reject) => {
-          task.on("state_changed", null, reject, resolve);
-        });
-        const url = await getDownloadURL(storageRef);
+
+        let url: string;
+
+        if (asset.uri.startsWith("data:")) {
+          // web data URI — upload directly
+          await uploadString(storageRef, asset.uri, "data_url");
+          url = await getDownloadURL(storageRef);
+        } else {
+          // native file:// URI — read as base64 then upload
+          const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const mimeType = isVideo ? "video/mp4" : "image/jpeg";
+          await uploadString(storageRef, base64, "base64", { contentType: mimeType });
+          url = await getDownloadURL(storageRef);
+        }
+
         await setDoc(doc(db, "users", user.uid, "gallery", filename), {
           url,
           type: isVideo ? "video" : "photo",
           uploadedAt: Date.now(),
         });
-      } catch {}
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(msg);
+      }
       done++;
       setUploadProgress(Math.round((done / total) * 100));
     }
     setUploading(false);
+    if (errors.length) {
+      Alert.alert(
+        "Upload failed",
+        `${errors.length} file(s) failed to upload.\n\n${errors[0]}${errors.length > 1 ? `\n…and ${errors.length - 1} more.` : ""}`
+      );
+    }
   }, [user]);
 
   const saveSpecs = useCallback(async () => {
