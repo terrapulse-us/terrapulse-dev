@@ -1,0 +1,546 @@
+"use no memo";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Platform,
+  Dimensions,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot,
+  collection,
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { useColors } from "@/hooks/useColors";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GRID_SIZE = (SCREEN_WIDTH - 4) / 3;
+
+interface VehicleSpecs {
+  make: string;
+  model: string;
+  year: string;
+  tireSize: string;
+  suspension: string;
+  mods: string;
+}
+
+interface MediaItem {
+  url: string;
+  type: "photo" | "video";
+  uploadedAt: number;
+}
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlockedAt?: number;
+  unlocked: boolean;
+}
+
+const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = [
+  { id: "first_trail", title: "Trail Breaker", description: "Complete your first trail", icon: "flag" },
+  { id: "trail_rubicon", title: "Rubicon Conqueror", description: "Conquer the legendary Rubicon Trail", icon: "award" },
+  { id: "trail_hungry_valley", title: "Hungry Valley Crusher", description: "Tear up Hungry Valley SVRA", icon: "zap" },
+  { id: "trail_johnson_valley", title: "Hammertown Hero", description: "Survive Johnson Valley like a champ", icon: "shield" },
+  { id: "trail_big_bear", title: "Big Bear Bandit", description: "Shred the Big Bear OHV trails", icon: "activity" },
+  { id: "trail_ocotillo", title: "Desert Rat", description: "Conquer Ocotillo Wells SVRA", icon: "sun" },
+  { id: "trail_fordyce", title: "Fordyce Legend", description: "Tackle the gnarly Fordyce Lake Trail", icon: "star" },
+  { id: "trails_3", title: "Trail Veteran", description: "Complete 3 trails", icon: "trending-up" },
+  { id: "trails_6", title: "California OHV Master", description: "Complete all 6 CA trails", icon: "map" },
+  { id: "went_live", title: "Broadcaster", description: "Go live from a trail", icon: "radio" },
+];
+
+const SECTIONS = ["gallery", "specs", "achievements"] as const;
+type Section = typeof SECTIONS[number];
+
+export default function ProfileScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
+
+  const [activeSection, setActiveSection] = useState<Section>("gallery");
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [specs, setSpecs] = useState<VehicleSpecs>({ make: "", model: "", year: "", tireSize: "", suspension: "", mods: "" });
+  const [savingSpecs, setSavingSpecs] = useState(false);
+  const [specsSaved, setSpecsSaved] = useState(false);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data.vehicleSpecs) setSpecs(data.vehicleSpecs);
+
+      const earned: string[] = data.achievements || [];
+      const mapped: Achievement[] = ALL_ACHIEVEMENTS.map((a) => ({
+        ...a,
+        unlocked: earned.includes(a.id),
+        unlockedAt: data.achievementDates?.[a.id],
+      }));
+      setAchievements(mapped);
+    });
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "gallery"),
+      (snap) => {
+        const items: MediaItem[] = [];
+        snap.forEach((d) => items.push(d.data() as MediaItem));
+        items.sort((a, b) => b.uploadedAt - a.uploadedAt);
+        setMedia(items);
+      }
+    );
+    return unsub;
+  }, [user]);
+
+  const pickAndUpload = useCallback(async () => {
+    if (!user) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow photo library access to upload media.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsMultipleSelection: true,
+      quality: 0.85,
+      selectionLimit: 10,
+    });
+    if (result.canceled || !result.assets.length) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+    const total = result.assets.length;
+    let done = 0;
+
+    for (const asset of result.assets) {
+      try {
+        const isVideo = asset.type === "video";
+        const ext = isVideo ? "mp4" : "jpg";
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const storageRef = ref(storage, `users/${user.uid}/gallery/${filename}`);
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const task = uploadBytesResumable(storageRef, blob);
+        await new Promise<void>((resolve, reject) => {
+          task.on("state_changed", null, reject, resolve);
+        });
+        const url = await getDownloadURL(storageRef);
+        await setDoc(doc(db, "users", user.uid, "gallery", filename), {
+          url,
+          type: isVideo ? "video" : "photo",
+          uploadedAt: Date.now(),
+        });
+      } catch {}
+      done++;
+      setUploadProgress(Math.round((done / total) * 100));
+    }
+    setUploading(false);
+  }, [user]);
+
+  const saveSpecs = useCallback(async () => {
+    if (!user) return;
+    setSavingSpecs(true);
+    try {
+      await setDoc(doc(db, "users", user.uid), { vehicleSpecs: specs }, { merge: true });
+      setSpecsSaved(true);
+      setTimeout(() => setSpecsSaved(false), 2000);
+    } catch {
+      Alert.alert("Error", "Could not save specs. Try again.");
+    } finally {
+      setSavingSpecs(false);
+    }
+  }, [user, specs]);
+
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+
+  return (
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      {/* HEADER */}
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={styles.avatarWrap}>
+          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.accent }]}>
+            <Text style={[styles.avatarText, { color: colors.accent }]}>
+              {user?.email?.[0]?.toUpperCase() ?? "?"}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.headerInfo}>
+          <Text style={[styles.emailText, { color: colors.foreground }]} numberOfLines={1}>
+            {user?.email ?? ""}
+          </Text>
+          <Text style={[styles.statsText, { color: colors.mutedForeground }]}>
+            {media.length} PHOTOS · {unlockedCount}/{ALL_ACHIEVEMENTS.length} BADGES
+          </Text>
+        </View>
+        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+          <Feather name="log-out" size={18} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      </View>
+
+      {/* SECTION TABS */}
+      <View style={[styles.tabs, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        {SECTIONS.map((s) => (
+          <TouchableOpacity
+            key={s}
+            style={[styles.tab, activeSection === s && { borderBottomColor: colors.accent, borderBottomWidth: 2 }]}
+            onPress={() => setActiveSection(s)}
+          >
+            <Feather
+              name={s === "gallery" ? "image" : s === "specs" ? "truck" : "award"}
+              size={16}
+              color={activeSection === s ? colors.accent : colors.mutedForeground}
+            />
+            <Text style={[styles.tabText, { color: activeSection === s ? colors.accent : colors.mutedForeground }]}>
+              {s.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* GALLERY */}
+      {activeSection === "gallery" && (
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={[styles.uploadBtn, { backgroundColor: colors.accent }, uploading && { opacity: 0.6 }]}
+            onPress={pickAndUpload}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Text style={styles.uploadBtnText}>UPLOADING... {uploadProgress}%</Text>
+            ) : (
+              <>
+                <Feather name="plus" size={16} color="#000" />
+                <Text style={styles.uploadBtnText}>ADD PHOTOS / VIDEOS</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {media.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="camera" size={40} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No media yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Upload your trail photos and videos
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={media}
+              keyExtractor={(_, i) => String(i)}
+              numColumns={3}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => setLightboxUri(item.url)}>
+                  <Image
+                    source={{ uri: item.url }}
+                    style={{ width: GRID_SIZE, height: GRID_SIZE, margin: 1 }}
+                  />
+                  {item.type === "video" && (
+                    <View style={styles.videoOverlay}>
+                      <Feather name="play" size={20} color="#FFF" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {/* VEHICLE SPECS */}
+      {activeSection === "specs" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.specsContainer, { paddingBottom: insets.bottom + 20 }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.specsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.specsCardHeader}>
+              <Feather name="truck" size={18} color={colors.accent} />
+              <Text style={[styles.specsCardTitle, { color: colors.foreground }]}>MY RIG</Text>
+            </View>
+
+            {([
+              { key: "year", label: "YEAR", placeholder: "e.g. 2022", icon: "calendar" },
+              { key: "make", label: "MAKE", placeholder: "e.g. Toyota", icon: "truck" },
+              { key: "model", label: "MODEL", placeholder: "e.g. Tacoma TRD Pro", icon: "tag" },
+              { key: "tireSize", label: "TIRE SIZE", placeholder: 'e.g. 35x12.5R17', icon: "circle" },
+              { key: "suspension", label: "SUSPENSION", placeholder: "e.g. Icon Stage 8, 3in lift", icon: "settings" },
+            ] as { key: keyof VehicleSpecs; label: string; placeholder: string; icon: string }[]).map(({ key, label, placeholder, icon }) => (
+              <View key={key} style={styles.fieldWrap}>
+                <Text style={[styles.fieldLabel, { color: colors.accent }]}>{label}</Text>
+                <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                  <Feather name={icon as keyof typeof Feather.glyphMap} size={14} color={colors.mutedForeground} />
+                  <TextInput
+                    style={[styles.fieldInput, { color: colors.foreground }]}
+                    placeholder={placeholder}
+                    placeholderTextColor={colors.mutedForeground}
+                    value={specs[key]}
+                    onChangeText={(t) => setSpecs((s) => ({ ...s, [key]: t }))}
+                  />
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.fieldWrap}>
+              <Text style={[styles.fieldLabel, { color: colors.accent }]}>MODS & BUILD NOTES</Text>
+              <TextInput
+                style={[styles.modsInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                placeholder="e.g. ARB bumper, snorkel, roof rack, onboard air..."
+                placeholderTextColor={colors.mutedForeground}
+                value={specs.mods}
+                onChangeText={(t) => setSpecs((s) => ({ ...s, mods: t }))}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: specsSaved ? colors.success : colors.accent }, savingSpecs && { opacity: 0.6 }]}
+              onPress={saveSpecs}
+              disabled={savingSpecs}
+            >
+              {savingSpecs ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <>
+                  <Feather name={specsSaved ? "check" : "save"} size={16} color="#000" />
+                  <Text style={styles.saveBtnText}>{specsSaved ? "SAVED!" : "SAVE RIG SPECS"}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ACHIEVEMENTS */}
+      {activeSection === "achievements" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.achContainer, { paddingBottom: insets.bottom + 20 }]}
+        >
+          <View style={styles.achProgress}>
+            <Text style={[styles.achProgressText, { color: colors.foreground }]}>
+              {unlockedCount}
+              <Text style={{ color: colors.mutedForeground }}>/{ALL_ACHIEVEMENTS.length} UNLOCKED</Text>
+            </Text>
+            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { backgroundColor: colors.accent, width: `${(unlockedCount / ALL_ACHIEVEMENTS.length) * 100}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          {achievements.map((ach) => (
+            <View
+              key={ach.id}
+              style={[
+                styles.achCard,
+                {
+                  backgroundColor: ach.unlocked ? colors.card : colors.secondary,
+                  borderColor: ach.unlocked ? colors.accent : colors.border,
+                  opacity: ach.unlocked ? 1 : 0.5,
+                },
+              ]}
+            >
+              <View style={[styles.achIcon, { backgroundColor: ach.unlocked ? colors.accent : colors.border }]}>
+                <Feather name={ach.icon as keyof typeof Feather.glyphMap} size={18} color={ach.unlocked ? "#000" : "#555"} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.achTitle, { color: ach.unlocked ? colors.foreground : colors.mutedForeground }]}>
+                  {ach.title}
+                </Text>
+                <Text style={[styles.achDesc, { color: colors.mutedForeground }]}>{ach.description}</Text>
+                {ach.unlocked && ach.unlockedAt && (
+                  <Text style={[styles.achDate, { color: colors.accent }]}>
+                    ✓ {new Date(ach.unlockedAt).toLocaleDateString()}
+                  </Text>
+                )}
+              </View>
+              {ach.unlocked && (
+                <Feather name="check-circle" size={20} color={colors.accent} />
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* LIGHTBOX */}
+      <Modal visible={!!lightboxUri} transparent animationType="fade" onRequestClose={() => setLightboxUri(null)}>
+        <View style={styles.lightbox}>
+          <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxUri(null)}>
+            <Feather name="x" size={26} color="#FFF" />
+          </TouchableOpacity>
+          {lightboxUri && (
+            <Image source={{ uri: lightboxUri }} style={styles.lightboxImg} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  avatarWrap: {},
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { fontSize: 20, fontWeight: "900" },
+  headerInfo: { flex: 1 },
+  emailText: { fontWeight: "700", fontSize: 13 },
+  statsText: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
+  logoutBtn: { padding: 6 },
+  tabs: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+  },
+  tabText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    margin: 12,
+    padding: 12,
+    borderRadius: 4,
+  },
+  uploadBtnText: { fontWeight: "900", fontSize: 12, letterSpacing: 1.5, color: "#000" },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  emptyTitle: { fontWeight: "900", fontSize: 16 },
+  emptySub: { fontSize: 12, textAlign: "center", paddingHorizontal: 40 },
+  videoOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+    margin: 1,
+  },
+  specsContainer: { padding: 16, gap: 16 },
+  specsCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  specsCardHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  specsCardTitle: { fontWeight: "900", fontSize: 14, letterSpacing: 2 },
+  fieldWrap: { gap: 6 },
+  fieldLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 2 },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    height: 46,
+  },
+  fieldInput: { flex: 1, fontSize: 13, fontWeight: "600" },
+  modsInput: {
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 12,
+    fontSize: 13,
+    fontWeight: "600",
+    minHeight: 100,
+  },
+  saveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  saveBtnText: { fontWeight: "900", fontSize: 13, letterSpacing: 2, color: "#000" },
+  achContainer: { padding: 16, gap: 10 },
+  achProgress: { marginBottom: 8, gap: 8 },
+  achProgressText: { fontWeight: "900", fontSize: 16 },
+  progressBar: { height: 4, borderRadius: 2, overflow: "hidden" },
+  progressFill: { height: 4, borderRadius: 2 },
+  achCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  achIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  achTitle: { fontWeight: "900", fontSize: 13 },
+  achDesc: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+  achDate: { fontSize: 10, fontWeight: "700", marginTop: 4 },
+  lightbox: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxClose: { position: "absolute", top: 50, right: 20, zIndex: 10 },
+  lightboxImg: { width: "100%", height: "80%" },
+});

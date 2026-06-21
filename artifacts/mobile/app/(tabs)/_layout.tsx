@@ -62,6 +62,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Feather name="radio" size={22} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "PROFILE",
+          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

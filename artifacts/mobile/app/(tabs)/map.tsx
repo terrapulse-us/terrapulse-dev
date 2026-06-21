@@ -25,6 +25,7 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import {
   ref,
@@ -32,6 +33,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import { markTrailComplete } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -151,10 +153,22 @@ export default function MapScreen() {
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completedTrails, setCompletedTrails] = useState<string[]>([]);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+
+  // Load user's completed trails from Firestore
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      if (snap.exists()) {
+        setCompletedTrails(snap.data().completedTrails ?? []);
+      }
+    });
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -225,6 +239,30 @@ export default function MapScreen() {
       setUploading(false);
     }
   }, [selectedTrail, user]);
+
+  const completeTrail = useCallback(async () => {
+    if (!user || !selectedTrail) return;
+    setCompleting(true);
+    try {
+      const newAchievements = await markTrailComplete(user.uid, selectedTrail.id);
+      setCompletedTrails((prev) =>
+        prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]
+      );
+      if (newAchievements.length > 0) {
+        Alert.alert(
+          "🏆 Achievement Unlocked!",
+          `You earned ${newAchievements.length} badge${newAchievements.length > 1 ? "s" : ""}! Check your profile to see them.`,
+          [{ text: "NICE!", style: "default" }]
+        );
+      } else {
+        Alert.alert("Trail Logged!", "This trail is already marked complete.", [{ text: "OK" }]);
+      }
+    } catch {
+      Alert.alert("Error", "Could not log trail. Try again.");
+    } finally {
+      setCompleting(false);
+    }
+  }, [user, selectedTrail]);
 
   const markerColor = (rating: number) => {
     if (rating <= 3) return "#00E676";
@@ -373,6 +411,34 @@ export default function MapScreen() {
                   />
                 )}
               </View>
+
+              {/* MARK COMPLETE */}
+              {(() => {
+                const done = completedTrails.includes(selectedTrail.id);
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.completeBtn,
+                      { backgroundColor: done ? colors.secondary : colors.success, borderColor: done ? colors.success : "transparent", borderWidth: done ? 1 : 0 },
+                      completing && { opacity: 0.6 },
+                    ]}
+                    onPress={completeTrail}
+                    disabled={completing}
+                    activeOpacity={0.85}
+                  >
+                    {completing ? (
+                      <ActivityIndicator color={done ? colors.success : "#000"} />
+                    ) : (
+                      <>
+                        <Feather name={done ? "check-circle" : "flag"} size={16} color={done ? colors.success : "#000"} />
+                        <Text style={[styles.completeBtnText, { color: done ? colors.success : "#000" }]}>
+                          {done ? "TRAIL COMPLETED ✓" : "MARK AS COMPLETE"}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           </View>
         )}
@@ -454,6 +520,16 @@ const styles = StyleSheet.create({
   noPhotos: { alignItems: "center", paddingVertical: 24, gap: 8 },
   noPhotosText: { fontSize: 12, fontWeight: "600" },
   photo: { width: 100, height: 100, borderRadius: 4, marginRight: 8, borderWidth: 1 },
+  completeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+    borderRadius: 4,
+    marginTop: 12,
+  },
+  completeBtnText: { fontWeight: "900", fontSize: 13, letterSpacing: 2 },
 });
 
 const darkMapStyle = [
