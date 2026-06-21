@@ -92,7 +92,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={profileIcon}
-              style={{ width: 30, height: 30, tintColor: color }}
+              style={{ width: 36, height: 36, tintColor: color }}
               resizeMode="contain"
             />
           ),
