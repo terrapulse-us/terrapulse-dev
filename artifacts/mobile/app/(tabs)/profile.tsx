@@ -14,6 +14,7 @@ import {
   Modal,
   Platform,
   Dimensions,
+  Switch,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
@@ -91,6 +92,8 @@ export default function ProfileScreen() {
   const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
+  const [togglingPrivacy, setTogglingPrivacy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +101,7 @@ export default function ProfileScreen() {
       if (!snap.exists()) return;
       const data = snap.data();
       if (data.vehicleSpecs) setSpecs(data.vehicleSpecs);
+      if (typeof data.isPublic === "boolean") setIsPublic(data.isPublic);
 
       const earned: string[] = data.achievements || [];
       const mapped: Achievement[] = ALL_ACHIEVEMENTS.map((a) => ({
@@ -108,6 +112,27 @@ export default function ProfileScreen() {
       setAchievements(mapped);
     });
     return unsub;
+  }, [user]);
+
+  const togglePrivacy = useCallback(async (value: boolean) => {
+    if (!user) return;
+    setTogglingPrivacy(true);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          isPublic: value,
+          email: user.email,
+          uid: user.uid,
+        },
+        { merge: true }
+      );
+      setIsPublic(value);
+    } catch {
+      Alert.alert("Error", "Could not update privacy. Try again.");
+    } finally {
+      setTogglingPrivacy(false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -207,6 +232,37 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
           <Feather name="log-out" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
+      </View>
+
+      {/* PRIVACY TOGGLE */}
+      <View style={[styles.privacyRow, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}>
+        <View style={styles.privacyLeft}>
+          <Feather
+            name={isPublic ? "globe" : "lock"}
+            size={15}
+            color={isPublic ? colors.success : colors.mutedForeground}
+          />
+          <View>
+            <Text style={[styles.privacyLabel, { color: colors.foreground }]}>
+              {isPublic ? "PUBLIC PROFILE" : "PRIVATE PROFILE"}
+            </Text>
+            <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>
+              {isPublic
+                ? "Visible in the Riders tab"
+                : "Only you can see your profile"}
+            </Text>
+          </View>
+        </View>
+        {togglingPrivacy ? (
+          <ActivityIndicator size="small" color={colors.accent} />
+        ) : (
+          <Switch
+            value={isPublic}
+            onValueChange={togglePrivacy}
+            thumbColor={isPublic ? colors.success : colors.mutedForeground}
+            trackColor={{ false: colors.border, true: "#004D26" }}
+          />
+        )}
       </View>
 
       {/* SECTION TABS */}
@@ -439,6 +495,17 @@ const styles = StyleSheet.create({
   emailText: { fontWeight: "700", fontSize: 13 },
   statsText: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
   logoutBtn: { padding: 6 },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  privacyLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  privacyLabel: { fontWeight: "900", fontSize: 12, letterSpacing: 1 },
+  privacySub: { fontSize: 10, fontWeight: "600", marginTop: 2 },
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
