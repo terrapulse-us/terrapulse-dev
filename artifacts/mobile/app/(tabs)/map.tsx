@@ -302,7 +302,7 @@ export default function MapScreen() {
           latitudeDelta: 6.0,
           longitudeDelta: 6.0,
         }}
-        showsUserLocation={!!userLocation}
+        showsUserLocation={false}
         showsMyLocationButton={false}
         toolbarEnabled={false}
         customMapStyle={darkMapStyle}
@@ -316,6 +316,13 @@ export default function MapScreen() {
             title={trail.title}
           />
         ))}
+        {userLocation && (
+          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+            <View style={styles.userDot}>
+              <View style={styles.userDotInner} />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -498,6 +505,22 @@ const styles = StyleSheet.create({
   topTitle: { fontWeight: "900", fontSize: 15, letterSpacing: 2 },
   topSub: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 1 },
   logoutBtn: { padding: 6 },
+  userDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,85,0,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#FF5500",
+  },
+  userDotInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#FF5500",
+  },
   locateBtn: {
     position: "absolute",
     right: 16,
