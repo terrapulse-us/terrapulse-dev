@@ -63,6 +63,12 @@ router.get("/twitch", (req, res) => {
   res.redirect(`https://id.twitch.tv/oauth2/authorize?${params.toString()}`);
 });
 
+// GET /api/auth/twitch/debug — shows pending Map contents (dev only)
+router.get("/twitch/debug", (req, res) => {
+  const entries = [...pending.entries()].map(([k, v]) => ({ key: k, platform: v.platform, uid: v.uid.slice(0, 6) + "..." }));
+  res.json({ pendingCount: pending.size, entries });
+});
+
 // GET /api/auth/twitch/callback?code=<code>&state=<stateToken>
 router.get("/twitch/callback", async (req, res) => {
   const { code, state: stateToken, error } = req.query;
@@ -71,6 +77,14 @@ router.get("/twitch/callback", async (req, res) => {
   const entry = typeof stateToken === "string" ? pending.get(stateToken) : undefined;
   if (entry) pending.delete(stateToken as string);
   const platform = entry?.platform ?? "native";
+
+  req.log.info({
+    stateToken,
+    stateType: typeof stateToken,
+    entryFound: !!entry,
+    platform,
+    pendingKeys: [...pending.keys()].slice(0, 5),
+  }, "twitch callback received");
 
   function sendWebResult(data: Record<string, string | null>) {
     const json = JSON.stringify(data);
