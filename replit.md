@@ -36,9 +36,22 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
 
+## Building Android APKs
+
+EAS builds cannot run inside Replit (git sandbox). To build APKs:
+1. Export this repo to GitHub via the Replit Git panel ("Push to GitHub")
+2. Add `EXPO_TOKEN` secret to the GitHub repo (from expo.dev → Account Settings → Access Tokens)
+3. **Method A (GitHub Actions):** Go to GitHub repo → Actions → "EAS Android APK Build" → Run workflow
+4. **Method B (expo.dev dashboard):** Link GitHub repo at expo.dev → project → GitHub tab, then trigger a build
+
+See `artifacts/mobile/BUILDING.md` for full step-by-step instructions.
+
+EAS project: `5e42857a-9f58-4c15-8b0b-571dd97b3189` | owner: `mclaporteterrapulses-team`
+
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- EAS builds must be triggered from GitHub or expo.dev — `eas build` cannot run inside Replit due to git sandbox restrictions. See `artifacts/mobile/BUILDING.md`.
+- EAS CLI login (`eas login`) fails in Replit shell; use `EXPO_TOKEN` env var instead.
 
 ## Pointers
 
