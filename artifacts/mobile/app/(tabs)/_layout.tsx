@@ -1,10 +1,14 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Image, Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
+
+const broadcastIcon = require("@/assets/icons/broadcast.png");
+const helmetIcon    = require("@/assets/icons/helmet.png");
+const profileIcon   = require("@/assets/icons/profile.png");
 
 export default function TabLayout() {
   const colors = useColors();
@@ -59,21 +63,39 @@ export default function TabLayout() {
         name="stream"
         options={{
           title: "BROADCAST",
-          tabBarIcon: ({ color }) => <Feather name="radio" size={22} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={broadcastIcon}
+              style={{ width: 24, height: 24, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: "RIDERS",
-          tabBarIcon: ({ color }) => <Feather name="users" size={22} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={helmetIcon}
+              style={{ width: 24, height: 24, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "PROFILE",
-          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={profileIcon}
+              style={{ width: 24, height: 24, tintColor: color }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
     </Tabs>
