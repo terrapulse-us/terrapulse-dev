@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   chatFallbackText: { color: "#666", fontSize: 12, textAlign: "center", lineHeight: 18 },
 
   // Settings panel
-  panel: { maxHeight: "45%", borderTopWidth: 2, paddingHorizontal: 20, paddingTop: 16 },
+  panel: { maxHeight: "60%", borderTopWidth: 2, paddingHorizontal: 20, paddingTop: 16 },
   panelTitle: { fontWeight: "900", fontSize: 14, letterSpacing: 2, marginBottom: 14 },
   fieldLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 2, marginBottom: 6 },
   input: { padding: 12, borderRadius: 4, marginBottom: 10, borderWidth: 1, fontSize: 12, fontWeight: "600" },
