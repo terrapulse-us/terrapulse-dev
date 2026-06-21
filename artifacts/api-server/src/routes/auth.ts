@@ -1,6 +1,23 @@
 import { Router } from "express";
+import { randomUUID } from "crypto";
 
 const router = Router();
+
+// In-memory store: stateToken → { uid, platform }
+// Entries expire after 15 minutes
+interface PendingEntry {
+  uid: string;
+  platform: string;
+  expiresAt: number;
+}
+const pending = new Map<string, PendingEntry>();
+
+function cleanupExpired() {
+  const now = Date.now();
+  for (const [key, entry] of pending) {
+    if (entry.expiresAt < now) pending.delete(key);
+  }
+}
 
 function getCallbackUri(): string {
   const domain =
@@ -24,14 +41,14 @@ router.get("/twitch", (req, res) => {
     return;
   }
 
-  // Store platform in a cookie so the callback can read it regardless of
-  // how the OAuth state param is handled by Twitch.
-  const platformVal = String(platform);
-  res.cookie("tp_platform", platformVal, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: true,
-    maxAge: 10 * 60 * 1000, // 10 minutes
+  cleanupExpired();
+
+  // Store uid + platform server-side; pass only the token to Twitch
+  const stateToken = randomUUID();
+  pending.set(stateToken, {
+    uid,
+    platform: String(platform),
+    expiresAt: Date.now() + 15 * 60 * 1000,
   });
 
   const params = new URLSearchParams({
@@ -39,27 +56,28 @@ router.get("/twitch", (req, res) => {
     redirect_uri: getCallbackUri(),
     response_type: "code",
     scope: "channel:manage:broadcast user:read:email",
-    state: uid,
+    state: stateToken,
     force_verify: "true",
   });
 
   res.redirect(`https://id.twitch.tv/oauth2/authorize?${params.toString()}`);
 });
 
-// GET /api/auth/twitch/callback?code=<code>&state=<uid>
+// GET /api/auth/twitch/callback?code=<code>&state=<stateToken>
 router.get("/twitch/callback", async (req, res) => {
-  const { code, state: uid, error } = req.query;
+  const { code, state: stateToken, error } = req.query;
 
-  // Read platform from cookie (set when auth flow started)
-  const platform: string = (req.cookies as Record<string, string>)["tp_platform"] ?? "native";
-  res.clearCookie("tp_platform");
+  // Look up the platform from server-side state
+  const entry = typeof stateToken === "string" ? pending.get(stateToken) : undefined;
+  if (entry) pending.delete(stateToken as string);
+  const platform = entry?.platform ?? "native";
 
   function sendWebResult(data: Record<string, string | null>) {
     const json = JSON.stringify(data);
     res.setHeader("Content-Type", "text/html");
     res.send(`<!DOCTYPE html>
 <html>
-<head><title>TerraPulse — Twitch Auth</title>
+<head><title>TerraPulse — Connected</title>
 <style>
 body{background:#0e0e10;color:#fff;font-family:system-ui;display:flex;align-items:center;
 justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px;}
@@ -72,12 +90,12 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
 <script>
 (function(){
   var data = ${json};
-  try { localStorage.setItem('tp_twitch_auth', JSON.stringify(data)); } catch(e) {}
+  try { localStorage.setItem('tp_twitch_auth', JSON.stringify(data)); } catch(e){}
   try {
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'twitch-auth', payload: data }, '*');
+    if(window.opener && !window.opener.closed){
+      window.opener.postMessage({type:'twitch-auth',payload:data},'*');
     }
-  } catch(e) {}
+  } catch(e){}
   setTimeout(function(){ window.close(); }, 1500);
 })();
 </script>
@@ -91,11 +109,8 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
 
   if (error || !code || typeof code !== "string") {
     const errVal = String(error ?? "no_code");
-    if (platform === "web") {
-      sendWebResult({ error: errVal });
-    } else {
-      redirectNative(new URLSearchParams({ error: errVal }));
-    }
+    if (platform === "web") sendWebResult({ error: errVal });
+    else redirectNative(new URLSearchParams({ error: errVal }));
     return;
   }
 
@@ -103,11 +118,8 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    if (platform === "web") {
-      sendWebResult({ error: "not_configured" });
-    } else {
-      redirectNative(new URLSearchParams({ error: "not_configured" }));
-    }
+    if (platform === "web") sendWebResult({ error: "not_configured" });
+    else redirectNative(new URLSearchParams({ error: "not_configured" }));
     return;
   }
 
@@ -131,11 +143,8 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
 
     if (!tokenData.access_token) {
       const errVal = tokenData.error ?? "token_failed";
-      if (platform === "web") {
-        sendWebResult({ error: errVal });
-      } else {
-        redirectNative(new URLSearchParams({ error: errVal }));
-      }
+      if (platform === "web") sendWebResult({ error: errVal });
+      else redirectNative(new URLSearchParams({ error: errVal }));
       return;
     }
 
@@ -162,16 +171,12 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}
       redirectNative(new URLSearchParams({ token: accessToken, channel, display_name: displayName }));
     }
   } catch {
-    if (platform === "web") {
-      sendWebResult({ error: "server_error" });
-    } else {
-      redirectNative(new URLSearchParams({ error: "server_error" }));
-    }
+    if (platform === "web") sendWebResult({ error: "server_error" });
+    else redirectNative(new URLSearchParams({ error: "server_error" }));
   }
 });
 
 // POST /api/auth/twitch/update-title
-// Body: { token: string, title: string, channel: string }
 router.post("/twitch/update-title", async (req, res) => {
   const { token, title, channel } = req.body as {
     token?: string;
@@ -194,15 +199,10 @@ router.post("/twitch/update-title", async (req, res) => {
     const userRes = await fetch(
       `https://api.twitch.tv/helix/users?login=${encodeURIComponent(channel)}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Client-Id": clientId,
-        },
+        headers: { Authorization: `Bearer ${token}`, "Client-Id": clientId },
       }
     );
-    const userData = (await userRes.json()) as {
-      data?: { id: string }[];
-    };
+    const userData = (await userRes.json()) as { data?: { id: string }[] };
     const broadcasterId = userData?.data?.[0]?.id;
     if (!broadcasterId) {
       res.status(404).json({ ok: false, error: "Broadcaster not found" });
