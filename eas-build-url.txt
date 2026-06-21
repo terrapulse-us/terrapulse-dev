@@ -1,0 +1,40 @@
+EAS Android Build — Manual Trigger Required
+============================================
+
+The EAS build cannot be triggered from inside Replit because the CLI
+needs git archive access, which is restricted in this environment.
+
+HOW TO BUILD LOCALLY (takes ~2 minutes to submit, ~15 min to compile)
+----------------------------------------------------------------------
+1. Install EAS CLI if you don't have it:
+     npm install -g eas-cli
+
+2. Log in with your Expo account:
+     eas login
+   (or set EXPO_TOKEN env var if you prefer token auth)
+
+3. From the project root, run:
+     cd artifacts/mobile
+     eas build --platform android --profile development
+
+4. EAS will print a dashboard URL like:
+     https://expo.dev/accounts/mclaporteterrapulses-team/projects/mobile/builds/<id>
+
+5. When the build finishes (15-20 min), open that URL —
+   there will be a QR code to scan with your Android device to
+   download and install the fresh APK.
+
+ACCOUNT INFO
+------------
+Expo account : mclaporteterrapulses-team
+Project      : mobile
+Profile      : development  (produces a debug APK with dev-client)
+App ID       : 5e42857a-9f58-4c15-8b0b-571dd97b3189
+
+WHY A NEW BUILD?
+----------------
+The previous APK has a native binary mismatch:
+  java.lang.NoSuchMethodError: No static method getDirectConverter
+This means the compiled Java native code in the old APK no longer
+matches what Metro is serving. A fresh EAS build recompiles everything
+against the current dependency state.
