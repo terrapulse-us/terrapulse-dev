@@ -93,6 +93,11 @@ export default function ProfileScreen() {
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -101,6 +106,8 @@ export default function ProfileScreen() {
       const data = snap.data();
       if (data.vehicleSpecs) setSpecs(data.vehicleSpecs);
       if (typeof data.isPublic === "boolean") setIsPublic(data.isPublic);
+      if (data.displayName) setDisplayName(data.displayName as string);
+      if (data.photoURL) setAvatarUrl(data.photoURL as string);
 
       const earned: string[] = data.achievements || [];
       const mapped: Achievement[] = ALL_ACHIEVEMENTS.map((a) => ({
@@ -147,6 +154,54 @@ export default function ProfileScreen() {
     );
     return unsub;
   }, [user]);
+
+  const pickAvatar = useCallback(async () => {
+    if (!user) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow photo library access to set a profile photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets.length) return;
+    setUploadingAvatar(true);
+    try {
+      const asset = result.assets[0];
+      const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => resolve(xhr.response as Blob);
+        xhr.onerror = () => reject(new Error("Failed to read image"));
+        xhr.responseType = "blob";
+        xhr.open("GET", asset.uri, true);
+        xhr.send(null);
+      });
+      await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(storageRef);
+      await setDoc(doc(db, "users", user.uid), { photoURL: url }, { merge: true });
+      setAvatarUrl(url);
+    } catch {
+      Alert.alert("Error", "Could not upload profile photo. Try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [user]);
+
+  const saveDisplayName = useCallback(async () => {
+    if (!user || !nameInput.trim()) return;
+    try {
+      await setDoc(doc(db, "users", user.uid), { displayName: nameInput.trim() }, { merge: true });
+      setDisplayName(nameInput.trim());
+      setEditingName(false);
+    } catch {
+      Alert.alert("Error", "Could not save name. Try again.");
+    }
+  }, [user, nameInput]);
 
   const pickAndUpload = useCallback(async () => {
     if (!user) return;
@@ -233,21 +288,63 @@ export default function ProfileScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={styles.avatarWrap}>
-          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.accent }]}>
-            <Text style={[styles.avatarText, { color: colors.accent }]}>
-              {user?.email?.[0]?.toUpperCase() ?? "?"}
-            </Text>
+        <TouchableOpacity onPress={pickAvatar} style={styles.avatarWrap} disabled={uploadingAvatar}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: colors.accent }]} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.accent }]}>
+              <Text style={[styles.avatarText, { color: colors.accent }]}>
+                {(displayName || user?.email || "?")[0].toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={[styles.cameraOverlay, { backgroundColor: colors.accent }]}>
+            {uploadingAvatar
+              ? <ActivityIndicator size={10} color="#fff" />
+              : <Feather name="camera" size={10} color="#fff" />}
           </View>
-        </View>
+        </TouchableOpacity>
+
         <View style={styles.headerInfo}>
-          <Text style={[styles.emailText, { color: colors.foreground }]} numberOfLines={1}>
+          {editingName ? (
+            <View style={styles.nameEditRow}>
+              <TextInput
+                style={[styles.nameInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.secondary }]}
+                value={nameInput}
+                onChangeText={setNameInput}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={saveDisplayName}
+                maxLength={30}
+                placeholder="Your name"
+                placeholderTextColor={colors.mutedForeground}
+              />
+              <TouchableOpacity onPress={saveDisplayName} style={styles.nameEditBtn}>
+                <Feather name="check" size={16} color={colors.success} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingName(false)} style={styles.nameEditBtn}>
+                <Feather name="x" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={() => { setNameInput(displayName); setEditingName(true); }}
+              style={styles.nameRow}
+            >
+              <Text style={[styles.nameText, { color: colors.foreground }]} numberOfLines={1}>
+                {displayName || user?.email?.split("@")[0] || "Rider"}
+              </Text>
+              <Feather name="edit-2" size={11} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.emailText, { color: colors.mutedForeground }]} numberOfLines={1}>
             {user?.email ?? ""}
           </Text>
           <Text style={[styles.statsText, { color: colors.mutedForeground }]}>
             {media.length} PHOTOS · {unlockedCount}/{ALL_ACHIEVEMENTS.length} BADGES
           </Text>
         </View>
+
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
           <Feather name="log-out" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
@@ -500,18 +597,41 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: 12,
   },
-  avatarWrap: {},
+  avatarWrap: { position: "relative" },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: { fontSize: 20, fontWeight: "900" },
+  cameraOverlay: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerInfo: { flex: 1 },
-  emailText: { fontWeight: "700", fontSize: 13 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  nameText: { fontWeight: "900", fontSize: 14, flex: 1 },
+  nameEditRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  nameInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  nameEditBtn: { padding: 4 },
+  emailText: { fontSize: 11, fontWeight: "600", marginTop: 2, opacity: 0.6 },
   statsText: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
   logoutBtn: { padding: 6 },
   privacyRow: {

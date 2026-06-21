@@ -8,6 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
   TextInput,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ interface PublicUser {
   uid: string;
   email: string;
   displayName?: string;
+  photoURL?: string;
   completedTrails: string[];
   achievements: string[];
   isPublic: boolean;
@@ -96,15 +98,22 @@ export default function CommunityScreen() {
         onPress={() => router.push(`/user/${item.uid}`)}
         activeOpacity={0.85}
       >
-        <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: isTop3 ? rankColors[index] : colors.border }]}>
-          {isTop3 ? (
-            <Text style={[styles.rankText, { color: rankColors[index] }]}>#{index + 1}</Text>
-          ) : (
-            <Text style={[styles.avatarText, { color: colors.accent }]}>
-              {handle[0].toUpperCase()}
-            </Text>
-          )}
-        </View>
+        {item.photoURL && !isTop3 ? (
+          <Image
+            source={{ uri: item.photoURL }}
+            style={[styles.avatar, { borderColor: colors.border, borderWidth: 2 }]}
+          />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: isTop3 ? rankColors[index] : colors.border }]}>
+            {isTop3 ? (
+              <Text style={[styles.rankText, { color: rankColors[index] }]}>#{index + 1}</Text>
+            ) : (
+              <Text style={[styles.avatarText, { color: colors.accent }]}>
+                {handle[0].toUpperCase()}
+              </Text>
+            )}
+          </View>
+        )}
 
         <View style={{ flex: 1 }}>
           <View style={styles.cardTop}>

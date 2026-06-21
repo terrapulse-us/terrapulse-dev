@@ -132,11 +132,18 @@ export default function PublicProfileScreen() {
 
       {/* HERO CARD */}
       <View style={[styles.hero, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.accent }]}>
-          <Text style={[styles.avatarText, { color: colors.accent }]}>
-            {handle[0].toUpperCase()}
-          </Text>
-        </View>
+        {profileData.photoURL ? (
+          <Image
+            source={{ uri: profileData.photoURL as string }}
+            style={[styles.avatar, { borderColor: colors.accent }]}
+          />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.accent }]}>
+            <Text style={[styles.avatarText, { color: colors.accent }]}>
+              {handle[0].toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View style={styles.heroInfo}>
           <Text style={[styles.handle, { color: colors.foreground }]}>
             {handle.toUpperCase()}
