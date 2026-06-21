@@ -23,9 +23,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: "npm"
-          cache-dependency-path: artifacts/mobile/package.json
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
@@ -34,8 +37,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        working-directory: artifacts/mobile
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build Android APK
         working-directory: artifacts/mobile
