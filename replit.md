@@ -38,11 +38,14 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Building Android APKs
 
+[![EAS Android APK Build](https://github.com/<your-username>/<your-repo>/actions/workflows/eas-build-android.yml/badge.svg)](https://github.com/<your-username>/<your-repo>/actions/workflows/eas-build-android.yml)
+
 EAS builds cannot run inside Replit (git sandbox). To build APKs:
 1. Export this repo to GitHub via the Replit Git panel ("Push to GitHub")
 2. Add `EXPO_TOKEN` secret to the GitHub repo (from expo.dev → Account Settings → Access Tokens)
-3. **Method A (GitHub Actions):** Go to GitHub repo → Actions → "EAS Android APK Build" → Run workflow
-4. **Method B (expo.dev dashboard):** Link GitHub repo at expo.dev → project → GitHub tab, then trigger a build
+3. **Automatic:** Every push to `main` (or `release/**`) triggers a `preview` APK build automatically
+4. **Manual trigger:** Go to GitHub repo → Actions → "EAS Android APK Build" → Run workflow (choose profile)
+5. **expo.dev dashboard:** Link GitHub repo at expo.dev → project → GitHub tab, then trigger a build
 
 See `artifacts/mobile/BUILDING.md` for full step-by-step instructions.
 

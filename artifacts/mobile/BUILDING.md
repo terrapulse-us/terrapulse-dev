@@ -28,9 +28,25 @@ This guide covers two methods to build Android APKs once the repo is on GitHub.
 
 ---
 
-## Method A — GitHub Actions (manual trigger)
+## Method A — Automatic builds on push (recommended)
 
-A `workflow_dispatch` workflow lives at `.github/workflows/eas-build-android.yml`.
+The workflow at `.github/workflows/eas-build-android.yml` runs automatically whenever you push to `main` or any `release/**` branch. It always uses the `preview` profile (sideloadable APK).
+
+No manual step needed — just push your code and the build starts.
+
+The finished APK download link appears in the EAS dashboard at
+`expo.dev/accounts/mclaporteterrapulses-team/projects/mobile/builds`.
+
+**Build status badge** (add to your repo README):
+```
+[![EAS Android APK Build](https://github.com/<your-username>/<your-repo>/actions/workflows/eas-build-android.yml/badge.svg)](https://github.com/<your-username>/<your-repo>/actions/workflows/eas-build-android.yml)
+```
+
+---
+
+## Method B — GitHub Actions (manual trigger)
+
+You can also trigger a build manually, choosing the profile:
 
 1. Go to your GitHub repo → **Actions** tab
 2. Select **EAS Android APK Build** in the left sidebar
@@ -42,7 +58,7 @@ The finished APK download link appears in the EAS dashboard at
 
 ---
 
-## Method B — expo.dev dashboard (one-click)
+## Method C — expo.dev dashboard (one-click)
 
 1. Go to [expo.dev](https://expo.dev) → your project → **GitHub** tab
 2. Click **Connect a GitHub repository** and authorize the Expo GitHub app

@@ -11,6 +11,10 @@ on:
         options:
           - preview
           - development
+  push:
+    branches:
+      - main
+      - "release/**"
 
 jobs:
   build:
@@ -41,4 +45,4 @@ jobs:
 
       - name: Build Android APK
         working-directory: artifacts/mobile
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
+        run: eas build --platform android --profile ${{ github.event_name == 'push' && 'preview' || inputs.profile }} --non-interactive
