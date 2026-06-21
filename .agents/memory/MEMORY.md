@@ -1,0 +1,1 @@
+- [Android map icon rendering](android-map-icons.md) — Feather `crosshair` renders broken on Android; use `MaterialIcons` `my-location` for GPS/locate buttons.
