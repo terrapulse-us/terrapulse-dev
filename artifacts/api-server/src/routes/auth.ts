@@ -86,8 +86,9 @@ h2{color:#6441a5;margin:0;}p{color:#aaa;font-size:14px;margin:0;}</style>
 <h2>✓ Connected</h2><p>You can close this window.</p>
 <script>
 var data = ${data};
-if(window.opener){window.opener.postMessage({type:'twitch-auth',payload:data},'*');}
-setTimeout(function(){window.close();},1000);
+try { localStorage.setItem('tp_twitch_auth', JSON.stringify(data)); } catch(e) {}
+try { if(window.opener && !window.opener.closed){ window.opener.postMessage({type:'twitch-auth',payload:data},'*'); } } catch(e) {}
+setTimeout(function(){window.close();},1500);
 </script>
 </body></html>`);
     } else {

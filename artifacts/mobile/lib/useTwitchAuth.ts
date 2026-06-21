@@ -38,54 +38,86 @@ export function useTwitchAuth(uid: string | undefined) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newAuth));
   }, []);
 
-  // ── WEB: window.open + postMessage ──────────────────────────────────────
+  // ── WEB: window.open + localStorage polling ─────────────────────────────
   const connectWeb = useCallback(async () => {
     if (!uid) return;
     setLoading(true);
     setError(null);
 
+    // Clear any stale result from a previous attempt
+    try { localStorage.removeItem("tp_twitch_auth"); } catch (_) {}
+
     return new Promise<void>((resolve) => {
       const apiBase = getApiBase();
       const url = `${apiBase}/api/auth/twitch?uid=${encodeURIComponent(uid)}&platform=web`;
+      const popup = (window as Window).open(url, "twitch-auth", "width=520,height=680,noopener=no");
 
-      const popup = (window as Window).open(url, "twitch-auth", "width=520,height=640");
+      let done = false;
 
-      const onMessage = async (event: MessageEvent) => {
-        if (!event.data || event.data.type !== "twitch-auth") return;
-        window.removeEventListener("message", onMessage);
-        if (timer) clearInterval(timer);
+      async function finish(raw: string | null) {
+        if (done) return;
+        done = true;
+        clearInterval(lsTimer);
+        clearInterval(popupTimer);
+        // postMessage listener cleanup handled below
 
-        const payload = event.data.payload as {
-          token?: string;
-          channel?: string;
-          display_name?: string;
-          error?: string;
-        };
-
-        if (payload.error) {
-          setError(payload.error);
-        } else if (payload.token && payload.channel) {
-          await saveAuth({
-            token: payload.token,
-            channel: payload.channel,
-            displayName: payload.display_name ?? payload.channel,
-          });
+        if (raw) {
+          try {
+            const payload = JSON.parse(raw) as {
+              token?: string;
+              channel?: string;
+              display_name?: string;
+              error?: string;
+            };
+            if (payload.error) {
+              setError(payload.error);
+            } else if (payload.token && payload.channel) {
+              await saveAuth({
+                token: payload.token,
+                channel: payload.channel,
+                displayName: payload.display_name ?? payload.channel,
+              });
+            }
+          } catch {
+            setError("Invalid response from Twitch");
+          }
         }
         setLoading(false);
         resolve();
-      };
+      }
 
+      // Primary: poll localStorage every 300ms (works even if opener is null)
+      const lsTimer = setInterval(() => {
+        try {
+          const raw = localStorage.getItem("tp_twitch_auth");
+          if (raw) {
+            localStorage.removeItem("tp_twitch_auth");
+            void finish(raw);
+          }
+        } catch (_) {}
+      }, 300);
+
+      // Secondary: postMessage fallback (works if opener isn't blocked)
+      const onMessage = (event: MessageEvent) => {
+        if (!event.data || event.data.type !== "twitch-auth") return;
+        window.removeEventListener("message", onMessage);
+        const payload = event.data.payload as Record<string, string>;
+        void finish(JSON.stringify(payload));
+      };
       window.addEventListener("message", onMessage);
 
-      // Detect if popup was closed without completing
-      const timer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(timer);
+      // Detect popup closed without completing
+      const popupTimer = setInterval(() => {
+        if (popup?.closed && !done) {
           window.removeEventListener("message", onMessage);
-          setLoading(false);
-          resolve();
+          // Give localStorage one last check before giving up
+          try {
+            const raw = localStorage.getItem("tp_twitch_auth");
+            if (raw) { localStorage.removeItem("tp_twitch_auth"); void finish(raw); return; }
+          } catch (_) {}
+          void finish(null);
         }
-      }, 500);
+      }, 400);
     });
   }, [uid, saveAuth]);
 
