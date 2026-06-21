@@ -1,12 +1,21 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, "../..");
+
+const config = getDefaultConfig(projectRoot);
+
+config.watchFolders = [workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(workspaceRoot, "node_modules"),
+];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === "web" && moduleName === "react-native-maps") {
+  if (platform === "web" && moduleName === "@rnmapbox/maps") {
     return {
-      filePath: path.resolve(__dirname, "stubs/react-native-maps.web.js"),
+      filePath: path.resolve(__dirname, "stubs/rnmapbox-maps.web.js"),
       type: "sourceFile",
     };
   }

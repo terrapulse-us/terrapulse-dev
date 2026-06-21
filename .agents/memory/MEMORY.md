@@ -5,3 +5,4 @@
 - [EAS build arch conflict](eas-arch-conflict.md) — react-native-reanimated v4 requires newArchEnabled:true; react-native-nodemediaclient is old-arch only — they cannot coexist; remove nodemediaclient
 - [App scheme](app-scheme.md) — scheme changed from "mobile" to "terrapulse" for App Store; Expo Go always uses exp:// regardless of scheme
 - [EAS CLI setup on Replit](eas-cli-replit.md) — eas login fails in Replit shell; use EXPO_TOKEN env var instead; env:create requires --environment and --visibility flags
+- [Mapbox offline maps setup](mapbox-setup.md) — @rnmapbox/maps replaces react-native-maps; requires native build + web stub in metro.config.js
