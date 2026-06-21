@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Image,
 } from "react-native";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
@@ -211,7 +212,7 @@ export default function StreamScreen() {
         <View style={[styles.liveCameraArea, { paddingTop: insets.top }]}>
           {/* Camera placeholder */}
           <View style={styles.livePlaceholder}>
-            <Feather name="video" size={40} color="#333" />
+            <Image source={require("@/assets/icons/camera.png")} style={styles.cameraIcon} resizeMode="contain" />
             {streamTitle ? (
               <Text style={styles.liveTitleOverlay}>{streamTitle.toUpperCase()}</Text>
             ) : null}
@@ -309,7 +310,7 @@ export default function StreamScreen() {
       {/* CAMERA PREVIEW */}
       <View style={styles.cameraArea}>
         <View style={[styles.cameraPlaceholder, { backgroundColor: "#000" }]}>
-          <Feather name="video" size={48} color={colors.border} />
+          <Image source={require("@/assets/icons/camera.png")} style={styles.cameraIcon} resizeMode="contain" />
           <Text style={[styles.cameraLabel, { color: colors.mutedForeground }]}>CAMERA PREVIEW</Text>
         </View>
         {showHUD && (
@@ -490,6 +491,7 @@ const styles = StyleSheet.create({
   // Live mode
   liveCameraArea: { flex: 1, position: "relative", backgroundColor: "#000" },
   livePlaceholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
+  cameraIcon: { width: 80, height: 80, tintColor: "#ffffff" },
   liveTitleOverlay: { color: "#fff", fontWeight: "900", fontSize: 13, letterSpacing: 2, textAlign: "center", paddingHorizontal: 20 },
 
   // Live badge
