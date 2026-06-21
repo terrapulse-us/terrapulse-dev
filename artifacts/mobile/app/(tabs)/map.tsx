@@ -531,7 +531,7 @@ export default function MapScreen() {
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={[styles.topBarInner, { backgroundColor: "rgba(18,18,18,0.92)" }]}>
           <View>
-            <Text style={[styles.topTitle, { color: colors.foreground }]}>CA OFFROAD HQ</Text>
+            <Text style={[styles.topTitle, { color: colors.foreground }]}>TERRAPULSE</Text>
             <Text style={[styles.topSub, { color: colors.mutedForeground }]}>
               {CA_TRAILS.length} TRAILS
             </Text>

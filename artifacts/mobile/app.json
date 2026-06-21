@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "CA Offroad HQ",
+    "name": "TerraPulse",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,8 +16,8 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "CA Offroad HQ uses your location to show nearby trails and GPS telemetry during live streams.",
-        "NSPhotoLibraryUsageDescription": "CA Offroad HQ needs photo library access to upload trail community photos."
+        "NSLocationWhenInUseUsageDescription": "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
+        "NSPhotoLibraryUsageDescription": "TerraPulse needs photo library access to upload trail community photos."
       }
     },
     "android": {
@@ -42,13 +42,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "CA Offroad HQ needs photo library access to upload trail community photos."
+          "photosPermission": "TerraPulse needs photo library access to upload trail community photos."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "CA Offroad HQ uses your location to show nearby trails and GPS telemetry during live streams."
+          "locationWhenInUsePermission": "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams."
         }
       ]
     ],

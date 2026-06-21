@@ -68,7 +68,7 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={[styles.title, { color: colors.foreground }]}>
-            CA OFFROAD <Text style={{ color: colors.accent }}>HQ</Text>
+            TERRA<Text style={{ color: colors.accent }}>PULSE</Text>
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             DISCOVER · EXPLORE · CONQUER

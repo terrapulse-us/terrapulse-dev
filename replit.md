@@ -1,6 +1,6 @@
-# [Project name]
+# TerraPulse
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+California off-road trail finder mobile app with live streaming, GPS telemetry, community features, and a leaderboard.
 
 ## Run & Operate
 
