@@ -73,6 +73,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "RANKS",
+          tabBarIcon: ({ color }) => <Feather name="award" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="community"
         options={{
           title: "RIDERS",
