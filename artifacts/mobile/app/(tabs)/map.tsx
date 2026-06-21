@@ -304,6 +304,7 @@ export default function MapScreen() {
         }}
         showsUserLocation={!!userLocation}
         showsMyLocationButton={false}
+        toolbarEnabled={false}
         customMapStyle={darkMapStyle}
       >
         {CA_TRAILS.map((trail) => (
