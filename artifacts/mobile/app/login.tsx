@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: { fontSize: 28, fontWeight: "900", letterSpacing: 2 },
-  subtitle: { fontSize: 11, fontWeight: "700", letterSpacing: 3 },
+  subtitle: { fontSize: 11, fontWeight: "700", letterSpacing: 3, textAlign: "center" },
   form: { gap: 12 },
   inputWrap: {
     flexDirection: "row",
