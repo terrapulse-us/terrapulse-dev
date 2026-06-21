@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { initializeAuth, getAuth, getReactNativePersistence } from "firebase/auth";
+import { initializeAuth, getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
@@ -15,16 +15,33 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// On native, persist auth sessions across app restarts using AsyncStorage.
-// On web, getAuth uses indexedDB/localStorage automatically.
-export const auth = Platform.OS === "web"
-  ? getAuth(app)
-  : initializeAuth(app, {
-      persistence: getReactNativePersistence(
-        // v2 async storage uses the default export
-        require("@react-native-async-storage/async-storage").default,
-      ),
-    });
+function buildAsyncStoragePersistence() {
+  const AsyncStorage =
+    require("@react-native-async-storage/async-storage").default;
+  return {
+    type: "LOCAL" as const,
+    _isAvailable: async () => true,
+    _set: async (key: string, value: string) => {
+      await AsyncStorage.setItem(key, JSON.stringify(value));
+    },
+    _get: async (key: string) => {
+      const raw = await AsyncStorage.getItem(key);
+      return raw !== null ? (JSON.parse(raw) as string) : null;
+    },
+    _remove: async (key: string) => {
+      await AsyncStorage.removeItem(key);
+    },
+    _addListener: (_key: string, _listener: () => void) => {},
+    _removeListener: (_key: string, _listener: () => void) => {},
+  };
+}
+
+export const auth =
+  Platform.OS === "web"
+    ? getAuth(app)
+    : initializeAuth(app, {
+        persistence: buildAsyncStoragePersistence() as any,
+      });
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);

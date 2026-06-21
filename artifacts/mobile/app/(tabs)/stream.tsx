@@ -26,16 +26,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useTwitchAuth } from "@/lib/useTwitchAuth";
 
-// ── RTMP publisher — only available in standalone/EAS builds, not Expo Go ──
-// To enable: run `npx expo prebuild` then `eas build --profile development`
-let NodePublisher: React.ComponentType<any> | null = null;
+// ── RTMP publisher — react-native-nodemediaclient removed (new arch conflict) ──
+// Direct RTMP is not available; users can stream via Streamlabs/OBS using the key below.
+const NodePublisher: React.ComponentType<any> | null = null;
 const isExpoGo = Constants.executionEnvironment === "storeClient";
-if (!isExpoGo) {
-  try {
-    NodePublisher = require("react-native-nodemediaclient").NodePublisher;
-  } catch {}
-}
-const rtmpAvailable = NodePublisher !== null;
+const rtmpAvailable = false;
 
 // WebView: native only
 let WebView: React.ComponentType<{ source: { uri: string }; style?: object }> | null = null;
@@ -299,17 +294,17 @@ export default function StreamScreen() {
             <Text style={styles.elapsedText}>{formatTime(elapsed)}</Text>
           </View>
 
-          {/* RTMP status (standalone) or Expo Go notice */}
+          {/* RTMP status / streaming notice */}
           {streamStatus ? (
             <View style={[styles.statusBanner, { top: insets.top + 48 }]}>
               <Text style={styles.statusText}>{streamStatus}</Text>
             </View>
-          ) : isExpoGo ? (
+          ) : (
             <View style={[styles.expoGoBanner, { top: insets.top + 48 }]}>
               <Feather name="info" size={11} color="#f5a623" />
-              <Text style={styles.expoGoText}>Video streaming requires a standalone build — community presence is live</Text>
+              <Text style={styles.expoGoText}>Use the RTMP key below with Streamlabs or OBS to go live</Text>
             </View>
-          ) : null}
+          )}
 
           {/* HUD */}
           {showHUD && (
@@ -419,13 +414,11 @@ export default function StreamScreen() {
           </View>
         )}
 
-        {/* Expo Go streaming notice */}
-        {isExpoGo && (
-          <View style={[styles.expoGoBanner, { top: insets.top + 8 }]}>
-            <Feather name="info" size={11} color="#f5a623" />
-            <Text style={styles.expoGoText}>Streaming active in standalone build — camera preview only</Text>
-          </View>
-        )}
+        {/* Streaming notice */}
+        <View style={[styles.expoGoBanner, { top: insets.top + 8 }]}>
+          <Feather name="radio" size={11} color="#f5a623" />
+          <Text style={styles.expoGoText}>Copy your RTMP key below — stream with Streamlabs or OBS</Text>
+        </View>
 
         {/* ENGAGE BROADCAST */}
         <TouchableOpacity
