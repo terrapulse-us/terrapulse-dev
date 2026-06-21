@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -150,6 +150,7 @@ export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const mapRef = useRef<MapView>(null);
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -264,6 +265,25 @@ export default function MapScreen() {
     }
   }, [user, selectedTrail]);
 
+  const locateMe = useCallback(async () => {
+    if (userLocation) {
+      mapRef.current?.animateToRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }, 600);
+    } else {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        setUserLocation(coords);
+        mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 600);
+      }
+    }
+  }, [userLocation]);
+
   const markerColor = (rating: number) => {
     if (rating <= 3) return "#00E676";
     if (rating <= 6) return "#FFC107";
@@ -273,6 +293,7 @@ export default function MapScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
+        ref={mapRef}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         style={styles.map}
         initialRegion={{
@@ -282,6 +303,7 @@ export default function MapScreen() {
           longitudeDelta: 6.0,
         }}
         showsUserLocation={!!userLocation}
+        showsMyLocationButton={false}
         customMapStyle={darkMapStyle}
       >
         {CA_TRAILS.map((trail) => (
@@ -308,6 +330,19 @@ export default function MapScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Custom locate button — bottom-right, above safe area */}
+      <TouchableOpacity
+        style={[styles.locateBtn, {
+          bottom: insets.bottom + 100,
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        }]}
+        onPress={locateMe}
+        activeOpacity={0.8}
+      >
+        <Feather name="navigation" size={18} color={userLocation ? colors.accent : colors.mutedForeground} />
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.liveBtn, { backgroundColor: colors.accent }]}
@@ -462,6 +497,21 @@ const styles = StyleSheet.create({
   topTitle: { fontWeight: "900", fontSize: 15, letterSpacing: 2 },
   topSub: { fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 1 },
   logoutBtn: { padding: 6 },
+  locateBtn: {
+    position: "absolute",
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
   liveBtn: {
     position: "absolute",
     bottom: 30,
