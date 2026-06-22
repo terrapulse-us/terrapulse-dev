@@ -676,7 +676,7 @@ export default function MapScreen() {
         style={[
           styles.locateBtn,
           {
-            bottom: insets.bottom + 100,
+            bottom: tabBarHeight + 80,
             backgroundColor: colors.card,
             borderColor: colors.border,
           },

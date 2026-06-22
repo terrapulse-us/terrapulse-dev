@@ -1,5 +1,11 @@
 import { initializeApp, getApps } from "firebase/app";
-import { initializeAuth, getAuth, type Auth } from "firebase/auth";
+import {
+  initializeAuth,
+  getAuth,
+  getReactNativePersistence,
+  type Auth,
+} from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
@@ -19,27 +25,6 @@ const firebaseConfig = {
   appId: extra.firebaseAppId ?? "",
 };
 
-function buildAsyncStoragePersistence() {
-  const AsyncStorage =
-    require("@react-native-async-storage/async-storage").default;
-  return {
-    type: "LOCAL" as const,
-    _isAvailable: async () => true,
-    _set: async (key: string, value: string) => {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
-    },
-    _get: async (key: string) => {
-      const raw = await AsyncStorage.getItem(key);
-      return raw !== null ? (JSON.parse(raw) as string) : null;
-    },
-    _remove: async (key: string) => {
-      await AsyncStorage.removeItem(key);
-    },
-    _addListener: (_key: string, _listener: () => void) => {},
-    _removeListener: (_key: string, _listener: () => void) => {},
-  };
-}
-
 function initAuth(): Auth {
   const app =
     getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -49,7 +34,7 @@ function initAuth(): Auth {
   }
   try {
     return initializeAuth(app, {
-      persistence: buildAsyncStoragePersistence() as never,
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
     });
   } catch {
     return getAuth(app);
