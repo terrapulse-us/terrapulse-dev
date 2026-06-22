@@ -76,6 +76,18 @@ module.exports = () => ({
     },
     extra: {
       mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
+      // Firebase config — apiKey comes from GOOGLE_API_KEY secret (Replit) or
+      // EXPO_PUBLIC_FIREBASE_API_KEY (EAS secret). Other values are public config
+      // safe to embed directly.
+      firebaseApiKey:
+        process.env.GOOGLE_API_KEY ??
+        process.env.EXPO_PUBLIC_FIREBASE_API_KEY ??
+        "",
+      firebaseAuthDomain: "california-offroad-explorer.firebaseapp.com",
+      firebaseProjectId: "california-offroad-explorer",
+      firebaseStorageBucket: "california-offroad-explorer.firebasestorage.app",
+      firebaseMessagingSenderId: "516913346465",
+      firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",

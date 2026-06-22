@@ -3,14 +3,20 @@ import { initializeAuth, getAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
+
+// Firebase config is embedded at build time via app.config.js → extra.
+// This works in both Replit dev (GOOGLE_API_KEY secret) and EAS builds
+// (GOOGLE_API_KEY or EXPO_PUBLIC_FIREBASE_API_KEY EAS secret).
+const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  apiKey: extra.firebaseApiKey ?? "",
+  authDomain: extra.firebaseAuthDomain ?? "",
+  projectId: extra.firebaseProjectId ?? "",
+  storageBucket: extra.firebaseStorageBucket ?? "",
+  messagingSenderId: extra.firebaseMessagingSenderId ?? "",
+  appId: extra.firebaseAppId ?? "",
 };
 
 function buildAsyncStoragePersistence() {
