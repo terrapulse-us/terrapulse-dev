@@ -1,4 +1,4 @@
-name: EAS Android APK Build
+name: EAS Android APK Build (manual only)
 
 on:
   workflow_dispatch:
@@ -11,10 +11,6 @@ on:
         options:
           - preview
           - development
-  push:
-    branches:
-      - main
-      - "release/**"
 
 jobs:
   build:
@@ -45,4 +41,7 @@ jobs:
 
       - name: Build Android APK
         working-directory: artifacts/mobile
-        run: eas build --platform android --profile ${{ github.event_name == 'push' && 'preview' || inputs.profile }} --non-interactive
+        env:
+          MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
