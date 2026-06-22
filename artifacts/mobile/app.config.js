@@ -7,7 +7,7 @@ module.exports = () => ({
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
     userInterfaceStyle: "dark",
-    newArchEnabled: false,
+    newArchEnabled: true,
     splash: {
       image: "./assets/images/icon.png",
       resizeMode: "contain",

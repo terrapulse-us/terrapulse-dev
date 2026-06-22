@@ -54,7 +54,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "@maplibre/maplibre-react-native": "^10.4.2",
+    "@maplibre/maplibre-react-native": "^11.3.4",
     "expo-camera": "^17.0.10",
     "expo-constants": "~18.0.8",
     "expo-file-system": "^56.0.8",

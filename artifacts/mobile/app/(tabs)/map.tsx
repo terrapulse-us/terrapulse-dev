@@ -11,7 +11,16 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import {
+  Map as MapLibreMap,
+  Camera,
+  type CameraRef,
+  UserLocation,
+  Marker,
+  GeoJSONSource,
+  Layer,
+  OfflineManager,
+} from "@maplibre/maplibre-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -41,8 +50,6 @@ import {
   getTrailsByState,
   type Trail,
 } from "@/lib/trails";
-
-MapLibreGL.setAccessToken(null);
 
 interface TrailPhoto {
   url: string;
@@ -115,7 +122,7 @@ export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const cameraRef = useRef<React.ElementRef<typeof MapLibreGL.Camera>>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
@@ -188,10 +195,10 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (selectedState === "All States") {
-      cameraRef.current?.setCamera({
-        centerCoordinate: [-98.5795, 39.8283],
-        zoomLevel: 3,
-        animationDuration: 600,
+      cameraRef.current?.flyTo({
+        center: [-98.5795, 39.8283],
+        zoom: 3,
+        duration: 600,
       });
     } else {
       const trails = getTrailsByState(selectedState);
@@ -204,10 +211,8 @@ export default function MapScreen() {
       const maxLon = Math.max(...lons);
       const pad = 1.0;
       cameraRef.current?.fitBounds(
-        [maxLon + pad, maxLat + pad],
-        [minLon - pad, minLat - pad],
-        [100, 40, 40, 40],
-        600
+        [minLon - pad, minLat - pad, maxLon + pad, maxLat + pad],
+        { padding: { top: 100, right: 40, bottom: 40, left: 40 }, duration: 600 }
       );
     }
   }, [selectedState]);
@@ -389,10 +394,12 @@ export default function MapScreen() {
 
   const downloadTrailArea = useCallback(async () => {
     if (!selectedTrail) return;
-    const packName = `trail-${selectedTrail.id}`;
     setDownloading(true);
     try {
-      const existing = await MapLibreGL.offlineManager.getPack(packName);
+      const packs = await OfflineManager.getPacks();
+      const existing = packs.find(
+        (p) => (p.metadata as Record<string, unknown>)?.trailId === selectedTrail.id
+      );
       if (existing) {
         Alert.alert(
           "Already saved",
@@ -403,16 +410,18 @@ export default function MapScreen() {
       }
       const { coords } = selectedTrail;
       const pad = 0.2;
-      await MapLibreGL.offlineManager.createPack(
+      await OfflineManager.createPack(
         {
-          name: packName,
-          styleURL: "https://tiles.openfreemap.org/styles/liberty",
+          mapStyle: "https://tiles.openfreemap.org/styles/liberty",
           minZoom: 8,
           maxZoom: 16,
           bounds: [
-            [coords.longitude + pad, coords.latitude + pad],
-            [coords.longitude - pad, coords.latitude - pad],
+            coords.longitude - pad,
+            coords.latitude - pad,
+            coords.longitude + pad,
+            coords.latitude + pad,
           ],
+          metadata: { trailId: selectedTrail.id },
         },
         (_pack, status) => {
           if (status.percentage >= 100) {
@@ -436,10 +445,10 @@ export default function MapScreen() {
 
   const locateMe = useCallback(async () => {
     if (userLocation) {
-      cameraRef.current?.setCamera({
-        centerCoordinate: [userLocation.longitude, userLocation.latitude],
-        zoomLevel: 12,
-        animationDuration: 600,
+      cameraRef.current?.flyTo({
+        center: [userLocation.longitude, userLocation.latitude],
+        zoom: 12,
+        duration: 600,
       });
     } else {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -452,10 +461,10 @@ export default function MapScreen() {
           longitude: loc.coords.longitude,
         };
         setUserLocation(coords);
-        cameraRef.current?.setCamera({
-          centerCoordinate: [coords.longitude, coords.latitude],
-          zoomLevel: 12,
-          animationDuration: 600,
+        cameraRef.current?.flyTo({
+          center: [coords.longitude, coords.latitude],
+          zoom: 12,
+          duration: 600,
         });
       }
     }
@@ -484,26 +493,23 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <MapLibreGL.MapView
+      <MapLibreMap
         style={styles.map}
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
-        logoEnabled={false}
-        attributionEnabled={false}
       >
-        <MapLibreGL.Camera
+        <Camera
           ref={cameraRef}
-          zoomLevel={3}
-          centerCoordinate={[-98.5795, 39.8283]}
+          center={[-98.5795, 39.8283]}
+          zoom={3}
         />
 
-        <MapLibreGL.UserLocation visible={!!userLocation} />
+        <UserLocation />
 
         {filteredTrails.map((trail) => (
-          <MapLibreGL.PointAnnotation
+          <Marker
             key={trail.id}
-            id={trail.id}
-            coordinate={[trail.coords.longitude, trail.coords.latitude]}
-            onSelected={() => setSelectedTrail(trail)}
+            lngLat={[trail.coords.longitude, trail.coords.latitude]}
+            onPress={() => setSelectedTrail(trail)}
           >
             <View
               style={[
@@ -511,18 +517,19 @@ export default function MapScreen() {
                 { backgroundColor: markerColor(trail.difficultyRating) },
               ]}
             />
-          </MapLibreGL.PointAnnotation>
+          </Marker>
         ))}
 
         {ridePoints.length > 1 && (
-          <MapLibreGL.ShapeSource id="ride-route" shape={rideRouteGeoJSON}>
-            <MapLibreGL.LineLayer
+          <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
+            <Layer
               id="ride-line"
-              style={{ lineColor: "#FF5500", lineWidth: 3, lineOpacity: 0.9 }}
+              type="line"
+              paint={{ "line-color": "#FF5500", "line-width": 3, "line-opacity": 0.9 }}
             />
-          </MapLibreGL.ShapeSource>
+          </GeoJSONSource>
         )}
-      </MapLibreGL.MapView>
+      </MapLibreMap>
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>

@@ -1,8 +1,2 @@
-- [Android map icon rendering](android-map-icons.md) — Feather `crosshair` renders broken on Android; use `MaterialIcons` `my-location` for GPS/locate buttons.
-- [Twitch OAuth native redirect](twitch-oauth-native.md) — must use Linking.createURL(), not hardcoded mobile:// scheme; pass as mobileRedirect param to server
-- [Firebase 12 React Native auth persistence](firebase-auth-persistence.md) — Firebase 12 removed getReactNativePersistence; use custom AsyncStorage persistence adapter with `as any` cast
-- [expo-camera version](expo-camera-version.md) — Expo SDK 54 requires expo-camera@~17.0.10; 16.x and 56.x cause runtime errors
-- [EAS build arch conflict](eas-arch-conflict.md) — react-native-reanimated v4 requires newArchEnabled:true; react-native-nodemediaclient is old-arch only — they cannot coexist; remove nodemediaclient
-- [App scheme](app-scheme.md) — scheme changed from "mobile" to "terrapulse" for App Store; Expo Go always uses exp:// regardless of scheme
-- [EAS CLI setup on Replit](eas-cli-replit.md) — eas login fails in Replit shell; use EXPO_TOKEN env var instead; env:create requires --environment and --visibility flags
-- [Mapbox offline maps setup](mapbox-setup.md) — @rnmapbox/maps replaces react-native-maps; requires native build + web stub in metro.config.js
+- [MapLibre v10→v11 migration](maplibre-v11-migration.md) — v10 crashes on RN 0.81 New Arch; v11 required, full API rename
+- [React Native arch deadlock](rn-arch-deadlock.md) — reanimated v4 needs newArch:true; MapLibre v10 crashes with it; solution is MapLibre v11
