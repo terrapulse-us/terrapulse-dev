@@ -1,2 +1,4 @@
 - [MapLibre v10→v11 migration](maplibre-v11-migration.md) — v10 crashes on RN 0.81 New Arch; v11 required, full API rename
 - [React Native arch deadlock](rn-arch-deadlock.md) — reanimated v4 needs newArch:true; MapLibre v10 crashes with it; solution is MapLibre v11
+- [Expo SDK native module version pinning](expo-native-version-pinning.md) — wrong major version (e.g. expo-file-system 56 vs 19) causes hard crash on app open; always check bundledNativeModules.json
+- [Firebase config via app.config.js extra](firebase-config-pattern.md) — use Constants.expoConfig.extra not process.env for Firebase in RN; enables any secret name to work across Replit dev and EAS builds
