@@ -8,7 +8,7 @@
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "eas-build-pre-install": "mkdir -p ~/.gradle && echo \"MAPBOX_DOWNLOADS_TOKEN=$MAPBOX_DOWNLOAD_TOKEN\" >> ~/.gradle/gradle.properties"
+    "eas-build-pre-install": "echo 'MapLibre build starting'"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -57,7 +57,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "@rnmapbox/maps": "^10.1.35",
+    "@maplibre/maplibre-react-native": "^10.4.2",
     "expo-camera": "^17.0.10",
     "expo-constants": "~18.0.8",
     "expo-dev-client": "~6.0.21",

@@ -69,12 +69,7 @@ module.exports = () => ({
             "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
         },
       ],
-      [
-        "@rnmapbox/maps",
-        {
-          RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN ?? "",
-        },
-      ],
+      "@maplibre/maplibre-react-native",
     ],
     experiments: {
       typedRoutes: true,

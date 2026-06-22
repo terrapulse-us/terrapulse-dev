@@ -11,8 +11,7 @@ import {
   Image,
   FlatList,
 } from "react-native";
-import MapboxGL from "@rnmapbox/maps";
-import Constants from "expo-constants";
+import MapLibreGL from "@maplibre/maplibre-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -43,9 +42,6 @@ import {
   type Trail,
 } from "@/lib/trails";
 
-MapboxGL.setAccessToken(
-  (Constants.expoConfig?.extra?.mapboxPublicToken as string | undefined) ?? ""
-);
 
 interface TrailPhoto {
   url: string;
@@ -118,7 +114,7 @@ export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const cameraRef = useRef<MapboxGL.Camera>(null);
+  const cameraRef = useRef<React.ElementRef<typeof MapLibreGL.Camera>>(null);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
@@ -395,7 +391,7 @@ export default function MapScreen() {
     const packName = `trail-${selectedTrail.id}`;
     setDownloading(true);
     try {
-      const existing = await MapboxGL.offlineManager.getPack(packName);
+      const existing = await MapLibreGL.offlineManager.getPack(packName);
       if (existing) {
         Alert.alert(
           "Already saved",
@@ -406,10 +402,10 @@ export default function MapScreen() {
       }
       const { coords } = selectedTrail;
       const pad = 0.2;
-      await MapboxGL.offlineManager.createPack(
+      await MapLibreGL.offlineManager.createPack(
         {
           name: packName,
-          styleURL: MapboxGL.StyleURL.Outdoors,
+          styleURL: "https://tiles.openfreemap.org/styles/liberty",
           minZoom: 8,
           maxZoom: 16,
           bounds: [
@@ -487,22 +483,22 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <MapboxGL.MapView
+      <MapLibreGL.MapView
         style={styles.map}
-        styleURL={MapboxGL.StyleURL.Outdoors}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
         logoEnabled={false}
         attributionEnabled={false}
       >
-        <MapboxGL.Camera
+        <MapLibreGL.Camera
           ref={cameraRef}
           zoomLevel={3}
           centerCoordinate={[-98.5795, 39.8283]}
         />
 
-        <MapboxGL.UserLocation visible={!!userLocation} />
+        <MapLibreGL.UserLocation visible={!!userLocation} />
 
         {filteredTrails.map((trail) => (
-          <MapboxGL.PointAnnotation
+          <MapLibreGL.PointAnnotation
             key={trail.id}
             id={trail.id}
             coordinate={[trail.coords.longitude, trail.coords.latitude]}
@@ -514,18 +510,18 @@ export default function MapScreen() {
                 { backgroundColor: markerColor(trail.difficultyRating) },
               ]}
             />
-          </MapboxGL.PointAnnotation>
+          </MapLibreGL.PointAnnotation>
         ))}
 
         {ridePoints.length > 1 && (
-          <MapboxGL.ShapeSource id="ride-route" shape={rideRouteGeoJSON}>
-            <MapboxGL.LineLayer
+          <MapLibreGL.ShapeSource id="ride-route" shape={rideRouteGeoJSON}>
+            <MapLibreGL.LineLayer
               id="ride-line"
               style={{ lineColor: "#FF5500", lineWidth: 3, lineOpacity: 0.9 }}
             />
-          </MapboxGL.ShapeSource>
+          </MapLibreGL.ShapeSource>
         )}
-      </MapboxGL.MapView>
+      </MapLibreGL.MapView>
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>

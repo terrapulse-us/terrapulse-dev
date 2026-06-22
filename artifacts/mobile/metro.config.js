@@ -13,9 +13,9 @@ config.resolver.nodeModulesPaths = [
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === "web" && moduleName === "@rnmapbox/maps") {
+  if (platform === "web" && moduleName === "@maplibre/maplibre-react-native") {
     return {
-      filePath: path.resolve(__dirname, "stubs/rnmapbox-maps.web.js"),
+      filePath: path.resolve(__dirname, "stubs/maplibre-react-native.web.js"),
       type: "sourceFile",
     };
   }
