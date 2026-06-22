@@ -42,6 +42,7 @@ import {
   type Trail,
 } from "@/lib/trails";
 
+MapLibreGL.setAccessToken(null);
 
 interface TrailPhoto {
   url: string;
