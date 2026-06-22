@@ -73,7 +73,6 @@ module.exports = () => ({
         "@rnmapbox/maps",
         {
           RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN ?? "",
-          RNMapboxMapsVersion: "11.9.1",
         },
       ],
     ],
