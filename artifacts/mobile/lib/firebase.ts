@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { initializeAuth, getAuth } from "firebase/auth";
+import { initializeAuth, getAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
@@ -12,8 +12,6 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
-
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 function buildAsyncStoragePersistence() {
   const AsyncStorage =
@@ -36,12 +34,25 @@ function buildAsyncStoragePersistence() {
   };
 }
 
-export const auth =
-  Platform.OS === "web"
-    ? getAuth(app)
-    : initializeAuth(app, {
-        persistence: buildAsyncStoragePersistence() as any,
-      });
+function initAuth(): Auth {
+  const app =
+    getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
+  if (Platform.OS === "web") {
+    return getAuth(app);
+  }
+  try {
+    return initializeAuth(app, {
+      persistence: buildAsyncStoragePersistence() as never,
+    });
+  } catch {
+    return getAuth(app);
+  }
+}
+
+const app =
+  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+export const auth = initAuth();
 export const db = getFirestore(app);
 export const storage = getStorage(app);

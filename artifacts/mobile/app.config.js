@@ -73,7 +73,6 @@ module.exports = () => ({
     ],
     experiments: {
       typedRoutes: true,
-      reactCompiler: true,
     },
     extra: {
       mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
