@@ -25,6 +25,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
 import {
   collection,
@@ -121,6 +122,7 @@ const diffStyles = StyleSheet.create({
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { user, logout } = useAuth();
   const cameraRef = useRef<CameraRef>(null);
 
@@ -690,7 +692,7 @@ export default function MapScreen() {
       </TouchableOpacity>
 
       {/* BOTTOM BUTTONS */}
-      <View style={[styles.bottomBtns, { bottom: insets.bottom + 16 }]}>
+      <View style={[styles.bottomBtns, { bottom: tabBarHeight + 16 }]}>
         <TouchableOpacity
           style={[
             styles.recordBtn,
