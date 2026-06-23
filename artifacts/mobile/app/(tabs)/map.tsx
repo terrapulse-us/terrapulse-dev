@@ -530,6 +530,7 @@ export default function MapScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapLibreMap
+        key={mapLayer}
         style={styles.map}
         mapStyle={mapStyle}
       >
