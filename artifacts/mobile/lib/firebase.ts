@@ -1,14 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
-import {
-  initializeAuth,
-  getAuth,
-  getReactNativePersistence,
-  type Auth,
-} from "firebase/auth";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 // Firebase config is embedded at build time via app.config.js → extra.
@@ -25,25 +18,9 @@ const firebaseConfig = {
   appId: extra.firebaseAppId ?? "",
 };
 
-function initAuth(): Auth {
-  const app =
-    getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-
-  if (Platform.OS === "web") {
-    return getAuth(app);
-  }
-  try {
-    return initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-    });
-  } catch {
-    return getAuth(app);
-  }
-}
-
 const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = initAuth();
+export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

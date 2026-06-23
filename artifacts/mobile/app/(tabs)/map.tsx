@@ -119,12 +119,46 @@ const diffStyles = StyleSheet.create({
   bar: { flex: 1, height: 4, borderRadius: 2 },
 });
 
+type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
+
+const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
+  { id: "standard", label: "Standard", icon: "map" },
+  { id: "topo", label: "Topo", icon: "terrain" },
+  { id: "satellite", label: "Satellite", icon: "satellite-alt" },
+  { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
+];
+
+const SATELLITE_STYLE = {
+  version: 8 as const,
+  sources: {
+    esri: {
+      type: "raster" as const,
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "© Esri",
+    },
+  },
+  layers: [{ id: "esri-satellite", type: "raster" as const, source: "esri" }],
+};
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { user, logout } = useAuth();
   const cameraRef = useRef<CameraRef>(null);
+
+  const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
+  const [showLayerPicker, setShowLayerPicker] = useState(false);
+
+  const mapStyle = useMemo(() => {
+    if (mapLayer === "topo" || mapLayer === "terrain3d")
+      return "https://tiles.openfreemap.org/styles/bright";
+    if (mapLayer === "satellite") return SATELLITE_STYLE as never;
+    return "https://tiles.openfreemap.org/styles/liberty";
+  }, [mapLayer]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
@@ -497,12 +531,13 @@ export default function MapScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapLibreMap
         style={styles.map}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle={mapStyle}
       >
         <Camera
           ref={cameraRef}
           center={[-98.5795, 39.8283]}
           zoom={3}
+          pitch={mapLayer === "terrain3d" ? 50 : 0}
         />
 
         <UserLocation />
@@ -671,6 +706,26 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* LAYERS BUTTON */}
+      <TouchableOpacity
+        style={[
+          styles.locateBtn,
+          {
+            bottom: tabBarHeight + 136,
+            backgroundColor: mapLayer !== "standard" ? colors.accent : colors.card,
+            borderColor: mapLayer !== "standard" ? colors.accent : colors.border,
+          },
+        ]}
+        onPress={() => setShowLayerPicker(true)}
+        activeOpacity={0.8}
+      >
+        <MaterialIcons
+          name="layers"
+          size={20}
+          color={mapLayer !== "standard" ? "#000" : colors.mutedForeground}
+        />
+      </TouchableOpacity>
+
       {/* LOCATE BUTTON */}
       <TouchableOpacity
         style={[
@@ -731,6 +786,77 @@ export default function MapScreen() {
           <Text style={styles.liveBtnText}>GO LIVE</Text>
         </TouchableOpacity>
       </View>
+
+      {/* LAYER PICKER MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showLayerPicker}
+        onRequestClose={() => setShowLayerPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.layerBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowLayerPicker(false)}
+        >
+          <View
+            style={[
+              styles.layerSheet,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.layerTitle, { color: colors.foreground }]}>
+              MAP LAYERS
+            </Text>
+            <View style={styles.layerGrid}>
+              {LAYER_OPTIONS.map((opt) => {
+                const active = mapLayer === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[
+                      styles.layerCard,
+                      {
+                        backgroundColor: active
+                          ? colors.accent
+                          : "rgba(255,255,255,0.05)",
+                        borderColor: active ? colors.accent : colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      setMapLayer(opt.id);
+                      setShowLayerPicker(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons
+                      name={opt.icon as never}
+                      size={24}
+                      color={active ? "#000" : colors.mutedForeground}
+                    />
+                    <Text
+                      style={[
+                        styles.layerCardLabel,
+                        { color: active ? "#000" : colors.foreground },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {mapLayer === "terrain3d" && (
+              <Text
+                style={[styles.layerHint, { color: colors.mutedForeground }]}
+              >
+                Tilt the map with two fingers to see 3D elevation
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* TRAIL DETAIL MODAL */}
       <Modal
@@ -1250,4 +1376,48 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   completeBtnText: { fontWeight: "900", fontSize: 13, letterSpacing: 2 },
+  layerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  layerSheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  layerTitle: {
+    fontWeight: "900",
+    fontSize: 13,
+    letterSpacing: 2,
+    marginBottom: 16,
+  },
+  layerGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  layerCard: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  layerCardLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  layerHint: {
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 14,
+    fontStyle: "italic",
+  },
 });
