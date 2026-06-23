@@ -58,8 +58,8 @@
   "dependencies": {
     "@maplibre/maplibre-react-native": "^11.3.4",
     "@react-navigation/bottom-tabs": "^7.18.2",
+    "@api.video/react-native-livestream": "^2.0.2",
     "expo-dev-client": "^56.0.20",
-    "firebase": "^12.15.0",
-    "react-native-nodemediaclient": "^0.3.6"
+    "firebase": "^12.15.0"
   }
 }
