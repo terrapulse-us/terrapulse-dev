@@ -91,7 +91,18 @@ export default function StreamScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [cameraFacing, setCameraFacing] = useState<"back" | "front">("back");
+  const [camPermDenied, setCamPermDenied] = useState(false);
   const publisherRef = useRef<any>(null);
+
+  // Proactively request camera + mic permission for the api.video path
+  useEffect(() => {
+    if (rtmpAvailable) {
+      requestCameraPermission().then((result) => {
+        if (!result.granted) setCamPermDenied(true);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Stable refs to avoid stale closures in callbacks
   const userRef = useRef(user);
@@ -182,7 +193,17 @@ export default function StreamScreen() {
     Alert.alert("RTMP URL Copied", "Paste into Streamlabs or OBS:\n\n" + full);
   }, [rtmpEndpoint, streamKey]);
 
+  const onPermissionsDenied = useCallback((_permissions: string[]) => {
+    setCamPermDenied(true);
+    Alert.alert(
+      "Camera Permission Required",
+      "TerraPulse needs camera and microphone access to stream. Please enable them in your device Settings.",
+      [{ text: "OK" }]
+    );
+  }, []);
+
   const flipCamera = useCallback(() => {
+    setCamPermDenied(false);
     if (rtmpAvailable) {
       setCameraFacing((f) => (f === "back" ? "front" : "back"));
     } else {
@@ -301,18 +322,41 @@ export default function StreamScreen() {
 
         {/* Camera — ApiVideoLiveStreamView (dev client / builds) or CameraView (Expo Go) */}
         {rtmpAvailable && ApiVideoLiveStreamView ? (
-          <ApiVideoLiveStreamView
-            ref={publisherRef}
-            style={StyleSheet.absoluteFill}
-            camera={cameraFacing}
-            video={{ fps: 30, resolution: "720p", bitrate: 2000000, gopDuration: 1 }}
-            audio={{ bitrate: 128000, sampleRate: 44100, isStereo: true }}
-            isMuted={false}
-            enablePinchedZoom
-            onConnectionSuccess={onConnectionSuccess}
-            onConnectionFailed={onConnectionFailed}
-            onDisconnect={onDisconnect}
-          />
+          <>
+            <ApiVideoLiveStreamView
+              key={isStreaming ? "streaming" : cameraFacing}
+              ref={publisherRef}
+              style={StyleSheet.absoluteFill}
+              camera={cameraFacing}
+              video={{ fps: 30, resolution: "720p", bitrate: 2000000, gopDuration: 1 }}
+              audio={{ bitrate: 128000, sampleRate: 44100, isStereo: true }}
+              isMuted={false}
+              enablePinchedZoom
+              onConnectionSuccess={onConnectionSuccess}
+              onConnectionFailed={onConnectionFailed}
+              onDisconnect={onDisconnect}
+              onPermissionsDenied={onPermissionsDenied}
+            />
+            {/* Permission denied overlay — shown when OS blocked camera/mic */}
+            {camPermDenied && (
+              <TouchableOpacity
+                style={[styles.cameraPlaceholder, { backgroundColor: "rgba(0,0,0,0.85)", position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }]}
+                onPress={() => {
+                  setCamPermDenied(false);
+                  requestCameraPermission().then((r) => {
+                    if (!r.granted) setCamPermDenied(true);
+                  });
+                }}
+                activeOpacity={0.8}
+              >
+                <Feather name="camera-off" size={40} color="#555" />
+                <Text style={[styles.cameraLabel, { color: "#777" }]}>TAP TO ENABLE CAMERA</Text>
+                <Text style={{ color: "#555", fontSize: 10, marginTop: 4, textAlign: "center", paddingHorizontal: 24 }}>
+                  Camera &amp; microphone access needed to stream
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         ) : cameraPermission == null ? null : !cameraPermission.granted ? (
           <TouchableOpacity
             style={[styles.cameraPlaceholder, { backgroundColor: "#111" }]}
