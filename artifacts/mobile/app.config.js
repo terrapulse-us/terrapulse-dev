@@ -42,6 +42,7 @@ module.exports = () => ({
       favicon: "./assets/images/icon.png",
     },
     plugins: [
+      "expo-dev-client",
       ["expo-router", { origin: "https://replit.com/" }],
       "expo-font",
       "expo-web-browser",

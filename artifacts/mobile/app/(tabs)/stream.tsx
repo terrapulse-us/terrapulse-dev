@@ -26,11 +26,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useTwitchAuth } from "@/lib/useTwitchAuth";
 
-// ── RTMP publisher — react-native-nodemediaclient removed (new arch conflict) ──
-// Direct RTMP is not available; users can stream via Streamlabs/OBS using the key below.
-const NodePublisher: React.ComponentType<any> | null = null;
+// ── RTMP publisher — loaded only when running in the dev client or a standalone build ──
+// In Expo Go (storeClient) the native module doesn't exist; fall back to the
+// copy-key / Streamlabs workflow. In the dev client (bare) and preview/production
+// builds the native module is compiled in and RTMP streams directly to Twitch.
 const isExpoGo = Constants.executionEnvironment === "storeClient";
-const rtmpAvailable = false;
+let NodePublisher: React.ComponentType<any> | null = null;
+if (!isExpoGo) {
+  try {
+    NodePublisher = require("react-native-nodemediaclient").NodePublisher;
+  } catch {}
+}
+const rtmpAvailable = NodePublisher !== null;
 
 // WebView: native only
 let WebView: React.ComponentType<{ source: { uri: string }; style?: object }> | null = null;
@@ -82,7 +89,7 @@ export default function StreamScreen() {
   // Camera
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
-  const [cameraId, setCameraId] = useState(0); // 0 = back, 1 = front (NodePublisher)
+  const [frontCamera, setFrontCamera] = useState(false);
   const publisherRef = useRef<any>(null);
 
   // Stream state
@@ -172,12 +179,11 @@ export default function StreamScreen() {
 
   const flipCamera = useCallback(() => {
     if (rtmpAvailable && publisherRef.current) {
-      const next = cameraId === 0 ? 1 : 0;
-      setCameraId(next);
+      setFrontCamera((f) => !f);
     } else {
       setFacing((f) => (f === "back" ? "front" : "back"));
     }
-  }, [cameraId]);
+  }, []);
 
   const formatTime = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -253,19 +259,17 @@ export default function StreamScreen() {
               ref={publisherRef}
               style={StyleSheet.absoluteFill}
               url={outputUrl}
-              cameraId={cameraId}
+              frontCamera={frontCamera}
               videoParam={{
-                cameraId,
-                videoFrontMirror: cameraId === 1,
-                framerate: 30,
+                fps: 30,
                 bitrate: 1500000,
                 width: 720,
                 height: 1280,
               }}
               audioParam={{
                 samplerate: 44100,
-                channel: 2,
-                encodeBitrate: 128000,
+                channels: 2,
+                bitrate: 128000,
               }}
               onEvent={onPublishEvent}
             />
@@ -370,9 +374,9 @@ export default function StreamScreen() {
           <NodePublisher
             ref={publisherRef}
             style={StyleSheet.absoluteFill}
-            cameraId={cameraId}
-            videoParam={{ cameraId, videoFrontMirror: cameraId === 1, framerate: 30, bitrate: 1500000, width: 720, height: 1280 }}
-            audioParam={{ samplerate: 44100, channel: 2, encodeBitrate: 128000 }}
+            frontCamera={frontCamera}
+            videoParam={{ fps: 30, bitrate: 1500000, width: 720, height: 1280 }}
+            audioParam={{ samplerate: 44100, channels: 2, bitrate: 128000 }}
           />
         ) : cameraPermission == null ? null : !cameraPermission.granted ? (
           <TouchableOpacity

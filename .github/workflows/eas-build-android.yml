@@ -1,6 +1,10 @@
-name: EAS Android APK Build (manual only)
+name: EAS Android APK Build
 
 on:
+  push:
+    branches:
+      - main
+      - "release/**"
   workflow_dispatch:
     inputs:
       profile:
@@ -11,6 +15,7 @@ on:
         options:
           - preview
           - development
+          - production
 
 jobs:
   build:
@@ -39,7 +44,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Android APK
+      - name: Build (push — preview profile)
+        if: github.event_name == 'push'
+        working-directory: artifacts/mobile
+        env:
+          MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: eas build --platform android --profile preview --non-interactive
+
+      - name: Build (manual — chosen profile)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
