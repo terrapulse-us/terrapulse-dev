@@ -1,0 +1,338 @@
+Running 'gradlew :app:assembleRelease' in /home/expo/workingdir/build/artifacts/mobile/android
+Downloading https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+10%.
+20%.
+30%.
+40%.
+50%.
+60%
+70%.
+80%.
+90%.
+100%
+Welcome to Gradle 8.14.3!
+Here are the highlights of this release:
+ - Java 24 support
+ - GraalVM Native Image toolchain selection
+ - Enhancements to test reporting
+ - Build Authoring improvements
+For more details see https://docs.gradle.org/8.14.3/release-notes.html
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+> Configure project :expo-gradle-plugin:expo-autolinking-plugin
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-modules-autolinking@3.0.26/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin/build.gradle.kts:25:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+> Configure project :expo-gradle-plugin:expo-autolinking-settings-plugin
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-modules-autolinking@3.0.26/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-settings-plugin/build.gradle.kts:30:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors
+> Task :gradle-plugin:settings-plugin:pluginDescriptors
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources
+> Task :gradle-plugin:settings-plugin:processResources
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:compileKotlin
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar
+> Task :gradle-plugin:settings-plugin:compileKotlin
+> Task :gradle-plugin:settings-plugin:compileJava
+NO-SOURCE
+> Task :gradle-plugin:settings-plugin:classes
+> Task :gradle-plugin:settings-plugin:jar
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar
+> Configure project :expo-module-gradle-plugin
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.0_@types+react@19.1.17_react@19.1.0__react@19.1.0/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts:58:3: 'kotlinOptions(KotlinJvmOptionsDeprecated /* = KotlinJvmOptions */.() -> Unit): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors
+SKIPPED
+> Task :expo-dev-launcher-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:pluginDescriptors
+> Task :expo-dev-launcher-gradle-plugin:pluginDescriptors
+> Task :expo-module-gradle-plugin:processResources
+> Task :expo-dev-launcher-gradle-plugin:processResources
+> Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors
+> Task :expo-gradle-plugin:expo-autolinking-plugin:processResources
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin
+> Task :gradle-plugin:react-native-gradle-plugin:processResources
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:classes
+> Task :expo-gradle-plugin:expo-autolinking-plugin:jar
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:classes
+> Task :gradle-plugin:react-native-gradle-plugin:jar
+> Task :expo-dev-launcher-gradle-plugin:compileKotlin
+> Task :expo-dev-launcher-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-dev-launcher-gradle-plugin:classes
+> Task :expo-dev-launcher-gradle-plugin:jar
+> Task :expo-module-gradle-plugin:compileKotlin
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-modules-core@3.0.30_react-native@0.81.5_@babel+core@7.29.0_@types+react@19.1.17_react@19.1.0__react@19.1.0/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt:9:24 'var targetSdk: Int?' is deprecated. Will be removed from library DSL in v9.0. Use testOptions.targetSdk or/and lint.targetSdk instead.
+> Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-module-gradle-plugin:classes
+> Task :expo-module-gradle-plugin:jar
+> Configure project :
+[ExpoRootProject] Using the following versions:
+  - buildTools:  36.0.0
+  - minSdk:      24
+  - compileSdk:  36
+  - targetSdk:   36
+  - ndk:         27.1.12297006
+  - kotlin:      2.1.20
+  - ksp:         2.1.20-2.0.1
+> Configure project :app
+ℹ️  Applying gradle plugin 'expo-dev-launcher-gradle-plugin'
+> Configure project :expo
+Using expo modules
+  - expo-constants (18.0.13)
+  - expo-dev-client (56.0.20)
+  - expo-dev-launcher (56.0.20)
+- expo-dev-menu (56.0.17)
+- expo-dev-menu-interface (56.0.1)
+- expo-json-utils (56.0.0)
+- expo-manifests (56.0.4)
+- expo-modules-core (3.0.30)
+- expo-updates-interface (56.0.2)
+  - [📦] expo-asset (12.0.13)
+  - [📦] expo-blur (15.0.8)
+  - [📦] expo-camera (17.0.10)
+- [📦] expo-file-system (19.0.23)
+  - [📦] expo-font (14.0.12)
+  - [📦] expo-haptics (15.0.8)
+  - [📦] expo-image (3.0.11)
+  - [📦] expo-image-loader (6.0.0)
+  - [📦] expo-image-picker (17.0.11)
+  - [📦] expo-keep-awake (15.0.8)
+  - [📦] expo-linear-gradient (15.0.8)
+  - [📦] expo-linking (8.0.12)
+  - [📦] expo-location (19.0.8)
+  - [📦] expo-splash-screen (31.0.13)
+  - [📦] expo-system-ui (6.0.9)
+  - [📦] expo-web-browser (15.0.11)
+Checking the license for package Android SDK Build-Tools 36 in /home/expo/Android/Sdk/licenses
+License for package Android SDK Build-Tools 36 accepted.
+Preparing "Install Android SDK Build-Tools 36 v.36.0.0".
+"Install Android SDK Build-Tools 36 v.36.0.0" ready.
+Installing Android SDK Build-Tools 36 in /home/expo/Android/Sdk/build-tools/36.0.0
+"Install Android SDK Build-Tools 36 v.36.0.0" complete.
+"Install Android SDK Build-Tools 36 v.36.0.0" finished.
+[=========                              ] 25%
+[=======================================] 100% Fetch remote repository...       
+> Task :app:generateAutolinkingNewArchitectureFiles
+> Task :app:generateAutolinkingPackageList
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint
+> Task :expo-dev-client:preBuild UP-TO-DATE
+> Task :expo-dev-launcher:preBuild UP-TO-DATE
+> Task :expo-dev-menu:preBuild UP-TO-DATE
+> Task :expo-dev-menu-interface:preBuild UP-TO-DATE
+> Task :expo-json-utils:preBuild UP-TO-DATE
+> Task :expo-manifests:preBuild UP-TO-DATE
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-updates-interface:preBuild UP-TO-DATE
+> Task :expo-constants:createExpoConfig
+> Task :expo-constants:preBuild
+The NODE_ENV environment variable is required but was not specified. Ensure the project is bundled with Expo CLI or NODE_ENV is set. Using only .env.local and .env
+> Task :api.video_react-native-livestream:generateCodegenSchemaFromJavaScript
+> Task :maplibre_maplibre-react-native:generateCodegenSchemaFromJavaScript
+> Task :react-native-async-storage_async-storage:generateCodegenSchemaFromJavaScript
+> Task :expo:generatePackagesList
+> Task :expo:preBuild
+> Task :api.video_react-native-livestream:generateCodegenArtifactsFromSchema
+> Task :api.video_react-native-livestream:preBuild
+> Task :api.video_react-native-livestream:preReleaseBuild
+> Task :maplibre_maplibre-react-native:generateCodegenArtifactsFromSchema
+> Task :maplibre_maplibre-react-native:preBuild
+> Task :api.video_react-native-livestream:mergeReleaseJniLibFolders
+> Task :api.video_react-native-livestream:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-gesture-handler:generateCodegenSchemaFromJavaScript
+> Task :react-native-async-storage_async-storage:generateCodegenArtifactsFromSchema
+> Task :react-native-async-storage_async-storage:preBuild
+> Task :api.video_react-native-livestream:copyReleaseJniLibsProjectOnly
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript
+> Task :react-native-screens:generateCodegenSchemaFromJavaScript
+> Task :react-native-gesture-handler:generateCodegenArtifactsFromSchema
+> Task :react-native-gesture-handler:preBuild
+> Task :react-native-svg:generateCodegenSchemaFromJavaScript
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema
+> Task :react-native-safe-area-context:preBuild
+> Task :expo:preReleaseBuild
+> Task :expo:mergeReleaseJniLibFolders
+> Task :expo:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo:copyReleaseJniLibsProjectOnly
+> Task :expo-constants:preReleaseBuild
+> Task :expo-constants:mergeReleaseJniLibFolders
+> Task :expo-constants:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-constants:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-client:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-client:mergeReleaseJniLibFolders
+> Task :expo-dev-client:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-webview:generateCodegenSchemaFromJavaScript
+> Task :expo-dev-client:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-launcher:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-launcher:mergeReleaseJniLibFolders
+> Task :expo-dev-launcher:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-screens:generateCodegenArtifactsFromSchema
+> Task :react-native-screens:preBuild
+> Task :expo-dev-menu:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-launcher:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-menu:mergeReleaseJniLibFolders
+> Task :expo-dev-menu-interface:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-menu:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-menu:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-menu-interface:mergeReleaseJniLibFolders
+> Task :expo-json-utils:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-menu-interface:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-menu-interface:copyReleaseJniLibsProjectOnly
+> Task :expo-json-utils:mergeReleaseJniLibFolders
+> Task :expo-manifests:preReleaseBuild UP-TO-DATE
+> Task :expo-json-utils:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-json-utils:copyReleaseJniLibsProjectOnly
+> Task :react-native-svg:generateCodegenArtifactsFromSchema
+> Task :expo-modules-core:preReleaseBuild UP-TO-DATE
+> Task :react-native-svg:preBuild
+> Task :expo-updates-interface:preReleaseBuild UP-TO-DATE
+> Task :expo-manifests:mergeReleaseJniLibFolders
+> Task :expo-manifests:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-updates-interface:mergeReleaseJniLibFolders
+> Task :expo-manifests:copyReleaseJniLibsProjectOnly
+> Task :maplibre_maplibre-react-native:preReleaseBuild
+> Task :expo-updates-interface:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-updates-interface:copyReleaseJniLibsProjectOnly
+> Task :react-native-async-storage_async-storage:preReleaseBuild
+> Task :maplibre_maplibre-react-native:mergeReleaseJniLibFolders
+> Task :maplibre_maplibre-react-native:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-async-storage_async-storage:mergeReleaseJniLibFolders
+> Task :react-native-async-storage_async-storage:mergeReleaseNativeLibs NO-SOURCE
+> Task :maplibre_maplibre-react-native:copyReleaseJniLibsProjectOnly
+> Task :react-native-gesture-handler:preReleaseBuild
+> Task :react-native-async-storage_async-storage:copyReleaseJniLibsProjectOnly
+> Task :react-native-safe-area-context:preReleaseBuild
+> Task :react-native-safe-area-context:mergeReleaseJniLibFolders
+> Task :react-native-safe-area-context:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-safe-area-context:copyReleaseJniLibsProjectOnly
+> Task :react-native-screens:preReleaseBuild
+> Task :react-native-webview:generateCodegenArtifactsFromSchema
+> Task :react-native-webview:preBuild
+> Task :app:preBuild
+> Task :app:preReleaseBuild
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[arm64-v8a]
+Checking the license for package CMake 3.22.1 in /home/expo/Android/Sdk/licenses
+License for package CMake 3.22.1 accepted.
+Preparing "Install CMake 3.22.1 v.3.22.1".
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in /home/expo/Android/Sdk/cmake/3.22.1
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :app:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-screens:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[x86]
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :app:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-screens:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[x86]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[x86]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[x86_64]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[x86_64]
+> Task :react-native-gesture-handler:mergeReleaseJniLibFolders
+> Task :react-native-gesture-handler:mergeReleaseNativeLibs
+> Task :react-native-gesture-handler:copyReleaseJniLibsProjectOnly
+> Task :react-native-svg:preReleaseBuild
+> Task :react-native-svg:mergeReleaseJniLibFolders
+> Task :react-native-svg:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-svg:copyReleaseJniLibsProjectOnly
+> Task :react-native-webview:preReleaseBuild
+> Task :react-native-webview:mergeReleaseJniLibFolders
+> Task :react-native-webview:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-webview:copyReleaseJniLibsProjectOnly
+> Task :maplibre_maplibre-react-native:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :maplibre_maplibre-react-native:generateReleaseBuildConfig
+> Task :maplibre_maplibre-react-native:generateReleaseResValues
+> Task :maplibre_maplibre-react-native:generateReleaseResources
+> Task :maplibre_maplibre-react-native:packageReleaseResources
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :maplibre_maplibre-react-native:parseReleaseLocalResources
+> Task :maplibre_maplibre-react-native:generateReleaseRFile
+> Task :react-native-screens:buildCMakeRelWithDebInfo[x86]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[x86_64]
+> Task :react-native-screens:buildCMakeRelWithDebInfo[x86_64]
+> Task :react-native-screens:mergeReleaseJniLibFolders
+> Task :react-native-screens:mergeReleaseNativeLibs
+> Task :react-native-screens:copyReleaseJniLibsProjectOnly
+> Task :maplibre_maplibre-react-native:javaPreCompileRelease
+> Task :api.video_react-native-livestream:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :api.video_react-native-livestream:generateReleaseBuildConfig
+> Task :api.video_react-native-livestream:generateReleaseResValues
+> Task :api.video_react-native-livestream:generateReleaseResources
+> Task :api.video_react-native-livestream:packageReleaseResources
+> Task :api.video_react-native-livestream:parseReleaseLocalResources
+> Task :api.video_react-native-livestream:generateReleaseRFile
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :maplibre_maplibre-react-native:compileReleaseKotlin
+> Task :api.video_react-native-livestream:compileReleaseKotlin FAILED
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnConnectionFailedEvent.kt:8:31 'viewTag' in 'OnConnectionFailedEvent' is final and cannot be overridden.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnConnectionFailedEvent.kt:8:40 'var' property 'var viewTag: Int' defined in 'video/api/reactnative/livestream/events/OnConnectionFailedEvent' cannot be overridden by 'val' property 'val viewTag: Int'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnConnectionSuccessEvent.kt:7:32 'viewTag' in 'OnConnectionSuccessEvent' is final and cannot be overridden.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnConnectionSuccessEvent.kt:7:41 'var' property 'var viewTag: Int' defined in 'video/api/reactnative/livestream/events/OnConnectionSuccessEvent' cannot be overridden by 'val' property 'val viewTag: Int'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnDisconnectEvent.kt:7:25 'viewTag' in 'OnDisconnectEvent' is final and cannot be overridden.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnDisconnectEvent.kt:7:34 'var' property 'var viewTag: Int' defined in 'video/api/reactnative/livestream/events/OnDisconnectEvent' cannot be overridden by 'val' property 'val viewTag: Int'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnPermissionsDeniedEvent.kt:8:32 'viewTag' in 'OnPermissionsDeniedEvent' is final and cannot be overridden.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnPermissionsDeniedEvent.kt:8:41 'var' property 'var viewTag: Int' defined in 'video/api/reactnative/livestream/events/OnPermissionsDeniedEvent' cannot be overridden by 'val' property 'val viewTag: Int'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnStartStreamingEvent.kt:9:3 'viewTag' in 'OnStartStreamingEvent' is final and cannot be overridden.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/@api.video+react-native-livestream@2.0.2_patch_hash=958f70fc1bf4b3ccafad1cbf1b76082cf43_e4b3de445bea184d2291d3c0e5be2366/node_modules/@api.video/react-native-livestream/android/src/main/java/video/api/reactnative/livestream/events/OnStartStreamingEvent.kt:9:12 'var' property 'var viewTag: Int' defined in 'video/api/reactnative/livestream/events/OnStartStreamingEvent' cannot be overridden by 'val' property 'val viewTag: Int'.
+> Task :maplibre_maplibre-react-native:compileReleaseKotlin
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEvent.kt:5:8 'interface RCTEventEmitter : JavaScriptModule' is deprecated. Use [RCTModernEventEmitter] instead.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEvent.kt:12:5 'constructor<T : Event<T>>(viewTag: Int): Event<T>' is deprecated. Use constructor with explicit surfaceId instead.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEvent.kt:15:18 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEvent.kt:15:44 'interface RCTEventEmitter : JavaScriptModule' is deprecated. Use [RCTModernEventEmitter] instead.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEvent.kt:16:25 'fun receiveEvent(targetTag: Int, eventName: String, params: WritableMap?): Unit' is deprecated. Use [RCTModernEventEmitter.receiveEvent] instead.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEventEmitter.kt:5:8 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/AbstractEventEmitter.kt:58:17 'object MapBuilder : Any' is deprecated. Use Kotlin's built-in collections extensions.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/images/MLRNImages.kt:116:18 'fun execute(vararg p0: (Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!): AsyncTask<(Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!, Void!, (Mutable)List<(Mutable)Map.(Mutable)Entry<String!, DownloadedImage!>!>!>!' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/images/MLRNImages.kt:129:14 'fun execute(vararg p0: (Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!): AsyncTask<(Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!, Void!, (Mutable)List<(Mutable)Map.(Mutable)Entry<String!, DownloadedImage!>!>!>!' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/layer/style/MLRNStyle.kt:58:14 'fun execute(vararg p0: (Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!): AsyncTask<(Mutable)Map.(Mutable)Entry<String!, ImageEntry!>!, Void!, (Mutable)List<(Mutable)Map.(Mutable)Entry<String!, DownloadedImage!>!>!>!' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/location/LocationComponentManager.kt:156:22 'fun padding(p0: IntArray?): LocationComponentOptions.Builder' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/location/LocationComponentManager.kt:156:36 'fun getPadding(): IntArray' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/mapview/MLRNMapView.kt:1346:23 'fun setPadding(p0: Int, p1: Int, p2: Int, p3: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/sources/imagesource/MLRNImageSource.kt:27:13 'constructor(id: String?, coordinates: LatLngQuad?, url: URL): ImageSource' is deprecated. use {@link ImageSource#ImageSource(String, LatLngQuad, URI)} instead.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/components/sources/imagesource/MLRNImageSource.kt:39:26 'fun getInstance(): ResourceDrawableIdHelper' is deprecated. Use .instance instead, this API is for backward compat.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/utils/ReactTagResolver.kt:63:41 Unchecked cast of 'View?' to 'V (of fun <V> withViewResolved)'.
+w: file:///home/expo/workingdir/build/node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_252c4210b107b00e788379de8d9639c9/node_modules/@maplibre/maplibre-react-native/android/src/main/java/org/maplibre/reactnative/utils/ReactTagResolver.kt:77:41 Unchecked cast of 'View' to 'V (of fun <V> withViewResolved)'.
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+122 actionable tasks: 122 executed
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':api.video_react-native-livestream:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 5m 12s
+See the profiling report at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/profile/profile-2026-06-23-03-58-46.html
+A fine-grained performance profile is available: use the --scan option.
+Error: Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.
