@@ -2,3 +2,4 @@
 - [React Native arch deadlock](rn-arch-deadlock.md) — reanimated v4 needs newArch:true; MapLibre v10 crashes with it; solution is MapLibre v11
 - [Expo SDK native module version pinning](expo-native-version-pinning.md) — wrong major version (e.g. expo-file-system 56 vs 19) causes hard crash on app open; always check bundledNativeModules.json
 - [Firebase config via app.config.js extra](firebase-config-pattern.md) — use Constants.expoConfig.extra not process.env for Firebase in RN; enables any secret name to work across Replit dev and EAS builds
+- [react-native-nodemediaclient Android New Arch incompatibility](nodemediaclient-android.md) — library ships old-bridge AAR; autolinking generates cn.nodemediaclient.RCTNodeMediaClientPackage import that fails to compile with newArchEnabled:true; fix: react-native.config.js android:null + Platform.OS==='ios' guard

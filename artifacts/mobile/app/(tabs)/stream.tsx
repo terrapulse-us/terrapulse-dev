@@ -32,7 +32,10 @@ import { useTwitchAuth } from "@/lib/useTwitchAuth";
 // builds the native module is compiled in and RTMP streams directly to Twitch.
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 let NodePublisher: React.ComponentType<any> | null = null;
-if (!isExpoGo) {
+// react-native-nodemediaclient is only linked on iOS (Android uses the old bridge
+// which is incompatible with New Architecture). On Android we fall back to the
+// copy-key / Streamlabs workflow.
+if (!isExpoGo && Platform.OS === "ios") {
   try {
     NodePublisher = require("react-native-nodemediaclient").NodePublisher;
   } catch {}
