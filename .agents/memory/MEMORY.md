@@ -4,3 +4,4 @@
 - [Firebase config via app.config.js extra](firebase-config-pattern.md) — use Constants.expoConfig.extra not process.env for Firebase in RN; enables any secret name to work across Replit dev and EAS builds
 - [react-native-nodemediaclient Android New Arch incompatibility](nodemediaclient-android.md) — library ships old-bridge AAR; autolinking generates cn.nodemediaclient.RCTNodeMediaClientPackage import that fails to compile with newArchEnabled:true; fix: react-native.config.js android:null + Platform.OS==='ios' guard
 - [api.video Kotlin 2.x patch](apivideo-kotlin2-patch.md) — viewTag override fix; pnpm patch applied to 5 event files
+- [api.video camera permission + flip on New Arch](apivideo-camera-fixes.md) — internal PermissionsManager unreliable on New Arch; fix: proactive expo-camera request + camPermDenied overlay; flip: key={isStreaming?"streaming":cameraFacing} forces native remount pre-stream
