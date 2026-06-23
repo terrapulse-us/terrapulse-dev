@@ -5,3 +5,4 @@
 - [react-native-nodemediaclient Android New Arch incompatibility](nodemediaclient-android.md) — library ships old-bridge AAR; autolinking generates cn.nodemediaclient.RCTNodeMediaClientPackage import that fails to compile with newArchEnabled:true; fix: react-native.config.js android:null + Platform.OS==='ios' guard
 - [api.video Kotlin 2.x patch](apivideo-kotlin2-patch.md) — viewTag override fix; pnpm patch applied to 5 event files
 - [api.video camera permission + flip on New Arch](apivideo-camera-fixes.md) — internal PermissionsManager unreliable on New Arch; fix: proactive expo-camera request + camPermDenied overlay; flip: key={isStreaming?"streaming":cameraFacing} forces native remount pre-stream
+- [MapLibre RN v11 Camera tracking prop](maplibre-v11-camera-tracking.md) — use `trackUserLocation` not `followUserLocation`; no followZoomLevel; flyTo first then flip prop

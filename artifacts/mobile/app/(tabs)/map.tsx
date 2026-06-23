@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   FlatList,
+  TextInput,
 } from "react-native";
 import {
   Map as MapLibreMap,
@@ -34,6 +35,8 @@ import {
   addDoc,
   serverTimestamp,
   getDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import {
   ref,
@@ -187,6 +190,26 @@ const TERRAIN_3D_STYLE = {
   terrain: { source: "aws-dem", exaggeration: 1.5 },
 };
 
+interface UserTrail extends Trail {
+  routeCoordinates?: Array<{ lat: number; lng: number }>;
+  isUserSubmitted?: boolean;
+  submittedByName?: string;
+}
+
+function difficultyLabel(rating: number): string {
+  if (rating <= 2) return "Easy";
+  if (rating <= 4) return "Moderate";
+  if (rating <= 6) return "Challenging";
+  if (rating <= 8) return "Very Hard";
+  return "Extreme";
+}
+
+const stateNameToCode = Object.fromEntries(
+  Object.entries(STATE_NAMES)
+    .filter(([code]) => code !== "All States")
+    .map(([code, name]) => [name.toUpperCase(), code])
+) as Record<string, string>;
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -207,12 +230,30 @@ export default function MapScreen() {
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
 
-  const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
+  const [selectedTrail, setSelectedTrail] = useState<UserTrail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [completedTrails, setCompletedTrails] = useState<string[]>([]);
+
+  const [followUser, setFollowUser] = useState(false);
+
+  const [isTrailRecording, setIsTrailRecording] = useState(false);
+  const [trailPoints, setTrailPoints] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const trailPointsRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
+  const trailWatchRef = useRef<Location.LocationSubscription | null>(null);
+  const trailTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [trailElapsed, setTrailElapsed] = useState(0);
+  const [trailStartTime, setTrailStartTime] = useState(0);
+  const [trailDistanceMi, setTrailDistanceMi] = useState(0);
+  const trailDistRef = useRef(0);
+
+  const [showAddTrailModal, setShowAddTrailModal] = useState(false);
+  const [trailName, setTrailName] = useState("");
+  const [trailDifficultyRating, setTrailDifficultyRating] = useState(5);
+  const [submittingTrail, setSubmittingTrail] = useState(false);
+  const [userTrails, setUserTrails] = useState<UserTrail[]>([]);
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -274,6 +315,16 @@ export default function MapScreen() {
   }, [selectedTrail]);
 
   useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, "trails"), where("isUserSubmitted", "==", true)),
+      (snap) => {
+        setUserTrails(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserTrail)));
+      }
+    );
+    return unsub;
+  }, []);
+
+  useEffect(() => {
     if (selectedState === "All States") {
       cameraRef.current?.flyTo({
         center: [-98.5795, 39.8283],
@@ -298,6 +349,10 @@ export default function MapScreen() {
   }, [selectedState]);
 
   const startRecording = useCallback(async () => {
+    if (isTrailRecording) {
+      Alert.alert("Already Recording", "Stop your trail recording first.");
+      return;
+    }
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Location required", "Enable location to record rides.");
@@ -524,31 +579,132 @@ export default function MapScreen() {
   }, [selectedTrail]);
 
   const locateMe = useCallback(async () => {
-    if (userLocation) {
-      cameraRef.current?.flyTo({
-        center: [userLocation.longitude, userLocation.latitude],
-        zoom: 12,
-        duration: 600,
-      });
-    } else {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        const coords = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        };
-        setUserLocation(coords);
-        cameraRef.current?.flyTo({
-          center: [coords.longitude, coords.latitude],
-          zoom: 12,
-          duration: 600,
-        });
-      }
+    if (followUser) {
+      setFollowUser(false);
+      return;
     }
-  }, [userLocation]);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Location required", "Enable location to follow your position.");
+      return;
+    }
+    let loc = userLocation;
+    if (!loc) {
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      setUserLocation(loc);
+    }
+    cameraRef.current?.flyTo({ center: [loc.longitude, loc.latitude], zoom: 14, duration: 800 });
+    setFollowUser(true);
+  }, [followUser, userLocation]);
+
+  const startTrailRecording = useCallback(async () => {
+    if (isRecording) {
+      Alert.alert("Already Recording", "Stop your ride recording first.");
+      return;
+    }
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Location required", "Enable location to record a trail.");
+      return;
+    }
+    trailPointsRef.current = [];
+    trailDistRef.current = 0;
+    setTrailPoints([]);
+    setTrailDistanceMi(0);
+    setTrailElapsed(0);
+    const start = Date.now();
+    setTrailStartTime(start);
+    setIsTrailRecording(true);
+    setFollowUser(true);
+    trailTimerRef.current = setInterval(() => {
+      setTrailElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    trailWatchRef.current = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5, timeInterval: 2000 },
+      (loc) => {
+        const pt = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const prev = trailPointsRef.current[trailPointsRef.current.length - 1];
+        if (prev) {
+          const d = distanceMiles(
+            { ...prev, altitude: 0, speed: 0, timestamp: 0 },
+            { ...pt, altitude: 0, speed: 0, timestamp: 0 }
+          );
+          trailDistRef.current += d;
+          setTrailDistanceMi(parseFloat(trailDistRef.current.toFixed(2)));
+        }
+        trailPointsRef.current = [...trailPointsRef.current, pt];
+        setTrailPoints((p) => [...p, pt]);
+      }
+    );
+  }, [isRecording]);
+
+  const stopTrailRecording = useCallback(() => {
+    trailWatchRef.current?.remove();
+    trailWatchRef.current = null;
+    if (trailTimerRef.current) {
+      clearInterval(trailTimerRef.current);
+      trailTimerRef.current = null;
+    }
+    setIsTrailRecording(false);
+    if (trailPointsRef.current.length < 2) {
+      Alert.alert("Too Short", "Not enough GPS points. Try recording a longer stretch.");
+      trailPointsRef.current = [];
+      setTrailPoints([]);
+      return;
+    }
+    setShowAddTrailModal(true);
+  }, []);
+
+  const submitTrail = useCallback(async () => {
+    if (!user || !trailName.trim()) {
+      Alert.alert("Name Required", "Please give your trail a name.");
+      return;
+    }
+    const pts = trailPointsRef.current;
+    setSubmittingTrail(true);
+    try {
+      const lat = pts.reduce((s, p) => s + p.latitude, 0) / pts.length;
+      const lng = pts.reduce((s, p) => s + p.longitude, 0) / pts.length;
+      let stateCode = "US";
+      try {
+        const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        const regionName = geo[0]?.region ?? "";
+        stateCode = stateNameToCode[regionName.toUpperCase()] ?? regionName.substring(0, 2).toUpperCase();
+      } catch { /* keep default */ }
+      const rating = trailDifficultyRating;
+      await addDoc(collection(db, "trails"), {
+        title: trailName.trim(),
+        state: stateCode,
+        coords: { latitude: lat, longitude: lng },
+        difficulty: `${rating}/10 ${difficultyLabel(rating)}`,
+        difficultyRating: rating,
+        size: "High Clearance",
+        suspension: "Stock OK",
+        region: stateCode,
+        submittedBy: user.uid,
+        submittedByName: user.displayName ?? "Unknown",
+        createdAt: serverTimestamp(),
+        routeCoordinates: pts.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+        isUserSubmitted: true,
+      });
+      Alert.alert(
+        "Trail Added!",
+        `"${trailName.trim()}" is now visible to everyone on TerraPulse!`,
+        [{ text: "LET'S RIDE!" }]
+      );
+      setShowAddTrailModal(false);
+      setTrailName("");
+      setTrailDifficultyRating(5);
+      trailPointsRef.current = [];
+      setTrailPoints([]);
+      setTrailDistanceMi(0);
+    } catch {
+      Alert.alert("Error", "Could not save trail. Try again.");
+    } finally {
+      setSubmittingTrail(false);
+    }
+  }, [user, trailName, trailDifficultyRating]);
 
   const markerColor = (rating: number) => {
     if (rating <= 3) return "#00E676";
@@ -568,6 +724,31 @@ export default function MapScreen() {
     [ridePoints]
   );
 
+  const trailRecordingGeoJSON = useMemo(
+    () => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: trailPoints.map((p) => [p.longitude, p.latitude]),
+      },
+      properties: {},
+    }),
+    [trailPoints]
+  );
+
+  const selectedUserTrailGeoJSON = useMemo(() => {
+    const rc = selectedTrail?.routeCoordinates;
+    if (!rc?.length) return null;
+    return {
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: rc.map((p) => [p.lng, p.lat]),
+      },
+      properties: {},
+    };
+  }, [selectedTrail]);
+
   const TOP_BAR_HEIGHT = insets.top + 64;
   const STATE_BAR_HEIGHT = 48;
 
@@ -583,6 +764,7 @@ export default function MapScreen() {
           center={[-98.5795, 39.8283]}
           zoom={3}
           pitch={mapLayer === "terrain3d" ? 50 : 0}
+          trackUserLocation={followUser ? "course" : undefined}
         />
 
         <UserLocation />
@@ -611,6 +793,43 @@ export default function MapScreen() {
             />
           </GeoJSONSource>
         )}
+
+        {trailPoints.length > 1 && (
+          <GeoJSONSource id="trail-recording" data={trailRecordingGeoJSON}>
+            <Layer
+              id="trail-recording-line"
+              type="line"
+              paint={{ "line-color": "#00E676", "line-width": 3, "line-opacity": 0.9 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {selectedUserTrailGeoJSON && (
+          <GeoJSONSource id="selected-user-trail" data={selectedUserTrailGeoJSON}>
+            <Layer
+              id="selected-user-trail-line"
+              type="line"
+              paint={{ "line-color": "#FF9800", "line-width": 3, "line-opacity": 0.85 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {userTrails
+          .filter((t) => selectedState === "All States" || t.state === selectedState)
+          .map((trail) => (
+            <Marker
+              key={trail.id}
+              lngLat={[trail.coords.longitude, trail.coords.latitude]}
+              onPress={() => setSelectedTrail(trail)}
+            >
+              <View
+                style={[
+                  styles.userTrailMarker,
+                  { borderColor: markerColor(trail.difficultyRating) },
+                ]}
+              />
+            </Marker>
+          ))}
       </MapLibreMap>
 
       {/* TOP BAR */}
@@ -751,6 +970,63 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* TRAIL RECORDING HUD */}
+      {isTrailRecording && (
+        <View
+          style={[
+            styles.recHud,
+            {
+              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + 8,
+              backgroundColor: "rgba(0,0,0,0.88)",
+              borderColor: colors.success,
+            },
+          ]}
+        >
+          <View style={styles.recIndicator}>
+            <View style={[styles.recDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.recLabel, { color: colors.success }]}>TRAIL</Text>
+          </View>
+          <View style={styles.recStats}>
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{formatElapsed(trailElapsed)}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>TIME</Text>
+            </View>
+            <View style={styles.recDivider} />
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{trailDistanceMi.toFixed(2)}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>MI</Text>
+            </View>
+            <View style={styles.recDivider} />
+            <View style={styles.recStat}>
+              <Text style={[styles.recValue, { color: "#FFF" }]}>{trailPoints.length}</Text>
+              <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>PTS</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* ADD TRAIL BUTTON */}
+      <TouchableOpacity
+        style={[
+          styles.locateBtn,
+          {
+            bottom: tabBarHeight + 192,
+            backgroundColor: isTrailRecording ? colors.success : colors.card,
+            borderColor: isTrailRecording ? colors.success : colors.border,
+            opacity: isRecording ? 0.4 : 1,
+          },
+        ]}
+        onPress={isTrailRecording ? stopTrailRecording : startTrailRecording}
+        disabled={isRecording}
+        activeOpacity={0.8}
+      >
+        <MaterialIcons
+          name={isTrailRecording ? "stop" : "add-location-alt"}
+          size={20}
+          color={isTrailRecording ? "#000" : colors.accent}
+        />
+      </TouchableOpacity>
+
       {/* LAYERS BUTTON */}
       <TouchableOpacity
         style={[
@@ -771,23 +1047,23 @@ export default function MapScreen() {
         />
       </TouchableOpacity>
 
-      {/* LOCATE BUTTON */}
+      {/* LOCATE / FOLLOW BUTTON */}
       <TouchableOpacity
         style={[
           styles.locateBtn,
           {
             bottom: tabBarHeight + 80,
-            backgroundColor: colors.card,
-            borderColor: colors.border,
+            backgroundColor: followUser ? colors.accent : colors.card,
+            borderColor: followUser ? colors.accent : colors.border,
           },
         ]}
         onPress={locateMe}
         activeOpacity={0.8}
       >
         <MaterialIcons
-          name="my-location"
+          name={followUser ? "gps-fixed" : "my-location"}
           size={20}
-          color={userLocation ? colors.accent : colors.mutedForeground}
+          color={followUser ? "#000" : (userLocation ? colors.accent : colors.mutedForeground)}
         />
       </TouchableOpacity>
 
@@ -1189,6 +1465,103 @@ export default function MapScreen() {
           </View>
         )}
       </Modal>
+
+      {/* ADD TRAIL SUBMISSION MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showAddTrailModal}
+        onRequestClose={() => setShowAddTrailModal(false)}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.card, borderColor: colors.success, borderTopWidth: 2 },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.layerTitle, { color: colors.success, marginBottom: 4 }]}>
+              NEW TRAIL
+            </Text>
+            <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 18 }]}>
+              {trailDistanceMi.toFixed(2)} MI RECORDED · {trailPoints.length} GPS POINTS
+            </Text>
+
+            <Text style={[styles.specLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>
+              TRAIL NAME
+            </Text>
+            <TextInput
+              style={[
+                styles.trailNameInput,
+                { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+              ]}
+              placeholder="e.g. Lost Canyon Loop"
+              placeholderTextColor={colors.mutedForeground}
+              value={trailName}
+              onChangeText={setTrailName}
+              maxLength={60}
+              autoFocus
+            />
+
+            <Text style={[styles.specLabel, { color: colors.mutedForeground, marginTop: 18, marginBottom: 8 }]}>
+              DIFFICULTY: {trailDifficultyRating}/10 — {difficultyLabel(trailDifficultyRating).toUpperCase()}
+            </Text>
+            <View style={styles.diffPickerRow}>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+                const active = n === trailDifficultyRating;
+                const col = n <= 3 ? colors.success : n <= 6 ? "#FFC107" : colors.destructive;
+                return (
+                  <TouchableOpacity
+                    key={n}
+                    style={[
+                      styles.diffPickerBtn,
+                      {
+                        backgroundColor: active ? col : "rgba(255,255,255,0.05)",
+                        borderColor: active ? col : colors.border,
+                      },
+                    ]}
+                    onPress={() => setTrailDifficultyRating(n)}
+                  >
+                    <Text
+                      style={{ color: active ? "#000" : colors.mutedForeground, fontWeight: "900", fontSize: 12 }}
+                    >
+                      {n}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
+              <TouchableOpacity
+                style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
+                onPress={() => {
+                  setShowAddTrailModal(false);
+                  setTrailName("");
+                  setTrailDifficultyRating(5);
+                  trailPointsRef.current = [];
+                  setTrailPoints([]);
+                  setTrailDistanceMi(0);
+                }}
+              >
+                <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>DISCARD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.completeBtn, { flex: 1, marginTop: 0, backgroundColor: colors.success }]}
+                onPress={submitTrail}
+                disabled={submittingTrail}
+              >
+                {submittingTrail ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={[styles.completeBtnText, { color: "#000" }]}>SUBMIT TRAIL</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -1464,5 +1837,32 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 14,
     fontStyle: "italic",
+  },
+  userTrailMarker: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    borderWidth: 2,
+    backgroundColor: "transparent",
+    transform: [{ rotate: "45deg" }],
+  },
+  trailNameInput: {
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  diffPickerRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  diffPickerBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 4,
+    borderWidth: 1,
   },
 });
