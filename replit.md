@@ -56,6 +56,10 @@ EAS project: `5e42857a-9f58-4c15-8b0b-571dd97b3189` | owner: `mclaporteterrapuls
 - EAS builds must be triggered from GitHub or expo.dev — `eas build` cannot run inside Replit due to git sandbox restrictions. See `artifacts/mobile/BUILDING.md`.
 - EAS CLI login (`eas login`) fails in Replit shell; use `EXPO_TOKEN` env var instead.
 
+## User preferences
+
+- After every task, push to GitHub (`git push origin main`) to trigger a new EAS APK build for testing.
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
