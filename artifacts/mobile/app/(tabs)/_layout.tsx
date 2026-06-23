@@ -5,6 +5,7 @@ import { Image, Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import TutorialModal from "@/components/TutorialModal";
 
 const broadcastIcon = require("@/assets/icons/broadcast.png");
 const helmetIcon    = require("@/assets/icons/helmet.png");
@@ -18,6 +19,8 @@ export default function TabLayout() {
   const isWeb = Platform.OS === "web";
 
   return (
+    <>
+    <TutorialModal />
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.accent,
@@ -106,5 +109,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
