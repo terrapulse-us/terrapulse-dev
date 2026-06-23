@@ -143,6 +143,50 @@ const SATELLITE_STYLE = {
   layers: [{ id: "esri-satellite", type: "raster" as const, source: "esri" }],
 };
 
+const TOPO_STYLE = {
+  version: 8 as const,
+  sources: {
+    usgs: {
+      type: "raster" as const,
+      tiles: [
+        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "USGS National Map",
+      maxzoom: 16,
+    },
+  },
+  layers: [{ id: "usgs-topo", type: "raster" as const, source: "usgs" }],
+};
+
+const TERRAIN_3D_STYLE = {
+  version: 8 as const,
+  sources: {
+    "esri-topo": {
+      type: "raster" as const,
+      tiles: [
+        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "© Esri",
+      maxzoom: 19,
+    },
+    "aws-dem": {
+      type: "raster-dem" as const,
+      tiles: [
+        "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      maxzoom: 15,
+      encoding: "terrarium",
+    },
+  },
+  layers: [
+    { id: "esri-topo-layer", type: "raster" as const, source: "esri-topo" },
+  ],
+  terrain: { source: "aws-dem", exaggeration: 1.5 },
+};
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -154,8 +198,8 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
 
   const mapStyle = useMemo(() => {
-    if (mapLayer === "topo" || mapLayer === "terrain3d")
-      return "https://tiles.openfreemap.org/styles/bright";
+    if (mapLayer === "topo") return TOPO_STYLE as never;
+    if (mapLayer === "terrain3d") return TERRAIN_3D_STYLE as never;
     if (mapLayer === "satellite") return SATELLITE_STYLE as never;
     return "https://tiles.openfreemap.org/styles/liberty";
   }, [mapLayer]);
