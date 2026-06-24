@@ -51,8 +51,8 @@ jobs:
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
         run: eas build --platform android --profile ${{ github.event_name == 'push' && 'preview' || inputs.profile }} --non-interactive
 
-  build-ios:
-    name: Build iOS IPA
+  build-and-submit-ios:
+    name: Build & Submit iOS to TestFlight
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -83,3 +83,7 @@ jobs:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
         run: eas build --platform ios --profile ${{ github.event_name == 'push' && 'preview' || inputs.profile }} --non-interactive
+
+      - name: Submit iOS to TestFlight
+        working-directory: artifacts/mobile
+        run: eas submit --platform ios --latest --non-interactive
