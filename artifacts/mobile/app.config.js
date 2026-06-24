@@ -73,7 +73,6 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
-      "./plugins/withHaishinKitSwiftFix",
     ],
     experiments: {
       typedRoutes: true,
