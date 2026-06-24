@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "macos-sequoia-15.4-xcode-16.4"
       },
       "android": {
         "buildType": "apk",
@@ -23,7 +24,8 @@
       "distribution": "internal",
       "ios": {
         "simulator": false,
-        "distribution": "store"
+        "distribution": "store",
+        "image": "macos-sequoia-15.4-xcode-16.4"
       },
       "android": {
         "buildType": "apk"
@@ -35,7 +37,8 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "distribution": "store"
+        "distribution": "store",
+        "image": "macos-sequoia-15.4-xcode-16.4"
       },
       "android": {
         "buildType": "app-bundle"
