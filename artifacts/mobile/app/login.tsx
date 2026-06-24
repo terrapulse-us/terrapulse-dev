@@ -71,7 +71,7 @@ export default function LoginScreen() {
             TERRA<Text style={{ color: colors.accent }}>PULSE</Text>
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            DISCOVER · EXPLORE · CONQUER
+            SHARE YOUR ADVENTURE
           </Text>
         </View>
 
