@@ -94,13 +94,11 @@ export default function StreamScreen() {
   const [camPermDenied, setCamPermDenied] = useState(false);
   const publisherRef = useRef<any>(null);
 
-  // Proactively request camera + mic permission for the api.video path
+  // Request camera permission on mount for both RTMP and fallback paths
   useEffect(() => {
-    if (rtmpAvailable) {
-      requestCameraPermission().then((result) => {
-        if (!result.granted) setCamPermDenied(true);
-      });
-    }
+    requestCameraPermission().then((result) => {
+      if (!result.granted) setCamPermDenied(true);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
