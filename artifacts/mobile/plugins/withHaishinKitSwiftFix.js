@@ -2,9 +2,8 @@ const { withDangerousMod } = require("expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
 
-const SWIFT_FIX_BLOCK = `
-# Fix HaishinKit / ApiVideoLiveStream Swift 6 strict concurrency for Xcode 26
-post_install do |installer|
+const SWIFT_FIX_SNIPPET = `
+  # Fix HaishinKit / ApiVideoLiveStream Swift 6 strict concurrency for Xcode 26
   swift_pods = ['HaishinKit', 'ApiVideoLiveStream', 'react-native-livestream', 'Logboard']
   installer.pods_project.targets.each do |target|
     if swift_pods.include?(target.name)
@@ -15,7 +14,6 @@ post_install do |installer|
       end
     end
   end
-end
 `;
 
 module.exports = function withHaishinKitSwiftFix(config) {
@@ -32,7 +30,11 @@ module.exports = function withHaishinKitSwiftFix(config) {
         return config;
       }
 
-      podfile = podfile + "\n" + SWIFT_FIX_BLOCK;
+      podfile = podfile.replace(
+        /post_install do \|installer\|/,
+        `post_install do |installer|\n${SWIFT_FIX_SNIPPET}`
+      );
+
       fs.writeFileSync(podfilePath, podfile);
       return config;
     },
