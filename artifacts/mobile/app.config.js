@@ -16,6 +16,7 @@ module.exports = () => ({
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.terrapulse.app",
+      appleTeamId: "TN4GRQ3Y6V",
       infoPlist: {
         NSCameraUsageDescription:
           "TerraPulse uses your camera to broadcast live off-road streams.",
