@@ -1,0 +1,30 @@
+Unable to resolve a valid config plugin for ./plugins/withHaishinKitSwiftFix.
+• No "app.plugin.js" file found in ./plugins/withHaishinKitSwiftFix: config plugins are typically exported from an "app.plugin.js" file in the package root.
+• main export of ./plugins/withHaishinKitSwiftFix does not appear to be a config plugin: the following error was thrown when importing /home/runner/work/terrapulse-dev/terrapulse-dev/artifacts/mobile/plugins/withHaishinKitSwiftFix.js: Cannot find module '@expo/config-plugins'
+Require stack:
+- /home/runner/work/terrapulse-dev/terrapulse-dev/artifacts/mobile/plugins/withHaishinKitSwiftFix.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/node_modules/@expo/config-plugins/build/utils/plugin-resolver.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/node_modules/@expo/config-plugins/build/plugins/withStaticPlugin.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/node_modules/@expo/config-plugins/build/plugins/withPlugins.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/node_modules/@expo/config-plugins/build/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/build/plugins/withConfigPlugins.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/build/Config.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/@expo/config/build/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/build/utils/appJson.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/build/android/version.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/build/android/syncProjectConfiguration.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/build/android/build.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/build/runBuildAndSubmit.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/build/commands/build/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/module-loader.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/help/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/errors/handle.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/errors/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/config/config.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/config/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/command.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/node_modules/@oclif/core/lib/index.js
+- /opt/hostedtoolcache/eas-cli/20.3.0/x64/node_modules/eas-cli/bin/run MODULE_NOT_FOUND
+Verify that ./plugins/withHaishinKitSwiftFix includes a config plugin. If it does not, then remove the entry from plugins in your app config file. Learn more: https://docs.expo.dev/guides/config-plugins/
+    Error: build command failed.
+Error: Process completed with exit code 1.
