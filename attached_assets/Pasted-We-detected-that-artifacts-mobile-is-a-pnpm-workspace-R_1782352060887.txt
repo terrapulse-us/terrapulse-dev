@@ -1,0 +1,54 @@
+We detected that 'artifacts/mobile' is a pnpm workspace
+Running "pnpm install --frozen-lockfile" in /Users/expo/workingdir/build directory
+Scope: all 9 workspace projects
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +1185
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 1185, reused 0, downloaded 0, added 0
+WARN  GET https://registry.npmjs.org/@jest/types/-/types-29.6.3.tgz error (ENOTFOUND). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@api.video/react-native-livestream/-/react-native-livestream-2.0.2.tgz error (ENOTFOUND). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@jest/schemas/-/schemas-29.6.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.27.10.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.6.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/istanbul-reports/-/istanbul-reports-3.0.4.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/istanbul-lib-report/-/istanbul-lib-report-3.0.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/node/-/node-25.6.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/undici-types/-/undici-types-7.19.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/yargs/-/yargs-17.0.35.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@types/yargs-parser/-/yargs-parser-21.0.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+ WARN  GET https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 10 seconds. 2 retries left.
+WARN  GET https://registry.npmjs.org/@jest/types/-/types-29.6.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@api.video/react-native-livestream/-/react-native-livestream-2.0.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@jest/schemas/-/schemas-29.6.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.27.10.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+ WARN  GET https://registry.npmjs.org/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.6.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@types/istanbul-reports/-/istanbul-reports-3.0.4.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@types/istanbul-lib-report/-/istanbul-lib-report-3.0.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@types/node/-/node-25.6.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/undici-types/-/undici-types-7.19.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@types/yargs/-/yargs-17.0.35.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/@types/yargs-parser/-/yargs-parser-21.0.3.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+WARN  GET https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz error (ERR_SOCKET_TIMEOUT). Will retry in 1 minute. 1 retries left.
+ERR_SOCKET_TIMEOUT  request to https://registry.npmjs.org/@jest/types/-/types-29.6.3.tgz failed, reason: Socket timeout
+
+FetchError: request to https://registry.npmjs.org/@jest/types/-/types-29.6.3.tgz failed, reason: Socket timeout
+    at ClientRequest.<anonymous> (/Users/expo/.nvm/versions/node/v20.19.4/lib/node_modules/pnpm/dist/pnpm.cjs:41645:18)
+    at ClientRequest.emit (node:events:524:28)
+    at emitErrorEvent (node:_http_client:101:11)
+    at TLSSocket.socketErrorListener (node:_http_client:504:5)
+    at TLSSocket.emit (node:events:536:35)
+    at emitErrorNT (node:internal/streams/destroy:169:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:128:3)
+    at processTicksAndRejections (node:internal/process/task_queues:82:21)
+    at runNextTicks (node:internal/process/task_queues:64:3)
+    at listOnTimeout (node:internal/timers:545:9)
+pnpm install --frozen-lockfile exited with non-zero code: 1
