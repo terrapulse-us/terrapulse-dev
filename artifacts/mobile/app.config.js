@@ -77,7 +77,9 @@ module.exports = () => ({
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME ?? "",
+          ...(process.env.GOOGLE_IOS_URL_SCHEME
+            ? { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME }
+            : {}),
         },
       ],
       "expo-apple-authentication",
