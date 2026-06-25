@@ -1,12 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, getAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-// Firebase config is embedded at build time via app.config.js → extra.
-// This works in both Replit dev (GOOGLE_API_KEY secret) and EAS builds
-// (GOOGLE_API_KEY or EXPO_PUBLIC_FIREBASE_API_KEY EAS secret).
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 
 const firebaseConfig = {
@@ -18,9 +16,15 @@ const firebaseConfig = {
   appId: extra.firebaseAppId ?? "",
 };
 
-const app =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// On first load: initialize app + auth with AsyncStorage persistence so the
+// session survives app restarts. On hot reload the app already exists so we
+// just call getAuth() — initializeAuth throws if called twice on the same app.
+const isFirstLoad = getApps().length === 0;
+const app = isFirstLoad ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = getAuth(app);
+export const auth = isFirstLoad
+  ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
+  : getAuth(app);
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
