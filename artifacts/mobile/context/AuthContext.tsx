@@ -10,18 +10,8 @@ import {
   signInWithCredential,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import {
-  GoogleSignin,
-} from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
-import Constants from "expo-constants";
-
-const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
-
-GoogleSignin.configure({
-  webClientId: extra.googleWebClientId ?? "",
-});
 
 interface AuthContextType {
   user: User | null;
@@ -29,7 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogleCredential: (idToken: string) => Promise<void>;
   loginWithApple: () => Promise<void>;
 }
 
@@ -59,13 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const loginWithGoogle = async () => {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    const response = await GoogleSignin.signIn();
-    if (!("data" in response) || !response.data?.idToken) {
-      throw new Error("Google sign-in did not return an ID token.");
-    }
-    const credential = GoogleAuthProvider.credential(response.data.idToken);
+  const loginWithGoogleCredential = async (idToken: string) => {
+    const credential = GoogleAuthProvider.credential(idToken);
     await signInWithCredential(auth, credential);
   };
 
@@ -95,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, loginWithGoogle, loginWithApple }}
+      value={{ user, loading, login, register, logout, loginWithGoogleCredential, loginWithApple }}
     >
       {children}
     </AuthContext.Provider>

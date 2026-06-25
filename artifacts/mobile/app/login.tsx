@@ -17,12 +17,18 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import * as AppleAuthentication from "expo-apple-authentication";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+import Constants from "expo-constants";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, login, register, loginWithGoogle, loginWithApple } = useAuth();
+  const { user, login, register, loginWithGoogleCredential, loginWithApple } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,16 +37,30 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleGoogle = async () => {
-    setSocialLoading("google");
-    try {
-      await loginWithGoogle();
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Google sign-in failed";
-      Alert.alert("Google Sign-In Failed", msg);
-    } finally {
-      setSocialLoading(null);
+  const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
+    clientId: extra.googleWebClientId,
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === "success") {
+      const idToken = googleResponse.params.id_token;
+      if (idToken) {
+        setSocialLoading("google");
+        loginWithGoogleCredential(idToken)
+          .catch((e: unknown) => {
+            const msg = e instanceof Error ? e.message : "Google sign-in failed";
+            Alert.alert("Google Sign-In Failed", msg);
+          })
+          .finally(() => setSocialLoading(null));
+      }
+    } else if (googleResponse?.type === "error") {
+      Alert.alert("Google Sign-In Failed", googleResponse.error?.message ?? "Unknown error");
     }
+  }, [googleResponse]);
+
+  const handleGoogle = () => {
+    setSocialLoading("google");
+    googlePromptAsync().catch(() => setSocialLoading(null));
   };
 
   const handleApple = async () => {
