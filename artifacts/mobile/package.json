@@ -59,10 +59,10 @@
     "@api.video/react-native-livestream": "^2.0.2",
     "@maplibre/maplibre-react-native": "^11.3.4",
     "@react-navigation/bottom-tabs": "^7.18.2",
-    "expo-apple-authentication": "^56.0.4",
-    "expo-auth-session": "^56.0.14",
-    "expo-crypto": "^56.0.4",
-    "expo-dev-client": "^56.0.20",
+    "expo-apple-authentication": "~8.0.8",
+    "expo-auth-session": "~7.0.11",
+    "expo-crypto": "~15.0.9",
+    "expo-dev-client": "~6.0.21",
     "firebase": "^12.15.0"
   }
 }
