@@ -28,6 +28,15 @@ module.exports = () => ({
           "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
         NSPhotoLibraryUsageDescription:
           "TerraPulse needs photo library access to upload trail community photos.",
+        ...(process.env.GOOGLE_IOS_URL_SCHEME
+          ? {
+              CFBundleURLTypes: [
+                {
+                  CFBundleURLSchemes: [process.env.GOOGLE_IOS_URL_SCHEME],
+                },
+              ],
+            }
+          : {}),
       },
     },
     android: {
@@ -74,14 +83,6 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          ...(process.env.GOOGLE_IOS_URL_SCHEME
-            ? { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME }
-            : {}),
-        },
-      ],
       "expo-apple-authentication",
     ],
     experiments: {
