@@ -22,6 +22,7 @@
     "preview": {
       "developmentClient": false,
       "distribution": "internal",
+      "autoIncrement": true,
       "ios": {
         "simulator": false,
         "distribution": "store",
