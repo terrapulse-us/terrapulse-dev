@@ -27,12 +27,12 @@ import { useColors } from "@/hooks/useColors";
 import { useTwitchAuth } from "@/lib/useTwitchAuth";
 
 // ── RTMP publisher ──────────────────────────────────────────────────────────
-// @api.video/react-native-livestream supports New Architecture on both
-// Android and iOS. In Expo Go it isn't linked — fall back to the copy-key
-// flow. In dev client and all EAS builds it streams directly to Twitch.
+// Android only: @api.video/react-native-livestream is not linked on iOS
+// (HaishinKit 1.x is incompatible with iOS SDK 26). iOS always uses the
+// expo-camera fallback + copy-RTMP-URL flow for Streamlabs/OBS.
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 let ApiVideoLiveStreamView: React.ComponentType<any> | null = null;
-if (!isExpoGo) {
+if (!isExpoGo && Platform.OS === "android") {
   try {
     ApiVideoLiveStreamView =
       require("@api.video/react-native-livestream").ApiVideoLiveStreamView;
