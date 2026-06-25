@@ -16,6 +16,7 @@ module.exports = () => ({
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.terrapulse.app",
+      buildNumber: process.env.IOS_BUILD_NUMBER ?? "10",
       appleTeamId: "TN4GRQ3Y6V",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
