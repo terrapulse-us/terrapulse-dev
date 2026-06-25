@@ -37,8 +37,14 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Force the Expo auth proxy redirect URI — Google web OAuth clients
+  // reject the default native custom-scheme redirect (com.terrapulse.app:/oauthredirect).
+  // This URI must be listed in Google Cloud Console → Credentials → Web client → Authorized redirect URIs.
+  const EXPO_REDIRECT_URI = "https://auth.expo.io/@mclaporteterrapulses-team/mobile";
+
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
     clientId: extra.googleWebClientId,
+    redirectUri: EXPO_REDIRECT_URI,
   });
 
   useEffect(() => {

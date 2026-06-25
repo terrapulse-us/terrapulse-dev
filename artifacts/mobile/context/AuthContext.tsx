@@ -70,9 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ],
       nonce: hashedNonce,
     });
+    const { identityToken } = appleCredential;
+    if (!identityToken) {
+      throw new Error(
+        "Apple did not return an identity token. Make sure you are signed in to iCloud on this device and try again."
+      );
+    }
     const provider = new OAuthProvider("apple.com");
     const firebaseCredential = provider.credential({
-      idToken: appleCredential.identityToken!,
+      idToken: identityToken,
       rawNonce,
     });
     await signInWithCredential(auth, firebaseCredential);

@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.2",
+    version: "1.0.3",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
