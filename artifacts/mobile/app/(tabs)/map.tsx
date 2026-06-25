@@ -8,8 +8,6 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
-  Image,
-  FlatList,
   TextInput,
 } from "react-native";
 import {
@@ -54,6 +52,7 @@ import {
   getTrailsByState,
   type Trail,
 } from "@/lib/trails";
+import TrailDetailScreen from "@/components/TrailDetailScreen";
 
 interface TrailPhoto {
   url: string;
@@ -98,29 +97,6 @@ function formatElapsed(secs: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function DifficultyBar({ rating }: { rating: number }) {
-  const colors = useColors();
-  const color =
-    rating <= 3 ? colors.success : rating <= 6 ? "#FFC107" : colors.destructive;
-  return (
-    <View style={diffStyles.row}>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <View
-          key={i}
-          style={[
-            diffStyles.bar,
-            { backgroundColor: i < rating ? color : colors.border },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
-const diffStyles = StyleSheet.create({
-  row: { flexDirection: "row", gap: 3, marginTop: 4, marginBottom: 12 },
-  bar: { flex: 1, height: 4, borderRadius: 2 },
-});
 
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
@@ -1179,292 +1155,19 @@ export default function MapScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* TRAIL DETAIL MODAL */}
-      <Modal
-        animationType="slide"
-        transparent
+      <TrailDetailScreen
+        trail={selectedTrail}
         visible={!!selectedTrail}
-        onRequestClose={() => setSelectedTrail(null)}
-      >
-        {selectedTrail && (
-          <View style={styles.modalBackdrop}>
-            <View
-              style={[
-                styles.modalContent,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.accent,
-                },
-              ]}
-            >
-              <View style={styles.modalHandle} />
-
-              <View style={styles.modalHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.trailTitle,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    {selectedTrail.title.toUpperCase()}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.trailRegion,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    {selectedTrail.region} ·{" "}
-                    {STATE_NAMES[selectedTrail.state] ?? selectedTrail.state}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => setSelectedTrail(null)}>
-                  <Feather
-                    name="x"
-                    size={22}
-                    color={colors.mutedForeground}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View
-                style={[
-                  styles.diffRow,
-                  { backgroundColor: colors.secondary },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.specLabel,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    DIFFICULTY
-                  </Text>
-                  <Text
-                    style={[
-                      styles.specValue,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    {selectedTrail.difficulty}
-                  </Text>
-                  <DifficultyBar rating={selectedTrail.difficultyRating} />
-                </View>
-              </View>
-
-              <View style={styles.specsGrid}>
-                <View
-                  style={[
-                    styles.specCard,
-                    { backgroundColor: colors.secondary },
-                  ]}
-                >
-                  <Feather name="truck" size={16} color={colors.accent} />
-                  <Text
-                    style={[
-                      styles.specLabel,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    VEHICLE SIZE
-                  </Text>
-                  <Text
-                    style={[
-                      styles.specValue,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    {selectedTrail.size}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.specCard,
-                    { backgroundColor: colors.secondary },
-                  ]}
-                >
-                  <Feather
-                    name="settings"
-                    size={16}
-                    color={colors.accent}
-                  />
-                  <Text
-                    style={[
-                      styles.specLabel,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    SUSPENSION
-                  </Text>
-                  <Text
-                    style={[
-                      styles.specValue,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    {selectedTrail.suspension}
-                  </Text>
-                </View>
-              </View>
-
-              {/* OFFLINE DOWNLOAD */}
-              <TouchableOpacity
-                style={[
-                  styles.downloadBtn,
-                  {
-                    backgroundColor: colors.secondary,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={downloadTrailArea}
-                disabled={downloading}
-                activeOpacity={0.8}
-              >
-                {downloading ? (
-                  <ActivityIndicator size="small" color={colors.accent} />
-                ) : (
-                  <>
-                    <Feather
-                      name="download"
-                      size={14}
-                      color={colors.accent}
-                    />
-                    <Text
-                      style={[
-                        styles.downloadBtnText,
-                        { color: colors.accent },
-                      ]}
-                    >
-                      SAVE MAP OFFLINE
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.photosSection}>
-                <View style={styles.photosHeader}>
-                  <Text
-                    style={[
-                      styles.sectionTitle,
-                      { color: colors.foreground },
-                    ]}
-                  >
-                    COMMUNITY PICS
-                  </Text>
-                  <TouchableOpacity
-                    onPress={uploadPhoto}
-                    disabled={uploading}
-                    style={[
-                      styles.addPicBtn,
-                      { borderColor: colors.accent },
-                    ]}
-                  >
-                    {uploading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.accent}
-                      />
-                    ) : (
-                      <>
-                        <Feather
-                          name="camera"
-                          size={14}
-                          color={colors.accent}
-                        />
-                        <Text
-                          style={[
-                            styles.addPicText,
-                            { color: colors.accent },
-                          ]}
-                        >
-                          ADD PIC
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {photos.length === 0 ? (
-                  <View style={styles.noPhotos}>
-                    <Feather name="image" size={24} color={colors.border} />
-                    <Text
-                      style={[
-                        styles.noPhotosText,
-                        { color: colors.mutedForeground },
-                      ]}
-                    >
-                      No photos yet. Be the first!
-                    </Text>
-                  </View>
-                ) : (
-                  <FlatList
-                    horizontal
-                    data={photos}
-                    keyExtractor={(_, i) => String(i)}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                      <Image
-                        source={{ uri: item.url }}
-                        style={[
-                          styles.photo,
-                          { borderColor: colors.border },
-                        ]}
-                      />
-                    )}
-                  />
-                )}
-              </View>
-
-              {(() => {
-                const done = completedTrails.includes(selectedTrail.id);
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.completeBtn,
-                      {
-                        backgroundColor: done
-                          ? colors.secondary
-                          : colors.success,
-                        borderColor: done ? colors.success : "transparent",
-                        borderWidth: done ? 1 : 0,
-                      },
-                      completing && { opacity: 0.6 },
-                    ]}
-                    onPress={completeTrail}
-                    disabled={completing}
-                    activeOpacity={0.85}
-                  >
-                    {completing ? (
-                      <ActivityIndicator
-                        color={done ? colors.success : "#000"}
-                      />
-                    ) : (
-                      <>
-                        <Feather
-                          name={done ? "check-circle" : "flag"}
-                          size={16}
-                          color={done ? colors.success : "#000"}
-                        />
-                        <Text
-                          style={[
-                            styles.completeBtnText,
-                            { color: done ? colors.success : "#000" },
-                          ]}
-                        >
-                          {done ? "TRAIL COMPLETED ✓" : "MARK AS COMPLETE"}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                );
-              })()}
-            </View>
-          </View>
-        )}
-      </Modal>
+        onClose={() => setSelectedTrail(null)}
+        photos={photos}
+        uploading={uploading}
+        onUploadPhoto={uploadPhoto}
+        downloading={downloading}
+        onDownload={downloadTrailArea}
+        completedTrails={completedTrails}
+        completing={completing}
+        onComplete={completeTrail}
+      />
 
       {/* ADD TRAIL SUBMISSION MODAL */}
       <Modal
