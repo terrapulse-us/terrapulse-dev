@@ -29,8 +29,10 @@ on:
 jobs:
   build-and-submit-ios:
     name: Build & Submit iOS to TestFlight
-    # On push: always run. On manual: only when platform is ios or all.
-    if: github.event_name == 'push' || inputs.platform == 'ios' || inputs.platform == 'all'
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -61,7 +63,9 @@ jobs:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
           IOS_BUILD_NUMBER: ${{ github.run_number + 100 }}
-        run: eas build --platform ios --profile ${{ github.event_name == 'push' && 'preview' || inputs.profile }} --non-interactive
+        run: |
+          PROFILE=${{ github.event_name == 'push' && 'preview' || github.event.inputs.profile }}
+          eas build --platform ios --profile $PROFILE --non-interactive
 
       - name: Submit iOS to TestFlight
         working-directory: artifacts/mobile
@@ -69,8 +73,9 @@ jobs:
 
   build-android:
     name: Build Android APK
-    # Never runs on push. Only runs manually when platform is android or all.
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'android' || inputs.platform == 'all')
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -100,4 +105,4 @@ jobs:
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
+        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
