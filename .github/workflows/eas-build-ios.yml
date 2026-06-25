@@ -48,8 +48,9 @@ jobs:
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
-          IOS_BUILD_NUMBER: ${{ github.run_number + 100 }}
-        run: eas build --platform ios --profile preview --non-interactive
+        run: |
+          export IOS_BUILD_NUMBER=$(( ${{ github.run_number }} + 100 ))
+          eas build --platform ios --profile preview --non-interactive
 
       - name: Submit iOS to TestFlight
         working-directory: artifacts/mobile
