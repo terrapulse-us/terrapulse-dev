@@ -43,14 +43,34 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Push secrets to EAS environment
+        working-directory: artifacts/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: |
+          push_env() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "Skipping $name (empty)"
+              return
+            fi
+            echo "$value" | eas env:create --name "$name" \
+              --type plaintext --scope project --non-interactive 2>/dev/null \
+            || echo "$value" | eas env:update --name "$name" \
+              --scope project --non-interactive 2>/dev/null \
+            || echo "Warning: could not set $name in EAS"
+          }
+          push_env GOOGLE_WEB_CLIENT_ID "$GOOGLE_WEB_CLIENT_ID"
+          push_env MAPBOX_PUBLIC_TOKEN "$MAPBOX_PUBLIC_TOKEN"
+
       - name: Build iOS
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
-          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-          GOOGLE_IOS_URL_SCHEME: ${{ secrets.GOOGLE_IOS_URL_SCHEME }}
-        run: eas build --platform ios --profile preview --non-interactive
+        run: eas build --platform ios --profile ${{ inputs.profile || 'preview' }} --non-interactive
 
       - name: Submit iOS to TestFlight
         working-directory: artifacts/mobile
