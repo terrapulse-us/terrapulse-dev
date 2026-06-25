@@ -23,90 +23,63 @@ import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 const APP_VERSION = Constants.expoConfig?.version ?? "?";
 
-// Force the Expo auth proxy redirect URI.
-// Google web OAuth clients reject the default native custom-scheme redirect
-// (com.terrapulse.app:/oauthredirect). This URI must be listed in
-// Google Cloud Console → Credentials → Web client → Authorized redirect URIs.
+const GOOGLE_WEB_CLIENT_ID = "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com";
 const EXPO_REDIRECT_URI = "https://auth.expo.io/@mclaporteterrapulses-team/mobile";
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, login, register, loginWithGoogleCredential, loginWithApple } = useAuth();
+  const { user, login, register, loginWithGoogleCredential } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
-    clientId: extra.googleWebClientId,
+    clientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri: EXPO_REDIRECT_URI,
   });
 
   useEffect(() => {
-    if (googleResponse?.type === "success") {
+    if (!googleResponse) return;
+    if (googleResponse.type === "success") {
       const idToken = googleResponse.params.id_token;
       if (idToken) {
-        setSocialLoading("google");
+        setGoogleLoading(true);
         loginWithGoogleCredential(idToken)
           .catch((e: unknown) => {
             const msg = e instanceof Error ? e.message : "Google sign-in failed";
             Alert.alert("Google Sign-In Failed", msg);
           })
-          .finally(() => setSocialLoading(null));
+          .finally(() => setGoogleLoading(false));
       } else {
-        setSocialLoading(null);
+        setGoogleLoading(false);
         Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
       }
-    } else if (googleResponse?.type === "error") {
-      setSocialLoading(null);
-      Alert.alert(
-        "Google Sign-In Failed",
-        googleResponse.error?.message ?? "Authorization error"
-      );
-    } else if (googleResponse?.type === "dismiss" || googleResponse?.type === "cancel") {
-      setSocialLoading(null);
+    } else if (googleResponse.type === "error") {
+      setGoogleLoading(false);
+      Alert.alert("Google Sign-In Failed", googleResponse.error?.message ?? "Authorization error");
+    } else {
+      setGoogleLoading(false);
     }
   }, [googleResponse]);
 
   const handleGoogle = () => {
-    if (!extra.googleWebClientId) {
-      Alert.alert(
-        "Not Configured",
-        "Google Sign-In is not configured in this build. Install the latest build from EAS."
-      );
-      return;
-    }
-    setSocialLoading("google");
+    setGoogleLoading(true);
     googlePromptAsync().catch((e: unknown) => {
-      setSocialLoading(null);
+      setGoogleLoading(false);
       const msg = e instanceof Error ? e.message : "Could not open Google sign-in";
       Alert.alert("Google Sign-In Failed", msg);
     });
   };
 
-  const handleApple = async () => {
-    setSocialLoading("apple");
-    try {
-      await loginWithApple();
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Apple sign-in failed";
-      Alert.alert("Apple Sign-In Failed", msg);
-    } finally {
-      setSocialLoading(null);
-    }
-  };
-
   useEffect(() => {
-    if (user) {
-      router.replace("/(tabs)/map");
-    }
+    if (user) router.replace("/(tabs)/map");
   }, [user]);
 
   const handleAuth = async () => {
@@ -216,10 +189,10 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={handleGoogle}
-            disabled={!!socialLoading}
+            disabled={googleLoading}
             activeOpacity={0.8}
           >
-            {socialLoading === "google" ? (
+            {googleLoading ? (
               <ActivityIndicator color={colors.foreground} />
             ) : (
               <>
@@ -230,26 +203,6 @@ export default function LoginScreen() {
               </>
             )}
           </TouchableOpacity>
-
-          {Platform.OS === "ios" && (
-            <TouchableOpacity
-              style={[styles.socialBtn, { backgroundColor: "#fff", borderColor: "#fff" }]}
-              onPress={handleApple}
-              disabled={!!socialLoading}
-              activeOpacity={0.8}
-            >
-              {socialLoading === "apple" ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <>
-                  <Feather name="aperture" size={18} color="#000" />
-                  <Text style={[styles.socialBtnText, { color: "#000" }]}>
-                    CONTINUE WITH APPLE
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
         </View>
 
         <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
@@ -264,12 +217,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 28, justifyContent: "space-between" },
   header: { alignItems: "center", gap: 12 },
-  logoImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 18,
-    marginBottom: 8,
-  },
+  logoImage: { width: 90, height: 90, borderRadius: 18, marginBottom: 8 },
   title: { fontSize: 28, fontWeight: "900", letterSpacing: 2 },
   subtitle: { fontSize: 11, fontWeight: "700", letterSpacing: 3, textAlign: "center" },
   versionBadge: { fontSize: 10, letterSpacing: 1, opacity: 0.5 },

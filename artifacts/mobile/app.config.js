@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.5",
+    version: "1.0.6",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
@@ -30,9 +30,6 @@ module.exports = () => ({
           "TerraPulse needs photo library access to upload trail community photos.",
         CFBundleURLTypes: [
           { CFBundleURLSchemes: ["terrapulse"] },
-          ...(process.env.GOOGLE_IOS_URL_SCHEME
-            ? [{ CFBundleURLSchemes: [process.env.GOOGLE_IOS_URL_SCHEME] }]
-            : []),
         ],
       },
     },
@@ -80,7 +77,6 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
-      "expo-apple-authentication",
     ],
     experiments: {
       typedRoutes: true,
@@ -99,7 +95,7 @@ module.exports = () => ({
       firebaseStorageBucket: "california-offroad-explorer.firebasestorage.app",
       firebaseMessagingSenderId: "516913346465",
       firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
-      googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? "",
+      googleWebClientId: "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",

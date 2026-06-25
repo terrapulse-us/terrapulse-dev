@@ -6,12 +6,9 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  OAuthProvider,
   signInWithCredential,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import * as AppleAuthentication from "expo-apple-authentication";
-import * as Crypto from "expo-crypto";
 
 interface AuthContextType {
   user: User | null;
@@ -20,20 +17,18 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogleCredential: (idToken: string) => Promise<void>;
-  loginWithApple: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-/** Translate Firebase Auth error codes into actionable messages. */
 function firebaseAuthMessage(err: unknown): string {
   if (err && typeof err === "object" && "code" in err) {
     const code = (err as { code: string }).code;
     switch (code) {
       case "auth/operation-not-allowed":
-        return "This sign-in method is not enabled. Go to Firebase Console → Authentication → Sign-in method and enable it.";
+        return "This sign-in method is not enabled in Firebase Console.";
       case "auth/invalid-credential":
-        return "Invalid credential returned. For Apple: check Firebase Console has Apple Sign-In configured with your Service ID and Team ID.";
+        return "Invalid credential. Please try again.";
       case "auth/user-disabled":
         return "This account has been disabled.";
       case "auth/account-exists-with-different-credential":
@@ -98,46 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithApple = async () => {
-    const rawNonce = Array.from(
-      await Crypto.getRandomBytesAsync(32),
-      (b) => b.toString(16).padStart(2, "0")
-    ).join("");
-    const hashedNonce = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      rawNonce
-    );
-
-    const appleCredential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-      nonce: hashedNonce,
-    });
-
-    const { identityToken } = appleCredential;
-    if (!identityToken) {
-      throw new Error(
-        "Apple did not return an identity token. Make sure you are signed into iCloud on this device and try again."
-      );
-    }
-
-    try {
-      const provider = new OAuthProvider("apple.com");
-      const firebaseCredential = provider.credential({
-        idToken: identityToken,
-        rawNonce,
-      });
-      await signInWithCredential(auth, firebaseCredential);
-    } catch (err) {
-      throw new Error(firebaseAuthMessage(err));
-    }
-  };
-
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, loginWithGoogleCredential, loginWithApple }}
+      value={{ user, loading, login, register, logout, loginWithGoogleCredential }}
     >
       {children}
     </AuthContext.Provider>
