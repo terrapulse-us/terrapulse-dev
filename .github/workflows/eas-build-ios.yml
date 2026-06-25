@@ -1,4 +1,4 @@
-name: EAS Build Android
+name: EAS Build iOS
 
 on:
   workflow_dispatch:
@@ -10,12 +10,15 @@ on:
         type: choice
         options:
           - preview
-          - development
           - production
+  push:
+    branches:
+      - main
+      - "release/**"
 
 jobs:
-  build:
-    name: Build Android APK
+  build-and-submit-ios:
+    name: Build & Submit iOS to TestFlight
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,9 +43,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Android
+      - name: Build iOS
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
+          IOS_BUILD_NUMBER: ${{ github.run_number + 100 }}
+        run: eas build --platform ios --profile preview --non-interactive
+
+      - name: Submit iOS to TestFlight
+        working-directory: artifacts/mobile
+        run: eas submit --platform ios --latest --non-interactive
