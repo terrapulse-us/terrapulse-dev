@@ -24,6 +24,13 @@ import Constants from "expo-constants";
 WebBrowser.maybeCompleteAuthSession();
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
+const APP_VERSION = Constants.expoConfig?.version ?? "?";
+
+// Force the Expo auth proxy redirect URI.
+// Google web OAuth clients reject the default native custom-scheme redirect
+// (com.terrapulse.app:/oauthredirect). This URI must be listed in
+// Google Cloud Console → Credentials → Web client → Authorized redirect URIs.
+const EXPO_REDIRECT_URI = "https://auth.expo.io/@mclaporteterrapulses-team/mobile";
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -36,11 +43,6 @@ export default function LoginScreen() {
   const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Force the Expo auth proxy redirect URI — Google web OAuth clients
-  // reject the default native custom-scheme redirect (com.terrapulse.app:/oauthredirect).
-  // This URI must be listed in Google Cloud Console → Credentials → Web client → Authorized redirect URIs.
-  const EXPO_REDIRECT_URI = "https://auth.expo.io/@mclaporteterrapulses-team/mobile";
 
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
     clientId: extra.googleWebClientId,
@@ -58,15 +60,35 @@ export default function LoginScreen() {
             Alert.alert("Google Sign-In Failed", msg);
           })
           .finally(() => setSocialLoading(null));
+      } else {
+        setSocialLoading(null);
+        Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
       }
     } else if (googleResponse?.type === "error") {
-      Alert.alert("Google Sign-In Failed", googleResponse.error?.message ?? "Unknown error");
+      setSocialLoading(null);
+      Alert.alert(
+        "Google Sign-In Failed",
+        googleResponse.error?.message ?? "Authorization error"
+      );
+    } else if (googleResponse?.type === "dismiss" || googleResponse?.type === "cancel") {
+      setSocialLoading(null);
     }
   }, [googleResponse]);
 
   const handleGoogle = () => {
+    if (!extra.googleWebClientId) {
+      Alert.alert(
+        "Not Configured",
+        "Google Sign-In is not configured in this build. Install the latest build from EAS."
+      );
+      return;
+    }
     setSocialLoading("google");
-    googlePromptAsync().catch(() => setSocialLoading(null));
+    googlePromptAsync().catch((e: unknown) => {
+      setSocialLoading(null);
+      const msg = e instanceof Error ? e.message : "Could not open Google sign-in";
+      Alert.alert("Google Sign-In Failed", msg);
+    });
   };
 
   const handleApple = async () => {
@@ -124,6 +146,9 @@ export default function LoginScreen() {
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             SHARE YOUR ADVENTURE
+          </Text>
+          <Text style={[styles.versionBadge, { color: colors.mutedForeground }]}>
+            v{APP_VERSION}
           </Text>
         </View>
 
@@ -247,6 +272,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: "900", letterSpacing: 2 },
   subtitle: { fontSize: 11, fontWeight: "700", letterSpacing: 3, textAlign: "center" },
+  versionBadge: { fontSize: 10, letterSpacing: 1, opacity: 0.5 },
   form: { gap: 12 },
   inputWrap: {
     flexDirection: "row",

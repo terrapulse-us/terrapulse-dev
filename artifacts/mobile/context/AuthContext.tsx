@@ -25,6 +25,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/** Translate Firebase Auth error codes into actionable messages. */
+function firebaseAuthMessage(err: unknown): string {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code: string }).code;
+    switch (code) {
+      case "auth/operation-not-allowed":
+        return "This sign-in method is not enabled. Go to Firebase Console → Authentication → Sign-in method and enable it.";
+      case "auth/invalid-credential":
+        return "Invalid credential returned. For Apple: check Firebase Console has Apple Sign-In configured with your Service ID and Team ID.";
+      case "auth/user-disabled":
+        return "This account has been disabled.";
+      case "auth/account-exists-with-different-credential":
+        return "An account already exists with a different sign-in method for that email.";
+      case "auth/network-request-failed":
+        return "Network error — check your internet connection.";
+      case "auth/too-many-requests":
+        return "Too many attempts. Please wait a moment and try again.";
+      case "auth/wrong-password":
+        return "Incorrect password.";
+      case "auth/user-not-found":
+        return "No account found for that email.";
+      case "auth/email-already-in-use":
+        return "An account already exists with that email.";
+      case "auth/weak-password":
+        return "Password must be at least 6 characters.";
+      default:
+        return `Auth error (${code})`;
+    }
+  }
+  return err instanceof Error ? err.message : "Unknown error";
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,11 +70,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      throw new Error(firebaseAuthMessage(err));
+    }
   };
 
   const register = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      throw new Error(firebaseAuthMessage(err));
+    }
   };
 
   const logout = async () => {
@@ -50,8 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithGoogleCredential = async (idToken: string) => {
-    const credential = GoogleAuthProvider.credential(idToken);
-    await signInWithCredential(auth, credential);
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+    } catch (err) {
+      throw new Error(firebaseAuthMessage(err));
+    }
   };
 
   const loginWithApple = async () => {
@@ -63,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       Crypto.CryptoDigestAlgorithm.SHA256,
       rawNonce
     );
+
     const appleCredential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -70,18 +115,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ],
       nonce: hashedNonce,
     });
+
     const { identityToken } = appleCredential;
     if (!identityToken) {
       throw new Error(
-        "Apple did not return an identity token. Make sure you are signed in to iCloud on this device and try again."
+        "Apple did not return an identity token. Make sure you are signed into iCloud on this device and try again."
       );
     }
-    const provider = new OAuthProvider("apple.com");
-    const firebaseCredential = provider.credential({
-      idToken: identityToken,
-      rawNonce,
-    });
-    await signInWithCredential(auth, firebaseCredential);
+
+    try {
+      const provider = new OAuthProvider("apple.com");
+      const firebaseCredential = provider.credential({
+        idToken: identityToken,
+        rawNonce,
+      });
+      await signInWithCredential(auth, firebaseCredential);
+    } catch (err) {
+      throw new Error(firebaseAuthMessage(err));
+    }
   };
 
   return (
