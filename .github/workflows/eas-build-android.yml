@@ -12,6 +12,10 @@ on:
           - preview
           - development
           - production
+  push:
+    branches:
+      - main
+      - "release/**"
 
 jobs:
   build:
@@ -45,4 +49,4 @@ jobs:
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
+        run: eas build --platform android --profile ${{ inputs.profile || 'preview' }} --non-interactive
