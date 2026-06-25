@@ -17,17 +17,43 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, login, register } = useAuth();
+  const { user, login, register, loginWithGoogle, loginWithApple } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<"google" | "apple" | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleGoogle = async () => {
+    setSocialLoading("google");
+    try {
+      await loginWithGoogle();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Google sign-in failed";
+      Alert.alert("Google Sign-In Failed", msg);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleApple = async () => {
+    setSocialLoading("apple");
+    try {
+      await loginWithApple();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Apple sign-in failed";
+      Alert.alert("Apple Sign-In Failed", msg);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -129,6 +155,50 @@ export default function LoginScreen() {
               {mode === "login" ? "NEW? CREATE ACCOUNT" : "ALREADY HAVE AN ACCOUNT"}
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.socialBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={handleGoogle}
+            disabled={!!socialLoading}
+            activeOpacity={0.8}
+          >
+            {socialLoading === "google" ? (
+              <ActivityIndicator color={colors.foreground} />
+            ) : (
+              <>
+                <Text style={styles.googleG}>G</Text>
+                <Text style={[styles.socialBtnText, { color: colors.foreground }]}>
+                  CONTINUE WITH GOOGLE
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {Platform.OS === "ios" && (
+            <TouchableOpacity
+              style={[styles.socialBtn, { backgroundColor: "#fff", borderColor: "#fff" }]}
+              onPress={handleApple}
+              disabled={!!socialLoading}
+              activeOpacity={0.8}
+            >
+              {socialLoading === "apple" ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <>
+                  <Feather name="aperture" size={18} color="#000" />
+                  <Text style={[styles.socialBtnText, { color: "#000" }]}>
+                    CONTINUE WITH APPLE
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
@@ -181,4 +251,18 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { fontWeight: "700", fontSize: 12, letterSpacing: 1.5 },
   tagline: { textAlign: "center", fontSize: 11, letterSpacing: 1 },
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 4 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 11, fontWeight: "700", letterSpacing: 2 },
+  socialBtn: {
+    height: 52,
+    borderRadius: 4,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  socialBtnText: { fontWeight: "800", fontSize: 13, letterSpacing: 1.5 },
+  googleG: { fontSize: 18, fontWeight: "900", color: "#4285F4" },
 });

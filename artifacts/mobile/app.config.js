@@ -74,6 +74,13 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME ?? "",
+        },
+      ],
+      "expo-apple-authentication",
     ],
     experiments: {
       typedRoutes: true,
@@ -92,6 +99,7 @@ module.exports = () => ({
       firebaseStorageBucket: "california-offroad-explorer.firebasestorage.app",
       firebaseMessagingSenderId: "516913346465",
       firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
+      googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? "",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",
