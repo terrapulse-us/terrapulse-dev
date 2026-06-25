@@ -1,0 +1,34 @@
+Creating Gymfile
+Gymfile created
+Successfully loaded '/Users/expo/workingdir/build/artifacts/mobile/ios/Gymfile' 📄
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                  Detected Values from './Gymfile'                                                                   |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| suppress_xcode_output | true                                                                                                                                        |
+| clean                 | false                                                                                                                                       |
+| scheme                | TerraPulse                                                                                                                                  |
+| configuration         | Release                                                                                                                                     |
+| export_options        |                                                                                                                                             |
+| export_xcargs         | OTHER_CODE_SIGN_FLAGS="--keychain /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/eas-build-1f7fe917-57e1-45d7-bdec-cb369640dcaa.keychain" |
+| disable_xcpretty      | true                                                                                                                                        |
+| buildlog_path         | /Users/expo/workingdir/logs                                                                                                                 |
+| derived_data_path     | ./build                                                                                                                                     |
+| result_bundle         | true                                                                                                                                        |
+| result_bundle_path    | /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/result-bundle-1782348365845.xcresult                                                       |
+| output_directory      | ./build                                                                                                                                     |
++-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+Resolving Swift Package Manager dependencies...
+$ xcodebuild -resolvePackageDependencies -workspace ./TerraPulse.xcworkspace -scheme TerraPulse -configuration Release -derivedDataPath ./build
+▸ Command line invocation:
+▸     /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -workspace ./TerraPulse.xcworkspace -scheme TerraPulse -configuration Release -derivedDataPath ./build
+▸ Resolve Package Graph
+▸ Fetching from https://github.com/maplibre/maplibre-gl-native-distribution
+▸ Creating working copy of package ‘maplibre-gl-native-distribution’
+▸ Checking out 6.26.0 of package ‘maplibre-gl-native-distribution’
+▸ failed downloading 'https://github.com/maplibre/maplibre-native/releases/download/ios-v6.26.0/MapLibre.dynamic.xcframework.zip' which is required by binary target 'MapLibre': downloadError("Could not connect to the server.")fatalError2026-06-24 17:46:12.247 xcodebuild[1835:10363] Writing error result bundle to /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/ResultBundle_2026-24-06_17-46-0012.xcresult
+▸ xcodebuild: error: Could not resolve package dependencies:
+▸   failed downloading 'https://github.com/maplibre/maplibre-native/releases/download/ios-v6.26.0/MapLibre.dynamic.xcframework.zip' which is required by binary target 'MapLibre': downloadError("Could not connect to the server.")
+▸   fatalError
+Exit status: 74
+[!] Exit status: 74
+Error: The "Run fastlane" step failed with an unknown error. Refer to "Xcode Logs" below for additional, more detailed logs.
