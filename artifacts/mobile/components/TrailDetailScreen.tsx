@@ -48,6 +48,7 @@ export interface TrailForDetail {
   suspension: string;
   region: string;
   state: string;
+  routeCoordinates?: Array<{ lat: number; lng: number }>;
 }
 
 interface TrailEvent {
@@ -75,6 +76,7 @@ interface Props {
   completedTrails: string[];
   completing: boolean;
   onComplete: () => void;
+  onNavigate?: () => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -231,6 +233,7 @@ export default function TrailDetailScreen({
   completedTrails,
   completing,
   onComplete,
+  onNavigate,
 }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -399,6 +402,18 @@ export default function TrailDetailScreen({
             )}
           </TouchableOpacity>
         </View>
+
+        {/* ── FOLLOW TRAIL ── */}
+        {!!trail.routeCoordinates?.length && !!onNavigate && (
+          <TouchableOpacity
+            style={[s.followTrailBtn, { backgroundColor: colors.primary, borderBottomColor: colors.border }]}
+            onPress={onNavigate}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="navigation" size={16} color={colors.primaryForeground} />
+            <Text style={[s.followTrailText, { color: colors.primaryForeground }]}>FOLLOW TRAIL ON MAP</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── TAB BAR ── */}
         <View style={[s.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -871,6 +886,15 @@ const s = StyleSheet.create({
   },
   directionsBtn: { backgroundColor: "#1A73E8" },
   actionBtnText: { fontWeight: "800", fontSize: 12, letterSpacing: 1 },
+  followTrailBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+  },
+  followTrailText: { fontWeight: "900", fontSize: 13, letterSpacing: 2 },
   tabBar: {
     flexDirection: "row",
     borderBottomWidth: 1,

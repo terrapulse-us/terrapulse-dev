@@ -55,6 +55,7 @@ import {
   getTrailsByState,
   type Trail,
 } from "@/lib/trails";
+import { TRAIL_ROUTES } from "@/lib/trail-routes";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 
 interface TrailPhoto {
@@ -89,6 +90,18 @@ function mpsToMph(mps: number): number {
 
 function metersToFeet(m: number): number {
   return m * 3.28084;
+}
+
+function latLngDistMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function formatElapsed(secs: number): string {
@@ -163,6 +176,12 @@ interface UserTrail extends Trail {
   submittedByName?: string;
 }
 
+function enrichWithRoute(trail: UserTrail): UserTrail {
+  if (trail.routeCoordinates?.length) return trail;
+  const rc = TRAIL_ROUTES[trail.id];
+  return rc ? { ...trail, routeCoordinates: rc } : trail;
+}
+
 function difficultyLabel(rating: number): string {
   if (rating <= 2) return "Easy";
   if (rating <= 4) return "Moderate";
@@ -224,6 +243,12 @@ export default function MapScreen() {
 
   const [followUser, setFollowUser] = useState(false);
 
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navTrail, setNavTrail] = useState<UserTrail | null>(null);
+  const [navDistCovered, setNavDistCovered] = useState(0);
+  const [navDistTotal, setNavDistTotal] = useState(0);
+  const navWatchRef = useRef<Location.LocationSubscription | null>(null);
+
   const [isTrailRecording, setIsTrailRecording] = useState(false);
   const [trailPoints, setTrailPoints] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const trailPointsRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
@@ -260,6 +285,32 @@ export default function MapScreen() {
   const rideTopRef = useRef(0);
   const rideElevRef = useRef(0);
 
+  const startNavigation = useCallback(() => {
+    const route = selectedTrail?.routeCoordinates;
+    if (!route?.length) return;
+    let total = 0;
+    for (let i = 1; i < route.length; i++) {
+      total += latLngDistMiles(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng);
+    }
+    cameraRef.current?.flyTo({ center: [route[0].lng, route[0].lat], zoom: 13, duration: 1200 });
+    setNavTrail(selectedTrail);
+    setNavDistTotal(parseFloat(total.toFixed(2)));
+    setNavDistCovered(0);
+    setIsNavigating(true);
+    setSelectedTrail(null);
+    setFollowUser(true);
+  }, [selectedTrail]);
+
+  const stopNavigation = useCallback(() => {
+    navWatchRef.current?.remove();
+    navWatchRef.current = null;
+    setIsNavigating(false);
+    setNavTrail(null);
+    setNavDistCovered(0);
+    setNavDistTotal(0);
+    setFollowUser(false);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
@@ -282,6 +333,46 @@ export default function MapScreen() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!isNavigating) {
+      navWatchRef.current?.remove();
+      navWatchRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted" || cancelled) return;
+      navWatchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 15 },
+        (loc) => {
+          setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        }
+      );
+    })();
+    return () => {
+      cancelled = true;
+      navWatchRef.current?.remove();
+      navWatchRef.current = null;
+    };
+  }, [isNavigating]);
+
+  useEffect(() => {
+    if (!isNavigating || !navTrail?.routeCoordinates?.length || !userLocation) return;
+    const route = navTrail.routeCoordinates;
+    let nearestIdx = 0;
+    let nearestDist = Infinity;
+    for (let i = 0; i < route.length; i++) {
+      const d = latLngDistMiles(userLocation.latitude, userLocation.longitude, route[i].lat, route[i].lng);
+      if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+    }
+    let covered = 0;
+    for (let i = 1; i <= nearestIdx; i++) {
+      covered += latLngDistMiles(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng);
+    }
+    setNavDistCovered(parseFloat(covered.toFixed(2)));
+  }, [isNavigating, navTrail, userLocation]);
 
 
   useEffect(() => {
@@ -723,7 +814,9 @@ export default function MapScreen() {
   );
 
   const selectedUserTrailGeoJSON = useMemo(() => {
-    const rc = selectedTrail?.routeCoordinates;
+    const rc = isNavigating
+      ? navTrail?.routeCoordinates
+      : selectedTrail?.routeCoordinates;
     if (!rc?.length) return null;
     return {
       type: "Feature" as const,
@@ -733,7 +826,7 @@ export default function MapScreen() {
       },
       properties: {},
     };
-  }, [selectedTrail]);
+  }, [isNavigating, navTrail, selectedTrail]);
 
   const TOP_BAR_HEIGHT = insets.top + 64;
   const STATE_BAR_HEIGHT = 48;
@@ -759,7 +852,7 @@ export default function MapScreen() {
           <Marker
             key={trail.id}
             lngLat={[trail.coords.longitude, trail.coords.latitude]}
-            onPress={() => setSelectedTrail(trail)}
+            onPress={() => setSelectedTrail(enrichWithRoute(trail))}
           >
             <View
               style={[
@@ -821,7 +914,7 @@ export default function MapScreen() {
             <Marker
               key={trail.id}
               lngLat={[trail.coords.longitude, trail.coords.latitude]}
-              onPress={() => setSelectedTrail(trail)}
+              onPress={() => setSelectedTrail(enrichWithRoute(trail))}
             >
               <View
                 style={[
@@ -1211,6 +1304,38 @@ export default function MapScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* NAV HUD */}
+      {isNavigating && navTrail && (
+        <View style={[styles.navHud, { bottom: tabBarHeight + 76, backgroundColor: colors.card, borderColor: colors.accent }]}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <MaterialIcons name="navigation" size={13} color={colors.accent} />
+              <Text style={[styles.navTrailName, { color: colors.foreground }]} numberOfLines={1}>
+                {navTrail.title.toUpperCase()}
+              </Text>
+            </View>
+            <View style={[styles.navProgressBarBg, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.navProgressFill,
+                  {
+                    width: navDistTotal > 0 ? `${Math.min(100, Math.round((navDistCovered / navDistTotal) * 100))}%` : "0%",
+                    backgroundColor: colors.accent,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.navProgressText, { color: colors.mutedForeground }]}>
+              {navDistCovered.toFixed(1)} of {navDistTotal.toFixed(1)} MI
+              {navDistTotal > 0 ? `  ·  ${Math.round((navDistCovered / navDistTotal) * 100)}%` : ""}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
+            <Feather name="x" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TrailDetailScreen
         trail={selectedTrail}
         visible={!!selectedTrail}
@@ -1223,6 +1348,7 @@ export default function MapScreen() {
         completedTrails={completedTrails}
         completing={completing}
         onComplete={completeTrail}
+        onNavigate={startNavigation}
       />
 
       {/* ADD TRAIL SUBMISSION MODAL */}
@@ -1328,6 +1454,28 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+  navHud: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
+  navTrailName: { fontWeight: "900", fontSize: 12, letterSpacing: 1, flex: 1 },
+  navProgressBarBg: { height: 4, borderRadius: 2, marginBottom: 5 },
+  navProgressFill: { height: 4, borderRadius: 2 },
+  navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
+  navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   trailMarker: {
     width: 14,
     height: 14,
