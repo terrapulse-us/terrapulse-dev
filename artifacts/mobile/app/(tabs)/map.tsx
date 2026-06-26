@@ -20,7 +20,9 @@ import {
   RasterSource,
   Layer,
   OfflineManager,
+  TransformRequestManager,
 } from "@maplibre/maplibre-react-native";
+import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -98,6 +100,10 @@ function formatElapsed(secs: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+
+const MAPBOX_TOKEN =
+  (Constants.expoConfig?.extra as Record<string, string> | undefined)
+    ?.mapboxPublicToken ?? "";
 
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
@@ -177,8 +183,11 @@ export default function MapScreen() {
 
   const mapStyle = useMemo(() => {
     if (mapLayer === "topo") return TOPO_STYLE as never;
-    if (mapLayer === "satellite") return SATELLITE_STYLE as never;
-    return "https://tiles.openfreemap.org/styles/liberty" as never;
+    if (mapLayer === "satellite")
+      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${MAPBOX_TOKEN}` as never;
+    if (mapLayer === "terrain3d")
+      return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
+    return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
   }, [mapLayer]);
 
   const [selectedState, setSelectedState] = useState("All States");
@@ -250,6 +259,46 @@ export default function MapScreen() {
         });
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    if (!MAPBOX_TOKEN) return;
+    // Rewrite mapbox://fonts/* → Mapbox Fonts API
+    const fontsId = TransformRequestManager.addUrlTransform({
+      id: "mapbox-fonts",
+      match: "^mapbox://fonts/",
+      find: "mapbox://fonts/(.*)",
+      replace: "https://api.mapbox.com/fonts/v1/$1",
+    });
+    // Rewrite mapbox://sprites/* → Mapbox Sprites API
+    const spritesId = TransformRequestManager.addUrlTransform({
+      id: "mapbox-sprites",
+      match: "^mapbox://sprites/",
+      find: "mapbox://sprites/([^/]+)/([^/]+)(.*)",
+      replace: "https://api.mapbox.com/styles/v1/$1/$2/sprite$3",
+    });
+    // Rewrite all remaining mapbox:// URLs (tile source TileJSON lookups)
+    // e.g. mapbox://mapbox.mapbox-streets-v8,... → Mapbox V4 TileJSON API
+    // Fonts/sprites are already rewritten to https:// above so they won't match here.
+    const tilesId = TransformRequestManager.addUrlTransform({
+      id: "mapbox-tilejson",
+      match: "^mapbox://",
+      find: "^mapbox://(.+)$",
+      replace: "https://api.mapbox.com/v4/$1.json",
+    });
+    // Append access_token to every api.mapbox.com request
+    const tokenId = TransformRequestManager.addUrlSearchParam({
+      id: "mapbox-token",
+      match: "api\\.mapbox\\.com",
+      name: "access_token",
+      value: MAPBOX_TOKEN,
+    });
+    return () => {
+      TransformRequestManager.removeUrlTransform(fontsId);
+      TransformRequestManager.removeUrlTransform(spritesId);
+      TransformRequestManager.removeUrlTransform(tilesId);
+      TransformRequestManager.removeUrlSearchParam(tokenId);
+    };
   }, []);
 
   useEffect(() => {
