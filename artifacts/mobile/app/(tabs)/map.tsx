@@ -1096,11 +1096,11 @@ export default function MapScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.liveBtn, { backgroundColor: colors.accent }]}
+          style={[styles.liveBtn, { backgroundColor: "#5A9A5A" }]}
           onPress={() => router.push("/(tabs)/stream")}
           activeOpacity={0.85}
         >
-          <Feather name="radio" size={14} color="#000" />
+          <Feather name="radio" size={14} color="#FFFFFF" />
           <Text style={styles.liveBtnText}>GO LIVE</Text>
         </TouchableOpacity>
       </View>
@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
   liveBtnText: {
     fontWeight: "900",
     letterSpacing: 2,
-    color: "#000",
+    color: "#FFFFFF",
     fontSize: 13,
   },
   modalBackdrop: {
