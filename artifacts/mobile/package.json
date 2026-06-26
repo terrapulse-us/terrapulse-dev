@@ -58,6 +58,7 @@
   "dependencies": {
     "@api.video/react-native-livestream": "^2.0.2",
     "@maplibre/maplibre-react-native": "^11.3.4",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "@react-navigation/bottom-tabs": "^7.18.2",
     "expo-apple-authentication": "~8.0.8",
     "expo-auth-session": "~7.0.11",

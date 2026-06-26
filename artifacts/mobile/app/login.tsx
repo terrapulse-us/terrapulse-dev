@@ -17,17 +17,23 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import Constants from "expo-constants";
-
-WebBrowser.maybeCompleteAuthSession();
 
 const APP_VERSION = Constants.expoConfig?.version ?? "?";
 
-const GOOGLE_WEB_CLIENT_ID = "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com";
-const GOOGLE_IOS_CLIENT_ID = "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com";
-const GOOGLE_ANDROID_CLIENT_ID = "516913346465-n9l1vgse2hr7pemaev5ubt5gjvpalvaf.apps.googleusercontent.com";
+const GOOGLE_WEB_CLIENT_ID =
+  "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com";
+const GOOGLE_IOS_CLIENT_ID =
+  "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com";
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  iosClientId: GOOGLE_IOS_CLIENT_ID,
+});
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -41,48 +47,37 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (!googleResponse) return;
-    if (googleResponse.type === "success") {
-      const idToken = googleResponse.params.id_token;
-      if (idToken) {
-        setGoogleLoading(true);
-        loginWithGoogleCredential(idToken)
-          .catch((e: unknown) => {
-            const msg = e instanceof Error ? e.message : "Google sign-in failed";
-            Alert.alert("Google Sign-In Failed", msg);
-          })
-          .finally(() => setGoogleLoading(false));
-      } else {
-        setGoogleLoading(false);
-        Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
-      }
-    } else if (googleResponse.type === "error") {
-      setGoogleLoading(false);
-      Alert.alert("Google Sign-In Failed", googleResponse.error?.message ?? "Authorization error");
-    } else {
-      setGoogleLoading(false);
-    }
-  }, [googleResponse]);
-
-  const handleGoogle = () => {
-    setGoogleLoading(true);
-    googlePromptAsync().catch((e: unknown) => {
-      setGoogleLoading(false);
-      const msg = e instanceof Error ? e.message : "Could not open Google sign-in";
-      Alert.alert("Google Sign-In Failed", msg);
-    });
-  };
-
   useEffect(() => {
     if (user) router.replace("/(tabs)/map");
   }, [user]);
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) {
+        Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
+        return;
+      }
+      await loginWithGoogleCredential(idToken);
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled — no alert needed
+      } else if (err.code === statusCodes.IN_PROGRESS) {
+        Alert.alert("Sign-In In Progress", "Google sign-in is already in progress.");
+      } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert("Google Sign-In Failed", "Google Play Services is not available on this device.");
+      } else {
+        const msg = err.message ?? "Google sign-in failed";
+        Alert.alert("Google Sign-In Failed", msg);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
