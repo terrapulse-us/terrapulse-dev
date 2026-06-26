@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -41,10 +42,13 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
+  const redirectUri = makeRedirectUri({ scheme: "terrapulse", path: "oauth2redirect" });
+
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    // Android: use web client + scheme redirect (Android OAuth clients require Play Store for sideloaded APKs)
+    redirectUri: Platform.OS === "android" ? redirectUri : undefined,
   });
 
   useEffect(() => {
