@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.12",
+    version: "1.0.13",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
@@ -79,6 +79,7 @@ module.exports = () => ({
       ],
       "@maplibre/maplibre-react-native",
       "@react-native-google-signin/google-signin",
+      "./plugins/withModularHeaders",
     ],
     experiments: {
       typedRoutes: true,
