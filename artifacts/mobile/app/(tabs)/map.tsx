@@ -58,6 +58,16 @@ import {
   VEHICLE_TYPE_CONFIG,
 } from "@/lib/trails";
 import { TRAIL_ROUTES } from "@/lib/trail-routes";
+import {
+  fetchUsfsRouteNear,
+  fetchUsfsTrailsInBounds,
+  extractBestRoute,
+  featureStartCoord,
+  featureDisplayName,
+  formatTerraUse,
+  type UsfsFeature,
+  type UsfsCollection,
+} from "@/lib/usfs-api";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 
 interface TrailPhoto {
@@ -306,21 +316,32 @@ export default function MapScreen() {
   const rideTopRef = useRef(0);
   const rideElevRef = useRef(0);
 
-  const startNavigation = useCallback(() => {
-    const route = selectedTrail?.routeCoordinates;
+  const [usfsGeoJSON, setUsfsGeoJSON] = useState<UsfsCollection | null>(null);
+  const [usfsLoading, setUsfsLoading] = useState(false);
+  const [selectedUsfsFeature, setSelectedUsfsFeature] = useState<UsfsFeature | null>(null);
+
+  // Core navigation: takes a trail explicitly so it works from any call site
+  const navigateTrail = useCallback((trail: UserTrail) => {
+    const route = trail.routeCoordinates;
     if (!route?.length) return;
     let total = 0;
     for (let i = 1; i < route.length; i++) {
       total += latLngDistMiles(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng);
     }
     cameraRef.current?.flyTo({ center: [route[0].lng, route[0].lat], zoom: 13, duration: 1200 });
-    setNavTrail(selectedTrail);
+    setNavTrail(trail);
     setNavDistTotal(parseFloat(total.toFixed(2)));
     setNavDistCovered(0);
     setIsNavigating(true);
     setSelectedTrail(null);
+    setSelectedUsfsFeature(null);
     setFollowUser(true);
-  }, [selectedTrail]);
+  }, []);
+
+  // Wrapper used by the existing TrailDetailScreen onNavigate prop
+  const startNavigation = useCallback(() => {
+    if (selectedTrail) navigateTrail(selectedTrail);
+  }, [selectedTrail, navigateTrail]);
 
   const stopNavigation = useCallback(() => {
     navWatchRef.current?.remove();
@@ -331,6 +352,27 @@ export default function MapScreen() {
     setNavDistTotal(0);
     setFollowUser(false);
   }, []);
+
+  // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on
+  useEffect(() => {
+    if (!showUsfsOverlay) {
+      setUsfsGeoJSON(null);
+      setSelectedUsfsFeature(null);
+      return;
+    }
+    let cancelled = false;
+    setUsfsLoading(true);
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 }; // CA center fallback
+    fetchUsfsTrailsInBounds(
+      center.longitude - 0.25, center.latitude - 0.25,
+      center.longitude + 0.25, center.latitude + 0.25,
+    )
+      .then(data => { if (!cancelled) setUsfsGeoJSON(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setUsfsLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showUsfsOverlay]); // intentionally omit userLocation to avoid refetch on every GPS tick
 
   useEffect(() => {
     if (!user) return;
@@ -874,7 +916,23 @@ export default function MapScreen() {
           <Marker
             key={trail.id}
             lngLat={[trail.coords.longitude, trail.coords.latitude]}
-            onPress={() => setSelectedTrail(enrichWithRoute(trail))}
+            onPress={() => {
+              const enriched = enrichWithRoute(trail);
+              setSelectedTrail(enriched);
+              // If no hardcoded route, silently try USFS API in background
+              if (!enriched.routeCoordinates?.length) {
+                fetchUsfsRouteNear(trail.coords.latitude, trail.coords.longitude)
+                  .then(col => {
+                    const route = extractBestRoute(col);
+                    if (route && route.length >= 5) {
+                      setSelectedTrail(prev =>
+                        prev?.id === trail.id ? { ...prev, routeCoordinates: route } : prev
+                      );
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
           >
             <View
               style={[
@@ -929,6 +987,32 @@ export default function MapScreen() {
             />
           </RasterSource>
         )}
+
+        {/* USFS live GeoJSON routes layer */}
+        {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
+          <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
+            <Layer
+              id="usfs-routes-line"
+              type="line"
+              paint={{ "line-color": "#1A6B9E", "line-width": 2.5, "line-opacity": 0.85 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* Tappable pins at the start of each USFS feature (capped at 100) */}
+        {usfsGeoJSON && usfsGeoJSON.features.slice(0, 100).map((f, i) => {
+          const coord = featureStartCoord(f);
+          if (!coord) return null;
+          return (
+            <Marker
+              key={`usfs-${i}`}
+              lngLat={coord}
+              onPress={() => setSelectedUsfsFeature(f)}
+            >
+              <View style={styles.usfsMarker} />
+            </Marker>
+          );
+        })}
 
         {userTrails
           .filter((t) => selectedState === "All States" || t.state === selectedState)
@@ -1212,6 +1296,63 @@ export default function MapScreen() {
         />
       </TouchableOpacity>
 
+      {/* USFS TRAIL POPUP — shown when user taps a USFS route pin */}
+      {selectedUsfsFeature && (
+        <View
+          style={[
+            styles.usfsPopup,
+            { bottom: tabBarHeight + 80, backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.usfsPopupHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.usfsPopupTitle, { color: colors.foreground }]} numberOfLines={2}>
+                {featureDisplayName(selectedUsfsFeature)}
+              </Text>
+              <Text style={[styles.usfsPopupSub, { color: colors.mutedForeground }]}>
+                {formatTerraUse(selectedUsfsFeature.properties.ALLOWED_TERRA_USE)}
+                {selectedUsfsFeature.properties.GIS_MILES
+                  ? ` · ${Number(selectedUsfsFeature.properties.GIS_MILES).toFixed(1)} mi`
+                  : ""}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedUsfsFeature(null)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Feather name="x" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={[styles.usfsNavBtn, { backgroundColor: colors.primary }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              const route = extractBestRoute({ type: "FeatureCollection", features: [selectedUsfsFeature] });
+              if (!route || route.length < 2) return;
+              const usfsTrail: UserTrail = {
+                id: `usfs-${Date.now()}`,
+                title: featureDisplayName(selectedUsfsFeature),
+                coords: { latitude: route[0].lat, longitude: route[0].lng },
+                difficulty: "USFS Route",
+                difficultyRating: 5,
+                size: "All Sizes",
+                suspension: "Varies",
+                region: "National Forest",
+                state: "US",
+                vehicleTypes: ["4x4"],
+                routeCoordinates: route,
+              };
+              navigateTrail(usfsTrail);
+            }}
+          >
+            <MaterialIcons name="navigation" size={14} color={colors.primaryForeground} />
+            <Text style={[styles.usfsNavBtnText, { color: colors.primaryForeground }]}>
+              NAVIGATE THIS TRAIL
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* BOTTOM BUTTONS */}
       <View style={[styles.bottomBtns, { bottom: tabBarHeight + 16 }]}>
         <TouchableOpacity
@@ -1344,16 +1485,21 @@ export default function MapScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
                   USFS TRAILS
+                  {usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length} routes)` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
-                  Official OHV / motor vehicle routes · zoom in to see
+                  Real gov. OHV / 4x4 routes · fetches near your location
                 </Text>
               </View>
-              <MaterialIcons
-                name={showUsfsOverlay ? "toggle-on" : "toggle-off"}
-                size={28}
-                color={showUsfsOverlay ? "#000" : colors.mutedForeground}
-              />
+              {usfsLoading ? (
+                <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} />
+              ) : (
+                <MaterialIcons
+                  name={showUsfsOverlay ? "toggle-on" : "toggle-off"}
+                  size={28}
+                  color={showUsfsOverlay ? "#000" : colors.mutedForeground}
+                />
+              )}
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -1531,6 +1677,40 @@ const styles = StyleSheet.create({
   navProgressFill: { height: 4, borderRadius: 2 },
   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  usfsMarker: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#1A6B9E",
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  usfsPopup: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 6,
+  },
+  usfsPopupHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  usfsPopupTitle: { fontSize: 14, fontWeight: "800", letterSpacing: 0.2 },
+  usfsPopupSub: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+  usfsNavBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 8,
+    paddingVertical: 10,
+  },
+  usfsNavBtnText: { fontSize: 12, fontWeight: "900", letterSpacing: 1 },
   trailMarker: {
     width: 14,
     height: 14,
