@@ -873,10 +873,8 @@ export default function MapScreen() {
                 style={[
                   styles.statePill,
                   {
-                    backgroundColor: active
-                      ? colors.accent
-                      : "rgba(18,18,18,0.9)",
-                    borderColor: active ? colors.accent : colors.border,
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active ? colors.primary : colors.border,
                   },
                 ]}
                 onPress={() => setSelectedState(state)}
@@ -885,7 +883,7 @@ export default function MapScreen() {
                 <Text
                   style={[
                     styles.statePillText,
-                    { color: active ? "#000" : colors.mutedForeground },
+                    { color: active ? colors.primaryForeground : colors.mutedForeground },
                   ]}
                 >
                   {state === "All States" ? "ALL" : state}

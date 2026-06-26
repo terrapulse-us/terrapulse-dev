@@ -439,12 +439,12 @@ export default function StreamScreen() {
 
             {/* GO LIVE */}
             <TouchableOpacity
-              style={[styles.floatingStreamBtn, { backgroundColor: colors.accent }]}
+              style={[styles.floatingStreamBtn, { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border }]}
               onPress={toggleStream}
               activeOpacity={0.85}
             >
-              <Feather name="radio" size={18} color="#EBE4D1" />
-              <Text style={[styles.streamBtnText, { color: "#EBE4D1" }]}>GO LIVE</Text>
+              <Feather name="radio" size={18} color="#1E3A1E" />
+              <Text style={[styles.streamBtnText, { color: "#1E3A1E" }]}>GO LIVE</Text>
             </TouchableOpacity>
           </>
         )}
