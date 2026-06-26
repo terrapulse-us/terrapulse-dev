@@ -20,9 +20,7 @@ import {
   RasterSource,
   Layer,
   OfflineManager,
-  TransformRequestManager,
 } from "@maplibre/maplibre-react-native";
-import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -101,10 +99,6 @@ function formatElapsed(secs: number): string {
 }
 
 
-const MAPBOX_TOKEN =
-  (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.mapboxPublicToken ?? "";
-
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
 const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
@@ -128,6 +122,22 @@ const TOPO_STYLE = {
     },
   },
   layers: [{ id: "usgs-topo", type: "raster" as const, source: "usgs" }],
+};
+
+const SATELLITE_STYLE = {
+  version: 8 as const,
+  sources: {
+    esri: {
+      type: "raster" as const,
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "Esri World Imagery",
+      maxzoom: 19,
+    },
+  },
+  layers: [{ id: "esri-satellite", type: "raster" as const, source: "esri" }],
 };
 
 const USFS_MVUM_TILES = [
@@ -167,11 +177,8 @@ export default function MapScreen() {
 
   const mapStyle = useMemo(() => {
     if (mapLayer === "topo") return TOPO_STYLE as never;
-    if (mapLayer === "satellite")
-      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${MAPBOX_TOKEN}` as never;
-    if (mapLayer === "terrain3d")
-      return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
-    return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
+    if (mapLayer === "satellite") return SATELLITE_STYLE as never;
+    return "https://tiles.openfreemap.org/styles/liberty" as never;
   }, [mapLayer]);
 
   const [selectedState, setSelectedState] = useState("All States");
@@ -243,33 +250,6 @@ export default function MapScreen() {
         });
       }
     })();
-  }, []);
-
-  useEffect(() => {
-    if (!MAPBOX_TOKEN) return;
-    const fontsId = TransformRequestManager.addUrlTransform({
-      id: "mapbox-fonts",
-      match: "^mapbox://fonts/",
-      find: "mapbox://fonts/(.*)",
-      replace: `https://api.mapbox.com/fonts/v1/$1`,
-    });
-    const spritesId = TransformRequestManager.addUrlTransform({
-      id: "mapbox-sprites",
-      match: "^mapbox://sprites/",
-      find: "mapbox://sprites/([^/]+)/([^/]+)(.*)",
-      replace: `https://api.mapbox.com/styles/v1/$1/$2/sprite$3`,
-    });
-    const tokenId = TransformRequestManager.addUrlSearchParam({
-      id: "mapbox-token",
-      match: "api\\.mapbox\\.com",
-      name: "access_token",
-      value: MAPBOX_TOKEN,
-    });
-    return () => {
-      TransformRequestManager.removeUrlTransform(fontsId);
-      TransformRequestManager.removeUrlTransform(spritesId);
-      TransformRequestManager.removeUrlSearchParam(tokenId);
-    };
   }, []);
 
   useEffect(() => {
