@@ -20,6 +20,7 @@ import {
   RasterSource,
   Layer,
   OfflineManager,
+  TransformRequestManager,
 } from "@maplibre/maplibre-react-native";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
@@ -242,6 +243,33 @@ export default function MapScreen() {
         });
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    if (!MAPBOX_TOKEN) return;
+    const fontsId = TransformRequestManager.addUrlTransform({
+      id: "mapbox-fonts",
+      match: "^mapbox://fonts/",
+      find: "mapbox://fonts/(.*)",
+      replace: `https://api.mapbox.com/fonts/v1/$1`,
+    });
+    const spritesId = TransformRequestManager.addUrlTransform({
+      id: "mapbox-sprites",
+      match: "^mapbox://sprites/",
+      find: "mapbox://sprites/([^/]+)/([^/]+)(.*)",
+      replace: `https://api.mapbox.com/styles/v1/$1/$2/sprite$3`,
+    });
+    const tokenId = TransformRequestManager.addUrlSearchParam({
+      id: "mapbox-token",
+      match: "api\\.mapbox\\.com",
+      name: "access_token",
+      value: MAPBOX_TOKEN,
+    });
+    return () => {
+      TransformRequestManager.removeUrlTransform(fontsId);
+      TransformRequestManager.removeUrlTransform(spritesId);
+      TransformRequestManager.removeUrlSearchParam(tokenId);
+    };
   }, []);
 
   useEffect(() => {
