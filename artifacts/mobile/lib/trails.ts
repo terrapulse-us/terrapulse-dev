@@ -1,3 +1,26 @@
+export type VehicleType = '4x4' | 'sxs' | 'atv' | 'dirtbike';
+
+export const VEHICLE_TYPE_CONFIG: Record<VehicleType, {
+  label: string;
+  shortLabel: string;
+  emoji: string;
+  color: string;
+}> = {
+  '4x4':      { label: '4x4 / Truck / Jeep', shortLabel: '4x4',  emoji: '🚙', color: '#1E3A1E' },
+  'sxs':      { label: 'SxS / UTV',          shortLabel: 'SxS',  emoji: '🏎', color: '#1A3F6F' },
+  'atv':      { label: 'ATV / Quad',          shortLabel: 'ATV',  emoji: '🏍', color: '#7A4500' },
+  'dirtbike': { label: 'Dirt Bike',           shortLabel: 'Moto', emoji: '💨', color: '#7A2820' },
+};
+
+export function deriveVehicleTypes(size: string): VehicleType[] {
+  const s = size.toLowerCase();
+  const v = new Set<VehicleType>(['4x4']);
+  if (s.includes('all sizes') || s.includes('mid-size') || s.includes('side-by-side') || s.includes('utv')) v.add('sxs');
+  if (s.includes('all sizes') || s.includes('atv') || s.includes('sand') || s.includes('dune')) v.add('atv');
+  if (s.includes('all sizes') || s.includes('dirt bike') || s.includes('sand vehicle')) v.add('dirtbike');
+  return Array.from(v);
+}
+
 export interface Trail {
   id: string;
   title: string;
@@ -8,9 +31,12 @@ export interface Trail {
   suspension: string;
   region: string;
   state: string;
+  vehicleTypes: VehicleType[];
 }
 
-export const ALL_TRAILS: Trail[] = [
+type TrailInput = Omit<Trail, 'vehicleTypes'>;
+
+const _TRAIL_DATA: TrailInput[] = [
   // ── CALIFORNIA ─────────────────────────────────────────────────────────────
   { id: "ca-1",  title: "Rubicon Trail",                        state: "CA", coords: { latitude: 39.0041,  longitude: -120.3122 }, difficulty: "10/10 Hardcore",    difficultyRating: 10, size: "Jeep / Short Wheelbase",    suspension: "3-4\" Lift + Lockers",    region: "El Dorado County" },
   { id: "ca-2",  title: "Hungry Valley SVRA",                   state: "CA", coords: { latitude: 34.7578,  longitude: -118.8788 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes / Side-by-Side",   suspension: "Stock Friendly",          region: "Los Angeles County" },
@@ -591,6 +617,8 @@ export const ALL_TRAILS: Trail[] = [
   { id: "md-4",  title: "Patuxent State Park OHV (Laurel)",     state: "MD", coords: { latitude: 39.1822,  longitude: -76.8914  }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Anne Arundel County" },
   { id: "md-5",  title: "Savage River State Forest OHV",        state: "MD", coords: { latitude: 39.5822,  longitude: -79.1014  }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "High Clearance",             suspension: "Stock w/ Clearance",      region: "Garrett County" },
 ];
+
+export const ALL_TRAILS: Trail[] = _TRAIL_DATA.map(t => ({ ...t, vehicleTypes: deriveVehicleTypes(t.size) }));
 
 export const US_STATES: string[] = [
   "All States",

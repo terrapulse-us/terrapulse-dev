@@ -54,6 +54,8 @@ import {
   STATE_NAMES,
   getTrailsByState,
   type Trail,
+  type VehicleType,
+  VEHICLE_TYPE_CONFIG,
 } from "@/lib/trails";
 import { TRAIL_ROUTES } from "@/lib/trail-routes";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
@@ -232,7 +234,26 @@ export default function MapScreen() {
   }, [mapLayer, terrain3dStyleObj]);
 
   const [selectedState, setSelectedState] = useState("All States");
-  const filteredTrails = getTrailsByState(selectedState);
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
+
+  const toggleVehicleFilter = useCallback((vt: VehicleType) => {
+    setVehicleTypeFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(vt)) next.delete(vt);
+      else next.add(vt);
+      return next;
+    });
+  }, []);
+
+  const filteredTrails = useMemo(() => {
+    let trails = getTrailsByState(selectedState);
+    if (vehicleTypeFilter.size > 0) {
+      trails = trails.filter(t =>
+        (t.vehicleTypes ?? []).some(vt => vehicleTypeFilter.has(vt))
+      );
+    }
+    return trails;
+  }, [selectedState, vehicleTypeFilter]);
 
   const [selectedTrail, setSelectedTrail] = useState<UserTrail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
@@ -830,6 +851,7 @@ export default function MapScreen() {
 
   const TOP_BAR_HEIGHT = insets.top + 64;
   const STATE_BAR_HEIGHT = 48;
+  const VEHICLE_BAR_HEIGHT = 44;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -987,13 +1009,46 @@ export default function MapScreen() {
         </ScrollView>
       </View>
 
+      {/* VEHICLE TYPE FILTER BAR */}
+      <View style={[styles.vehicleBar, { top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.vehicleBarContent}
+        >
+          {(Object.keys(VEHICLE_TYPE_CONFIG) as VehicleType[]).map((vt) => {
+            const cfg = VEHICLE_TYPE_CONFIG[vt];
+            const active = vehicleTypeFilter.has(vt);
+            return (
+              <TouchableOpacity
+                key={vt}
+                style={[
+                  styles.vehiclePill,
+                  {
+                    backgroundColor: active ? cfg.color : colors.card,
+                    borderColor: active ? cfg.color : colors.border,
+                  },
+                ]}
+                onPress={() => toggleVehicleFilter(vt)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.vehiclePillEmoji}>{cfg.emoji}</Text>
+                <Text style={[styles.vehiclePillText, { color: active ? "#fff" : colors.mutedForeground }]}>
+                  {cfg.shortLabel}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* RECORDING HUD */}
       {isRecording && (
         <View
           style={[
             styles.recHud,
             {
-              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + 8,
+              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + VEHICLE_BAR_HEIGHT + 8,
               backgroundColor: "rgba(0,0,0,0.88)",
               borderColor: colors.destructive,
             },
@@ -1066,7 +1121,7 @@ export default function MapScreen() {
           style={[
             styles.recHud,
             {
-              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + 8,
+              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + VEHICLE_BAR_HEIGHT + 8,
               backgroundColor: "rgba(0,0,0,0.88)",
               borderColor: colors.success,
             },
@@ -1524,6 +1579,24 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   statePillText: { fontSize: 11, fontWeight: "900", letterSpacing: 1 },
+  vehicleBar: { position: "absolute", left: 0, right: 0, height: 44 },
+  vehicleBarContent: { paddingHorizontal: 12, alignItems: "center", gap: 6 },
+  vehiclePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+  },
+  vehiclePillEmoji: { fontSize: 14 },
+  vehiclePillText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
   recHud: {
     position: "absolute",
     left: 12,

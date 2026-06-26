@@ -30,6 +30,7 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { type VehicleType, VEHICLE_TYPE_CONFIG } from "@/lib/trails";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export interface TrailForDetail {
   suspension: string;
   region: string;
   state: string;
+  vehicleTypes?: VehicleType[];
   routeCoordinates?: Array<{ lat: number; lng: number }>;
 }
 
@@ -467,6 +469,27 @@ export default function TrailDetailScreen({
                   <Text style={[s.value, { color: colors.foreground }]}>{trail.suspension}</Text>
                 </View>
               </View>
+
+              {/* Permitted Vehicle Types */}
+              {trail.vehicleTypes && trail.vehicleTypes.length > 0 && (
+                <View style={[s.card, { backgroundColor: colors.card }]}>
+                  <Text style={[s.label, { color: colors.mutedForeground }]}>PERMITTED VEHICLES</Text>
+                  <View style={s.vehicleRow}>
+                    {trail.vehicleTypes.map(vt => {
+                      const cfg = VEHICLE_TYPE_CONFIG[vt];
+                      return (
+                        <View
+                          key={vt}
+                          style={[s.vehicleBadge, { backgroundColor: cfg.color + '18', borderColor: cfg.color + '55' }]}
+                        >
+                          <Text style={s.vehicleEmoji}>{cfg.emoji}</Text>
+                          <Text style={[s.vehicleBadgeLabel, { color: cfg.color }]}>{cfg.label}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
 
               {/* Community Pics */}
               <View style={[s.card, { backgroundColor: colors.card }]}>
@@ -911,6 +934,10 @@ const s = StyleSheet.create({
   card: { borderRadius: 12, padding: 14, marginBottom: 12 },
   specsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   specCard: { flex: 1, borderRadius: 12, padding: 14, gap: 6 },
+  vehicleRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  vehicleBadge: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  vehicleEmoji: { fontSize: 14 },
+  vehicleBadgeLabel: { fontSize: 12, fontWeight: "700" },
   label: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 4 },
   value: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
   sectionTitle: { fontWeight: "900", fontSize: 13, letterSpacing: 1 },
