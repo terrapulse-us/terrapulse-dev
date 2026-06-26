@@ -21,6 +21,7 @@ import {
   Layer,
   OfflineManager,
 } from "@maplibre/maplibre-react-native";
+import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -108,79 +109,22 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
 ];
 
-const TOPO_STYLE = {
-  version: 8 as const,
-  sources: {
-    usgs: {
-      type: "raster" as const,
-      tiles: [
-        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      attribution: "USGS National Map",
-      maxzoom: 16,
-    },
-  },
-  layers: [{ id: "usgs-topo", type: "raster" as const, source: "usgs" }],
-};
+const MAPTILER_KEY: string =
+  (Constants.expoConfig?.extra as Record<string, string> | undefined)
+    ?.maptilerApiKey ?? "";
 
-const MAPBOX_STYLE_IDS: Partial<Record<MapLayer, string>> = {
-  standard: "outdoors-v12",
-  satellite: "satellite-streets-v12",
-  terrain3d: "outdoors-v12",
-};
-
-/**
- * Fetch a Mapbox style and rewrite every mapbox:// URI to a proper HTTPS URL
- * before the style object reaches MapLibre (which can't resolve mapbox:// itself).
- *
- * Three URI types to rewrite:
- *   glyphs  : mapbox://fonts/mapbox/…        → https://api.mapbox.com/fonts/v1/mapbox/…
- *   sprite  : mapbox://sprites/owner/name     → https://api.mapbox.com/styles/v1/owner/name/sprite
- *   source  : mapbox://owner.tileset,…        → https://api.mapbox.com/v4/owner.tileset,….json
- *
- * The Mapbox V4 TileJSON endpoint then returns fully qualified HTTPS tile URL
- * templates (already token-stamped) so MapLibre fetches tiles with no further help.
- */
-async function fetchMapboxStyle(
-  styleId: string,
-  token: string,
-): Promise<Record<string, unknown>> {
-  const url = `https://api.mapbox.com/styles/v1/mapbox/${styleId}?access_token=${token}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Mapbox style fetch failed: ${resp.status}`);
-  const style = (await resp.json()) as Record<string, unknown>;
-
-  // --- glyphs ---
-  if (typeof style.glyphs === "string" && style.glyphs.startsWith("mapbox://fonts/")) {
-    style.glyphs = style.glyphs.replace(
-      "mapbox://fonts/",
-      "https://api.mapbox.com/fonts/v1/",
-    );
-  }
-
-  // --- sprite ---
-  if (typeof style.sprite === "string" && style.sprite.startsWith("mapbox://sprites/")) {
-    style.sprite = style.sprite.replace(
-      /^mapbox:\/\/sprites\/([^/]+)\/([^/]+)(.*)$/,
-      "https://api.mapbox.com/styles/v1/$1/$2/sprite$3",
-    );
-  }
-
-  // --- vector / raster tile source URLs ---
-  if (style.sources && typeof style.sources === "object") {
-    const sources = style.sources as Record<string, Record<string, unknown>>;
-    for (const key of Object.keys(sources)) {
-      const src = sources[key];
-      if (typeof src?.url === "string" && src.url.startsWith("mapbox://")) {
-        const tileset = src.url.slice("mapbox://".length);
-        src.url = `https://api.mapbox.com/v4/${tileset}.json?access_token=${token}`;
-      }
-    }
-  }
-
-  return style;
+function mtStyle(id: string): string {
+  return `https://api.maptiler.com/maps/${id}/style.json?key=${MAPTILER_KEY}`;
 }
+
+// MapTiler Outdoor v2 — contours, hiking/offroad routes, rich terrain detail
+const STANDARD_STYLE_URL = mtStyle("outdoor-v2");
+// MapTiler Hybrid — high-res satellite imagery + road/label overlay
+const SATELLITE_STYLE_URL = mtStyle("hybrid");
+// MapTiler Topo v2 — topographic focus with elevation contours
+const TOPO_STYLE_URL = mtStyle("topo-v2");
+// Terrain 3D reuses outdoor-v2 (richest terrain rendering from MapTiler)
+const TERRAIN3D_STYLE_URL = STANDARD_STYLE_URL;
 
 const USFS_MVUM_TILES = [
   "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
@@ -217,15 +161,15 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
-  const mapboxStyleCache = useRef<Record<string, Record<string, unknown>>>({});
-  const [fetchedMapboxStyle, setFetchedMapboxStyle] =
-    useState<Record<string, unknown> | null>(null);
-  const [mapboxDebug, setMapboxDebug] = useState<string>("");
-
   const mapStyle = useMemo<never>(() => {
-    if (mapLayer === "topo") return TOPO_STYLE as never;
-    return (fetchedMapboxStyle ?? TOPO_STYLE) as never;
-  }, [mapLayer, fetchedMapboxStyle]);
+    switch (mapLayer) {
+      case "standard":  return STANDARD_STYLE_URL as never;
+      case "satellite": return SATELLITE_STYLE_URL as never;
+      case "terrain3d": return TERRAIN3D_STYLE_URL as never;
+      case "topo":
+      default:          return TOPO_STYLE_URL as never;
+    }
+  }, [mapLayer]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);

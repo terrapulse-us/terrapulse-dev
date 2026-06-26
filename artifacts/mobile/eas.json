@@ -16,7 +16,8 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "MAPTILER_API_KEY": "$MAPTILER_API_KEY"
       }
     },
     "preview": {
@@ -31,7 +32,8 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_VARIANT": "preview"
+        "APP_VARIANT": "preview",
+        "MAPTILER_API_KEY": "$MAPTILER_API_KEY"
       }
     },
     "production": {

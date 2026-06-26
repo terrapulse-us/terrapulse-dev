@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.18",
+    version: "1.0.19",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
@@ -85,7 +85,7 @@ module.exports = () => ({
       typedRoutes: true,
     },
     extra: {
-      mapboxPublicToken: process.env.MAPBOX_PUBLIC_TOKEN ?? "",
+      maptilerApiKey: process.env.MAPTILER_API_KEY ?? "",
       // Firebase config — apiKey comes from GOOGLE_API_KEY secret (Replit) or
       // EXPO_PUBLIC_FIREBASE_API_KEY (EAS secret). Other values are public config
       // safe to embed directly.
