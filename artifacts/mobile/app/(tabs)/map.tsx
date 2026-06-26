@@ -21,7 +21,6 @@ import {
   Layer,
   OfflineManager,
 } from "@maplibre/maplibre-react-native";
-import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -99,14 +98,6 @@ function formatElapsed(secs: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-
-// Try every possible runtime path for the token
-const MAPBOX_TOKEN: string =
-  (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.mapboxPublicToken ||
-  (Constants.manifest2?.extra?.expoClient?.extra as Record<string, string> | undefined)
-    ?.mapboxPublicToken ||
-  "";
 
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
@@ -307,38 +298,6 @@ export default function MapScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    const styleId = MAPBOX_STYLE_IDS[mapLayer];
-    if (!styleId) return;
-    if (!MAPBOX_TOKEN) {
-      setMapboxDebug(`TOKEN EMPTY — check EAS secret MAPBOX_PUBLIC_TOKEN`);
-      setFetchedMapboxStyle(null);
-      return;
-    }
-    setMapboxDebug(`token:${MAPBOX_TOKEN.slice(0, 8)}… fetching ${styleId}…`);
-    if (mapboxStyleCache.current[styleId]) {
-      setFetchedMapboxStyle(mapboxStyleCache.current[styleId]);
-      setMapboxDebug(`cached ${styleId} ✓`);
-      return;
-    }
-    let cancelled = false;
-    fetchMapboxStyle(styleId, MAPBOX_TOKEN)
-      .then((style) => {
-        if (cancelled) return;
-        mapboxStyleCache.current[styleId] = style;
-        setFetchedMapboxStyle(style);
-        setMapboxDebug(`fetched ${styleId} ✓`);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        setMapboxDebug(`FETCH ERROR: ${msg}`);
-        setFetchedMapboxStyle(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [mapLayer]);
 
   useEffect(() => {
     if (!selectedTrail) {
@@ -888,13 +847,6 @@ export default function MapScreen() {
             </Marker>
           ))}
       </MapLibreMap>
-
-      {/* MAPBOX DEBUG — remove once working */}
-      {mapLayer !== "topo" && mapboxDebug !== "" && (
-        <View style={styles.mapboxDebugBanner}>
-          <Text style={styles.mapboxDebugText}>{mapboxDebug}</Text>
-        </View>
-      )}
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -1702,19 +1654,4 @@ const styles = StyleSheet.create({
   },
   overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },
-  mapboxDebugBanner: {
-    position: "absolute",
-    bottom: 120,
-    left: 12,
-    right: 12,
-    backgroundColor: "rgba(0,0,0,0.82)",
-    borderRadius: 8,
-    padding: 10,
-    zIndex: 999,
-  },
-  mapboxDebugText: {
-    color: "#FFD600",
-    fontSize: 11,
-    fontFamily: "monospace",
-  },
 });
