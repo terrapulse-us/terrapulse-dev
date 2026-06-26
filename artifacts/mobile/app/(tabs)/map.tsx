@@ -100,9 +100,13 @@ function formatElapsed(secs: number): string {
 }
 
 
-const MAPBOX_TOKEN =
+// Try every possible runtime path for the token
+const MAPBOX_TOKEN: string =
   (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.mapboxPublicToken ?? "";
+    ?.mapboxPublicToken ||
+  (Constants.manifest2?.extra?.expoClient?.extra as Record<string, string> | undefined)
+    ?.mapboxPublicToken ||
+  "";
 
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
@@ -225,6 +229,7 @@ export default function MapScreen() {
   const mapboxStyleCache = useRef<Record<string, Record<string, unknown>>>({});
   const [fetchedMapboxStyle, setFetchedMapboxStyle] =
     useState<Record<string, unknown> | null>(null);
+  const [mapboxDebug, setMapboxDebug] = useState<string>("");
 
   const mapStyle = useMemo<never>(() => {
     if (mapLayer === "topo") return TOPO_STYLE as never;
@@ -304,12 +309,16 @@ export default function MapScreen() {
 
   useEffect(() => {
     const styleId = MAPBOX_STYLE_IDS[mapLayer];
-    if (!styleId || !MAPBOX_TOKEN) {
+    if (!styleId) return;
+    if (!MAPBOX_TOKEN) {
+      setMapboxDebug(`TOKEN EMPTY — check EAS secret MAPBOX_PUBLIC_TOKEN`);
       setFetchedMapboxStyle(null);
       return;
     }
+    setMapboxDebug(`token:${MAPBOX_TOKEN.slice(0, 8)}… fetching ${styleId}…`);
     if (mapboxStyleCache.current[styleId]) {
       setFetchedMapboxStyle(mapboxStyleCache.current[styleId]);
+      setMapboxDebug(`cached ${styleId} ✓`);
       return;
     }
     let cancelled = false;
@@ -318,9 +327,13 @@ export default function MapScreen() {
         if (cancelled) return;
         mapboxStyleCache.current[styleId] = style;
         setFetchedMapboxStyle(style);
+        setMapboxDebug(`fetched ${styleId} ✓`);
       })
-      .catch(() => {
-        if (!cancelled) setFetchedMapboxStyle(null);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        setMapboxDebug(`FETCH ERROR: ${msg}`);
+        setFetchedMapboxStyle(null);
       });
     return () => {
       cancelled = true;
@@ -875,6 +888,13 @@ export default function MapScreen() {
             </Marker>
           ))}
       </MapLibreMap>
+
+      {/* MAPBOX DEBUG — remove once working */}
+      {mapLayer !== "topo" && mapboxDebug !== "" && (
+        <View style={styles.mapboxDebugBanner}>
+          <Text style={styles.mapboxDebugText}>{mapboxDebug}</Text>
+        </View>
+      )}
 
       {/* TOP BAR */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -1682,4 +1702,19 @@ const styles = StyleSheet.create({
   },
   overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },
+  mapboxDebugBanner: {
+    position: "absolute",
+    bottom: 120,
+    left: 12,
+    right: 12,
+    backgroundColor: "rgba(0,0,0,0.82)",
+    borderRadius: 8,
+    padding: 10,
+    zIndex: 999,
+  },
+  mapboxDebugText: {
+    color: "#FFD600",
+    fontSize: 11,
+    fontFamily: "monospace",
+  },
 });
