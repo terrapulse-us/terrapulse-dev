@@ -17,9 +17,11 @@ import {
   UserLocation,
   Marker,
   GeoJSONSource,
+  RasterSource,
   Layer,
   OfflineManager,
 } from "@maplibre/maplibre-react-native";
+import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -98,6 +100,10 @@ function formatElapsed(secs: number): string {
 }
 
 
+const MAPBOX_TOKEN =
+  (Constants.expoConfig?.extra as Record<string, string> | undefined)
+    ?.mapboxPublicToken ?? "";
+
 type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
 
 const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
@@ -106,21 +112,6 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "satellite", label: "Satellite", icon: "satellite-alt" },
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
 ];
-
-const SATELLITE_STYLE = {
-  version: 8 as const,
-  sources: {
-    esri: {
-      type: "raster" as const,
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      attribution: "© Esri",
-    },
-  },
-  layers: [{ id: "esri-satellite", type: "raster" as const, source: "esri" }],
-};
 
 const TOPO_STYLE = {
   version: 8 as const,
@@ -138,33 +129,9 @@ const TOPO_STYLE = {
   layers: [{ id: "usgs-topo", type: "raster" as const, source: "usgs" }],
 };
 
-const TERRAIN_3D_STYLE = {
-  version: 8 as const,
-  sources: {
-    "esri-topo": {
-      type: "raster" as const,
-      tiles: [
-        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      attribution: "© Esri",
-      maxzoom: 19,
-    },
-    "aws-dem": {
-      type: "raster-dem" as const,
-      tiles: [
-        "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      maxzoom: 15,
-      encoding: "terrarium",
-    },
-  },
-  layers: [
-    { id: "esri-topo-layer", type: "raster" as const, source: "esri-topo" },
-  ],
-  terrain: { source: "aws-dem", exaggeration: 1.5 },
-};
+const USFS_MVUM_TILES = [
+  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
+];
 
 interface UserTrail extends Trail {
   routeCoordinates?: Array<{ lat: number; lng: number }>;
@@ -195,12 +162,15 @@ export default function MapScreen() {
 
   const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
+  const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
   const mapStyle = useMemo(() => {
     if (mapLayer === "topo") return TOPO_STYLE as never;
-    if (mapLayer === "terrain3d") return TERRAIN_3D_STYLE as never;
-    if (mapLayer === "satellite") return SATELLITE_STYLE as never;
-    return "https://tiles.openfreemap.org/styles/liberty";
+    if (mapLayer === "satellite")
+      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${MAPBOX_TOKEN}` as never;
+    if (mapLayer === "terrain3d")
+      return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
+    return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
   }, [mapLayer]);
 
   const [selectedState, setSelectedState] = useState("All States");
@@ -790,6 +760,21 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
+        {showUsfsOverlay && (
+          <RasterSource
+            id="usfs-mvum"
+            tiles={USFS_MVUM_TILES}
+            tileSize={256}
+            minzoom={8}
+          >
+            <Layer
+              id="usfs-mvum-layer"
+              type="raster"
+              paint={{ "raster-opacity": 0.75 }}
+            />
+          </RasterSource>
+        )}
+
         {userTrails
           .filter((t) => selectedState === "All States" || t.state === selectedState)
           .map((trail) => (
@@ -1151,6 +1136,41 @@ export default function MapScreen() {
                 Tilt the map with two fingers to see 3D elevation
               </Text>
             )}
+
+            <View style={[styles.overlayDivider, { borderColor: colors.border }]} />
+            <Text style={[styles.layerTitle, { color: colors.mutedForeground, fontSize: 10, marginBottom: 10 }]}>
+              OVERLAYS
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.overlayToggle,
+                {
+                  backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)",
+                  borderColor: showUsfsOverlay ? colors.accent : colors.border,
+                },
+              ]}
+              onPress={() => setShowUsfsOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons
+                name="forest"
+                size={20}
+                color={showUsfsOverlay ? "#000" : colors.mutedForeground}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
+                  USFS TRAILS
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
+                  Official OHV / motor vehicle routes · zoom in to see
+                </Text>
+              </View>
+              <MaterialIcons
+                name={showUsfsOverlay ? "toggle-on" : "toggle-off"}
+                size={28}
+                color={showUsfsOverlay ? "#000" : colors.mutedForeground}
+              />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -1568,4 +1588,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
   },
+  overlayDivider: { borderTopWidth: 1, marginVertical: 14 },
+  overlayToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
+  overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },
 });
