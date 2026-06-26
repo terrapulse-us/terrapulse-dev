@@ -720,5 +720,5 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
   toggleLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
   toggleText: { fontWeight: "700", fontSize: 12, letterSpacing: 1 },
-  streamBtnText: { fontWeight: "900", fontSize: 14, letterSpacing: 2 },
+  streamBtnText: { fontWeight: "900", fontSize: 14, letterSpacing: 2, color: "#FFFFFF" },
 });
