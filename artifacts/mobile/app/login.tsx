@@ -26,7 +26,8 @@ WebBrowser.maybeCompleteAuthSession();
 const APP_VERSION = Constants.expoConfig?.version ?? "?";
 
 const GOOGLE_WEB_CLIENT_ID = "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com";
-const EXPO_REDIRECT_URI = "https://auth.expo.io/@mclaporteterrapulses-team/mobile";
+const GOOGLE_IOS_CLIENT_ID = "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com";
+const GOOGLE_ANDROID_CLIENT_ID = "516913346465-n9l1vgse2hr7pemaev5ubt5gjvpalvaf.apps.googleusercontent.com";
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -42,7 +43,8 @@ export default function LoginScreen() {
 
   const [, googleResponse, googlePromptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_WEB_CLIENT_ID,
-    redirectUri: EXPO_REDIRECT_URI,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   });
 
   useEffect(() => {

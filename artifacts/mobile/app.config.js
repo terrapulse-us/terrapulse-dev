@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.6",
+    version: "1.0.7",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
@@ -30,6 +30,7 @@ module.exports = () => ({
           "TerraPulse needs photo library access to upload trail community photos.",
         CFBundleURLTypes: [
           { CFBundleURLSchemes: ["terrapulse"] },
+          { CFBundleURLSchemes: ["com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101"] },
         ],
       },
     },
