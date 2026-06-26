@@ -443,8 +443,8 @@ export default function StreamScreen() {
               onPress={toggleStream}
               activeOpacity={0.85}
             >
-              <Feather name="radio" size={18} color="#000" />
-              <Text style={[styles.streamBtnText, { color: "#000" }]}>GO LIVE</Text>
+              <Feather name="radio" size={18} color="#EBE4D1" />
+              <Text style={[styles.streamBtnText, { color: "#EBE4D1" }]}>GO LIVE</Text>
             </TouchableOpacity>
           </>
         )}
