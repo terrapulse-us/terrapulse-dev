@@ -11,6 +11,7 @@ import {
   Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { router } from "expo-router";
@@ -168,13 +169,12 @@ export default function CommunityScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.title, { color: colors.foreground }]}>COMMUNITY</Text>
+        <TerraPulseLogo color={colors.primary} size="md" />
+        <View style={{ alignItems: "flex-end" }}>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {riders.length} PUBLIC RIDER{riders.length !== 1 ? "S" : ""}
+            {riders.length} RIDER{riders.length !== 1 ? "S" : ""}
           </Text>
         </View>
-        <Feather name="users" size={22} color={colors.accent} />
       </View>
 
       {/* SEARCH */}

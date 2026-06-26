@@ -25,6 +25,7 @@ import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
+import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
@@ -837,13 +838,11 @@ export default function MapScreen() {
         <View
           style={[
             styles.topBarInner,
-            { backgroundColor: "rgba(18,18,18,0.92)" },
+            { backgroundColor: colors.card },
           ]}
         >
           <View>
-            <Text style={[styles.topTitle, { color: colors.foreground }]}>
-              TERRAPULSE
-            </Text>
+            <TerraPulseLogo color={colors.primary} size="md" />
             <Text
               style={[styles.topSub, { color: colors.mutedForeground }]}
             >

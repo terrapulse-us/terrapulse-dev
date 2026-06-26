@@ -10,6 +10,7 @@ import {
   Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { collection, onSnapshot } from "firebase/firestore";
 import { router } from "expo-router";
@@ -167,9 +168,11 @@ export default function LeaderboardScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Feather name="award" size={18} color={colors.accent} />
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>LEADERBOARD</Text>
-        <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{TOTAL_TRAILS} TRAILS</Text>
+        <TerraPulseLogo color={colors.primary} size="md" />
+        <View style={styles.headerRight}>
+          <Feather name="award" size={16} color={colors.accent} />
+          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{TOTAL_TRAILS} TRAILS</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontWeight: "900", fontSize: 16, letterSpacing: 2, flex: 1 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 6, marginLeft: "auto" },
   headerSub: { fontSize: 10, fontWeight: "700", letterSpacing: 2 },
 
   loader: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },

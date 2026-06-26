@@ -37,8 +37,8 @@ export default function TabLayout() {
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={90}
-              tint="dark"
+              intensity={80}
+              tint="light"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
