@@ -20,7 +20,6 @@ import {
   RasterSource,
   Layer,
   OfflineManager,
-  TransformRequestManager,
 } from "@maplibre/maplibre-react-native";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
@@ -130,21 +129,63 @@ const TOPO_STYLE = {
   layers: [{ id: "usgs-topo", type: "raster" as const, source: "usgs" }],
 };
 
-const SATELLITE_STYLE = {
-  version: 8 as const,
-  sources: {
-    esri: {
-      type: "raster" as const,
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      ],
-      tileSize: 256,
-      attribution: "Esri World Imagery",
-      maxzoom: 19,
-    },
-  },
-  layers: [{ id: "esri-satellite", type: "raster" as const, source: "esri" }],
+const MAPBOX_STYLE_IDS: Partial<Record<MapLayer, string>> = {
+  standard: "outdoors-v12",
+  satellite: "satellite-streets-v12",
+  terrain3d: "outdoors-v12",
 };
+
+/**
+ * Fetch a Mapbox style and rewrite every mapbox:// URI to a proper HTTPS URL
+ * before the style object reaches MapLibre (which can't resolve mapbox:// itself).
+ *
+ * Three URI types to rewrite:
+ *   glyphs  : mapbox://fonts/mapbox/…        → https://api.mapbox.com/fonts/v1/mapbox/…
+ *   sprite  : mapbox://sprites/owner/name     → https://api.mapbox.com/styles/v1/owner/name/sprite
+ *   source  : mapbox://owner.tileset,…        → https://api.mapbox.com/v4/owner.tileset,….json
+ *
+ * The Mapbox V4 TileJSON endpoint then returns fully qualified HTTPS tile URL
+ * templates (already token-stamped) so MapLibre fetches tiles with no further help.
+ */
+async function fetchMapboxStyle(
+  styleId: string,
+  token: string,
+): Promise<Record<string, unknown>> {
+  const url = `https://api.mapbox.com/styles/v1/mapbox/${styleId}?access_token=${token}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Mapbox style fetch failed: ${resp.status}`);
+  const style = (await resp.json()) as Record<string, unknown>;
+
+  // --- glyphs ---
+  if (typeof style.glyphs === "string" && style.glyphs.startsWith("mapbox://fonts/")) {
+    style.glyphs = style.glyphs.replace(
+      "mapbox://fonts/",
+      "https://api.mapbox.com/fonts/v1/",
+    );
+  }
+
+  // --- sprite ---
+  if (typeof style.sprite === "string" && style.sprite.startsWith("mapbox://sprites/")) {
+    style.sprite = style.sprite.replace(
+      /^mapbox:\/\/sprites\/([^/]+)\/([^/]+)(.*)$/,
+      "https://api.mapbox.com/styles/v1/$1/$2/sprite$3",
+    );
+  }
+
+  // --- vector / raster tile source URLs ---
+  if (style.sources && typeof style.sources === "object") {
+    const sources = style.sources as Record<string, Record<string, unknown>>;
+    for (const key of Object.keys(sources)) {
+      const src = sources[key];
+      if (typeof src?.url === "string" && src.url.startsWith("mapbox://")) {
+        const tileset = src.url.slice("mapbox://".length);
+        src.url = `https://api.mapbox.com/v4/${tileset}.json?access_token=${token}`;
+      }
+    }
+  }
+
+  return style;
+}
 
 const USFS_MVUM_TILES = [
   "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
@@ -181,14 +222,14 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
-  const mapStyle = useMemo(() => {
+  const mapboxStyleCache = useRef<Record<string, Record<string, unknown>>>({});
+  const [fetchedMapboxStyle, setFetchedMapboxStyle] =
+    useState<Record<string, unknown> | null>(null);
+
+  const mapStyle = useMemo<never>(() => {
     if (mapLayer === "topo") return TOPO_STYLE as never;
-    if (mapLayer === "satellite")
-      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${MAPBOX_TOKEN}` as never;
-    if (mapLayer === "terrain3d")
-      return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
-    return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${MAPBOX_TOKEN}` as never;
-  }, [mapLayer]);
+    return (fetchedMapboxStyle ?? TOPO_STYLE) as never;
+  }, [mapLayer, fetchedMapboxStyle]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
@@ -262,44 +303,29 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN) return;
-    // Rewrite mapbox://fonts/* → Mapbox Fonts API
-    const fontsId = TransformRequestManager.addUrlTransform({
-      id: "mapbox-fonts",
-      match: "^mapbox://fonts/",
-      find: "mapbox://fonts/(.*)",
-      replace: "https://api.mapbox.com/fonts/v1/$1",
-    });
-    // Rewrite mapbox://sprites/* → Mapbox Sprites API
-    const spritesId = TransformRequestManager.addUrlTransform({
-      id: "mapbox-sprites",
-      match: "^mapbox://sprites/",
-      find: "mapbox://sprites/([^/]+)/([^/]+)(.*)",
-      replace: "https://api.mapbox.com/styles/v1/$1/$2/sprite$3",
-    });
-    // Rewrite all remaining mapbox:// URLs (tile source TileJSON lookups)
-    // e.g. mapbox://mapbox.mapbox-streets-v8,... → Mapbox V4 TileJSON API
-    // Fonts/sprites are already rewritten to https:// above so they won't match here.
-    const tilesId = TransformRequestManager.addUrlTransform({
-      id: "mapbox-tilejson",
-      match: "^mapbox://",
-      find: "^mapbox://(.+)$",
-      replace: "https://api.mapbox.com/v4/$1.json",
-    });
-    // Append access_token to every api.mapbox.com request
-    const tokenId = TransformRequestManager.addUrlSearchParam({
-      id: "mapbox-token",
-      match: "api\\.mapbox\\.com",
-      name: "access_token",
-      value: MAPBOX_TOKEN,
-    });
+    const styleId = MAPBOX_STYLE_IDS[mapLayer];
+    if (!styleId || !MAPBOX_TOKEN) {
+      setFetchedMapboxStyle(null);
+      return;
+    }
+    if (mapboxStyleCache.current[styleId]) {
+      setFetchedMapboxStyle(mapboxStyleCache.current[styleId]);
+      return;
+    }
+    let cancelled = false;
+    fetchMapboxStyle(styleId, MAPBOX_TOKEN)
+      .then((style) => {
+        if (cancelled) return;
+        mapboxStyleCache.current[styleId] = style;
+        setFetchedMapboxStyle(style);
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedMapboxStyle(null);
+      });
     return () => {
-      TransformRequestManager.removeUrlTransform(fontsId);
-      TransformRequestManager.removeUrlTransform(spritesId);
-      TransformRequestManager.removeUrlTransform(tilesId);
-      TransformRequestManager.removeUrlSearchParam(tokenId);
+      cancelled = true;
     };
-  }, []);
+  }, [mapLayer]);
 
   useEffect(() => {
     if (!selectedTrail) {
