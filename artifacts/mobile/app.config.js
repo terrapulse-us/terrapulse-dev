@@ -2,7 +2,7 @@ module.exports = () => ({
   expo: {
     name: "TerraPulse",
     slug: "mobile",
-    version: "1.0.21",
+    version: "1.0.22",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
@@ -11,7 +11,7 @@ module.exports = () => ({
     splash: {
       image: "./assets/images/icon.png",
       resizeMode: "contain",
-      backgroundColor: "#121212",
+      backgroundColor: "#EBE4D1",
     },
     ios: {
       supportsTablet: false,

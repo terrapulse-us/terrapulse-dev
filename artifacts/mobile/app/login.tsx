@@ -10,13 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import TerraPulseLogo from "@/components/TerraPulseLogo";
 import {
   GoogleSignin,
   statusCodes,
@@ -106,14 +106,7 @@ export default function LoginScreen() {
     >
       <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.header}>
-          <Image
-            source={require("@/assets/images/icon.png")}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-          <Text style={[styles.title, { color: colors.foreground }]}>
-            TERRA<Text style={{ color: colors.accent }}>PULSE</Text>
-          </Text>
+          <TerraPulseLogo color={colors.primary} size="lg" />
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             SHARE YOUR ADVENTURE
           </Text>
