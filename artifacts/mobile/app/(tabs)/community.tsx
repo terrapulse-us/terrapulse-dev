@@ -58,15 +58,22 @@ export default function CommunityScreen() {
       const list: PublicUser[] = [];
       snap.forEach((d) => {
         const data = d.data() as PublicUser;
-        list.push({ ...data, uid: d.id });
+        list.push({
+          ...data,
+          uid: d.id,
+          completedTrails: data.completedTrails ?? [],
+          achievements: data.achievements ?? [],
+        });
       });
       // Sort: current user first, then by badge count
       list.sort((a, b) => {
         if (a.uid === user?.uid) return -1;
         if (b.uid === user?.uid) return 1;
-        return b.achievements.length - a.achievements.length;
+        return (b.achievements?.length ?? 0) - (a.achievements?.length ?? 0);
       });
       setRiders(list);
+      setLoading(false);
+    }, () => {
       setLoading(false);
     });
     return unsub;
