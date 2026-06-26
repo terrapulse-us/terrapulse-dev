@@ -123,8 +123,34 @@ const STANDARD_STYLE_URL = mtStyle("outdoor-v2");
 const SATELLITE_STYLE_URL = mtStyle("hybrid");
 // MapTiler Topo v2 — topographic focus with elevation contours
 const TOPO_STYLE_URL = mtStyle("topo-v2");
-// Terrain 3D reuses outdoor-v2 (richest terrain rendering from MapTiler)
+// Terrain 3D reuses outdoor-v2 base, then we inject the terrain DEM at runtime
 const TERRAIN3D_STYLE_URL = STANDARD_STYLE_URL;
+
+/**
+ * Fetch outdoor-v2 style JSON and inject a MapTiler terrain-DEM source +
+ * terrain exaggeration so MapLibre renders true 3D elevation.
+ */
+async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>> {
+  const url = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`MapTiler fetch failed: ${resp.status}`);
+  const style = (await resp.json()) as Record<string, unknown>;
+
+  // Inject raster-dem source from MapTiler terrain-rgb-v2
+  const sources = (style.sources as Record<string, unknown>) ?? {};
+  sources["terrain-dem"] = {
+    type: "raster-dem",
+    url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${key}`,
+    tileSize: 256,
+    encoding: "mapbox",
+  };
+  style.sources = sources;
+
+  // Enable terrain exaggeration
+  style.terrain = { source: "terrain-dem", exaggeration: 1.5 };
+
+  return style;
+}
 
 const USFS_MVUM_TILES = [
   "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
@@ -161,15 +187,29 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
+  const [terrain3dStyleObj, setTerrain3dStyleObj] =
+    useState<Record<string, unknown> | null>(null);
+
+  // Fetch terrain3d style once (cached in state)
+  useEffect(() => {
+    if (mapLayer !== "terrain3d" || terrain3dStyleObj !== null) return;
+    if (!MAPTILER_KEY) return;
+    let cancelled = false;
+    buildTerrain3dStyle(MAPTILER_KEY)
+      .then((s) => { if (!cancelled) setTerrain3dStyleObj(s); })
+      .catch(() => { /* falls back to flat outdoor-v2 URL */ });
+    return () => { cancelled = true; };
+  }, [mapLayer, terrain3dStyleObj]);
+
   const mapStyle = useMemo<never>(() => {
     switch (mapLayer) {
       case "standard":  return STANDARD_STYLE_URL as never;
       case "satellite": return SATELLITE_STYLE_URL as never;
-      case "terrain3d": return TERRAIN3D_STYLE_URL as never;
+      case "terrain3d": return (terrain3dStyleObj ?? TERRAIN3D_STYLE_URL) as never;
       case "topo":
       default:          return TOPO_STYLE_URL as never;
     }
-  }, [mapLayer]);
+  }, [mapLayer, terrain3dStyleObj]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const filteredTrails = getTrailsByState(selectedState);
