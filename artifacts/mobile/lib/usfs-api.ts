@@ -202,3 +202,135 @@ export function featureDisplayName(f: UsfsFeature): string {
   if (p.RTE_SY_GRP_NM) return p.RTE_SY_GRP_NM;
   return "USFS Route";
 }
+
+// ─── USFS National Forest System (NFS) Trail Database ─────────────────────────
+// Covers ALL national forest trails (motorized + non-motorized), not just MVUM.
+// Vastly larger dataset — 158,000+ miles of named, classified trails.
+
+const NFS_TRAIL_URL = `${USFS_BASE}/EDW_TrailNFS_01/MapServer/0/query`;
+
+export interface UsfsNfsFeature {
+  type: "Feature";
+  geometry: {
+    type: "LineString" | "MultiLineString";
+    coordinates: number[][] | number[][][];
+  };
+  properties: {
+    TRAIL_CN?: string;
+    TRAIL_NAME?: string;
+    TRAIL_NO?: string;
+    TRAIL_TYPE?: string;        // "TERRA" | "SNOW" | "WATER"
+    SURFACE_TYPE?: string;
+    TRAIL_CLASS?: string;       // "TC1"–"TC5" (TC1 = primitive, TC5 = fully accessible)
+    ALLOWED_TERRA_USE?: string; // same vehicle-use codes as MVUM
+    MANAGING_ORG?: string;
+    GIS_MILES?: number;
+    ACCESSIBILITY_STATUS?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface UsfsNfsCollection {
+  type: "FeatureCollection";
+  features: UsfsNfsFeature[];
+}
+
+async function queryNfsLayer(
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+  where = "1=1",
+): Promise<UsfsNfsCollection> {
+  const envelope = JSON.stringify({
+    xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
+    spatialReference: { wkid: 4326 },
+  });
+  const params = new URLSearchParams({
+    geometry: envelope,
+    geometryType: "esriGeometryEnvelope",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: "TRAIL_CN,TRAIL_NAME,TRAIL_NO,TRAIL_TYPE,SURFACE_TYPE,TRAIL_CLASS,ALLOWED_TERRA_USE,MANAGING_ORG,GIS_MILES,ACCESSIBILITY_STATUS",
+    f: "geojson",
+    outSR: "4326",
+    returnGeometry: "true",
+    where,
+    resultRecordCount: "500",
+  });
+  const resp = await fetch(`${NFS_TRAIL_URL}?${params}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!resp.ok) throw new Error(`USFS NFS API error ${resp.status}`);
+  return (await resp.json()) as UsfsNfsCollection;
+}
+
+/**
+ * Fetch NFS trail system records within a bounding box.
+ * Optionally filter to motorized-capable trails only.
+ */
+export async function fetchUsfsNfsInBounds(
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+  motorizedOnly = false,
+): Promise<UsfsNfsCollection> {
+  const key = `nfs_${motorizedOnly ? "moto" : "all"}_${minLng.toFixed(2)}_${minLat.toFixed(2)}_${maxLng.toFixed(2)}_${maxLat.toFixed(2)}`;
+  const cached = await getCached<UsfsNfsCollection>(key);
+  if (cached) return cached;
+
+  const where = motorizedOnly
+    ? "TRAIL_TYPE='TERRA' AND ALLOWED_TERRA_USE IS NOT NULL"
+    : "TRAIL_TYPE='TERRA'";
+
+  const data = await queryNfsLayer(minLng, minLat, maxLng, maxLat, where);
+  await setCached(key, data);
+  return data;
+}
+
+/**
+ * Fetch NFS trails within `radiusMiles` of a lat/lng point.
+ */
+export async function fetchUsfsNfsNear(
+  lat: number, lng: number, radiusMiles = 8, motorizedOnly = false,
+): Promise<UsfsNfsCollection> {
+  const deg = radiusMiles / 69.0;
+  return fetchUsfsNfsInBounds(lng - deg, lat - deg, lng + deg, lat + deg, motorizedOnly);
+}
+
+export function nfsFeatureDisplayName(f: UsfsNfsFeature): string {
+  const p = f.properties;
+  if (p.TRAIL_NAME) return p.TRAIL_NAME;
+  if (p.TRAIL_NO) return `NFS Trail #${p.TRAIL_NO}`;
+  if (p.TRAIL_CN) return `Trail ${p.TRAIL_CN}`;
+  return "NFS Trail";
+}
+
+export function nfsTrailClass(f: UsfsNfsFeature): string {
+  const tc = f.properties.TRAIL_CLASS;
+  const map: Record<string, string> = {
+    TC1: "Primitive", TC2: "Simple", TC3: "Developed",
+    TC4: "Accessible", TC5: "Fully Accessible",
+  };
+  return tc ? (map[tc] ?? tc) : "Unclassified";
+}
+
+export function nfsFeatureStartCoord(f: UsfsNfsFeature): [number, number] | null {
+  const { geometry } = f;
+  if (!geometry) return null;
+  if (geometry.type === "LineString") {
+    const c = (geometry.coordinates as number[][])[0];
+    return c ? [c[0], c[1]] : null;
+  }
+  if (geometry.type === "MultiLineString") {
+    const c = (geometry.coordinates as number[][][])[0]?.[0];
+    return c ? [c[0], c[1]] : null;
+  }
+  return null;
+}
+
+export function nfsExtractRoute(f: UsfsNfsFeature): Array<{ lat: number; lng: number }> {
+  const { geometry } = f;
+  if (!geometry) return [];
+  if (geometry.type === "LineString") {
+    return (geometry.coordinates as number[][]).map(([lng, lat]) => ({ lat, lng }));
+  }
+  if (geometry.type === "MultiLineString") {
+    return (geometry.coordinates as number[][][]).flat().map(([lng, lat]) => ({ lat, lng }));
+  }
+  return [];
+}

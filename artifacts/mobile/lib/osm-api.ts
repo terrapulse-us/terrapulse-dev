@@ -78,19 +78,18 @@ export async function fetchOsmTrailsNear(
   const cached = await getCached<OsmCollection>(key);
   if (cached) return cached;
 
-  // Overpass QL: designated OHV tracks + any 4wd_only + unpaved motorized paths
+  // Overpass QL: comprehensive off-road query
   const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
   const query = [
     "[out:json][timeout:30];",
     "(",
-    // All highway=track not explicitly private/no
     `  way["highway"="track"]["access"!~"^(private|no)$"](${bbox});`,
-    // Explicitly 4wd_only
     `  way["4wd_only"="yes"](${bbox});`,
-    // Motorized unpaved paths
     `  way["highway"="path"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Unpaved unclassified roads (fire roads, forest roads)
-    `  way["highway"~"^(unclassified|tertiary)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel)$"](${bbox});`,
+    `  way["highway"~"^(unclassified|tertiary)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel|earth)$"](${bbox});`,
+    `  way["natural"="beach"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
+    `  way["highway"~"^(track|path)$"]["surface"~"^(sand|gravel|rock)$"]["access"!~"^(private|no)$"](${bbox});`,
+    `  way["highway"="service"]["surface"~"^(unpaved|gravel|dirt|ground)$"]["access"!~"^(private|no)$"](${bbox});`,
     ");",
     "out geom;",
   ].join("\n");

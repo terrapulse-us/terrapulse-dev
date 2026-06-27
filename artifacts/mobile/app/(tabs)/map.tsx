@@ -61,32 +61,40 @@ import { TRAIL_ROUTES } from "@/lib/trail-routes";
 import {
   fetchUsfsRouteNear,
   fetchUsfsTrailsInBounds,
+  fetchUsfsNfsNear,
   extractBestRoute,
   featureStartCoord,
-  featureDisplayName,
-  formatTerraUse,
+  nfsFeatureStartCoord,
   type UsfsFeature,
   type UsfsCollection,
+  type UsfsNfsFeature,
+  type UsfsNfsCollection,
 } from "@/lib/usfs-api";
 import {
   fetchOsmTrailsNear,
-  osmFeatureDisplayName,
-  osmFeatureSurface,
-  osmFeatureType,
   osmFeatureStartCoord,
-  osmExtractRoute,
-  osmFeatureLengthMiles,
   type OsmFeature,
   type OsmCollection,
 } from "@/lib/osm-api";
 import {
   fetchBlmOhvNear,
-  blmAreaDisplayName,
-  blmAreaAcres,
   BLM_SMA_TILES,
-  type BlmOhvFeature,
   type BlmOhvCollection,
 } from "@/lib/blm-api";
+import {
+  fetchRidbTrailheadsNear,
+  ridbFacilityCoord,
+  ridbHasApiKey,
+  type RidbFacility,
+} from "@/lib/ridb-api";
+import {
+  fromUsfsFeature,
+  fromUsfsNfsFeature,
+  fromOsmFeature,
+  fromRidbFacility,
+  type TrailGuide,
+} from "@/lib/trail-guide";
+import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 
 interface TrailPhoto {
@@ -382,18 +390,26 @@ export default function MapScreen() {
   const rideTopRef = useRef(0);
   const rideElevRef = useRef(0);
 
+  // Unified trail guide — single selection for all data sources
+  const [selectedGuide, setSelectedGuide] = useState<TrailGuide | null>(null);
+
   const [usfsGeoJSON, setUsfsGeoJSON] = useState<UsfsCollection | null>(null);
   const [usfsLoading, setUsfsLoading] = useState(false);
-  const [selectedUsfsFeature, setSelectedUsfsFeature] = useState<UsfsFeature | null>(null);
+
+  const [showNfsOverlay, setShowNfsOverlay] = useState(false);
+  const [nfsGeoJSON, setNfsGeoJSON] = useState<UsfsNfsCollection | null>(null);
+  const [nfsLoading, setNfsLoading] = useState(false);
 
   const [showOsmOverlay, setShowOsmOverlay] = useState(false);
   const [osmGeoJSON, setOsmGeoJSON] = useState<OsmCollection | null>(null);
   const [osmLoading, setOsmLoading] = useState(false);
-  const [selectedOsmFeature, setSelectedOsmFeature] = useState<OsmFeature | null>(null);
 
   const [showBlmOverlay, setShowBlmOverlay] = useState(false);
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
   const [blmLoading, setBlmLoading] = useState(false);
+
+  const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
+  const [showRidbOverlay, setShowRidbOverlay] = useState(false);
 
   // Core navigation: takes a trail explicitly so it works from any call site
   const navigateTrail = useCallback((trail: UserTrail) => {
@@ -409,7 +425,7 @@ export default function MapScreen() {
     setNavDistCovered(0);
     setIsNavigating(true);
     setSelectedTrail(null);
-    setSelectedUsfsFeature(null);
+    setSelectedGuide(null);
     setFollowUser(true);
   }, []);
 
@@ -428,9 +444,35 @@ export default function MapScreen() {
     setFollowUser(false);
   }, []);
 
+  // ── NFS overlay fetch ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showNfsOverlay) { setNfsGeoJSON(null); return; }
+    let cancelled = false;
+    setNfsLoading(true);
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchUsfsNfsNear(center.latitude, center.longitude, 8)
+      .then(data => { if (!cancelled) setNfsGeoJSON(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setNfsLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNfsOverlay]);
+
+  // ── RIDB trailhead fetch ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showRidbOverlay || !ridbHasApiKey()) { setRidbFacilities([]); return; }
+    let cancelled = false;
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchRidbTrailheadsNear(center.latitude, center.longitude, 25)
+      .then(data => { if (!cancelled) setRidbFacilities(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRidbOverlay]);
+
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (!showOsmOverlay) { setOsmGeoJSON(null); setSelectedOsmFeature(null); return; }
+    if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
     let cancelled = false;
     setOsmLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
@@ -460,7 +502,6 @@ export default function MapScreen() {
   useEffect(() => {
     if (!showUsfsOverlay) {
       setUsfsGeoJSON(null);
-      setSelectedUsfsFeature(null);
       return;
     }
     let cancelled = false;
@@ -1130,8 +1171,41 @@ export default function MapScreen() {
           const coord = osmFeatureStartCoord(f);
           if (!coord) return null;
           return (
-            <Marker key={`osm-${i}`} lngLat={coord} onPress={() => { setSelectedOsmFeature(f); setSelectedUsfsFeature(null); }}>
+            <Marker key={`osm-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
               <View style={styles.osmMarker} />
+            </Marker>
+          );
+        })}
+
+        {/* ── NFS Trail System GeoJSON lines ────────────────────────────── */}
+        {nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
+          <GeoJSONSource id="nfs-trails" data={nfsGeoJSON as never}>
+            <Layer
+              id="nfs-trails-line"
+              type="line"
+              paint={{ "line-color": "#2D6A4F", "line-width": 1.8, "line-opacity": 0.9 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── Tappable NFS pins (cap 100) ───────────────────────────────── */}
+        {nfsGeoJSON && nfsGeoJSON.features.slice(0, 100).map((f, i) => {
+          const coord = nfsFeatureStartCoord(f);
+          if (!coord) return null;
+          return (
+            <Marker key={`nfs-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromUsfsNfsFeature(f))}>
+              <View style={styles.nfsMarker} />
+            </Marker>
+          );
+        })}
+
+        {/* ── RIDB trailhead markers ────────────────────────────────────── */}
+        {ridbFacilities.map((f, i) => {
+          const coord = ridbFacilityCoord(f);
+          if (!coord) return null;
+          return (
+            <Marker key={`ridb-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromRidbFacility(f))}>
+              <View style={styles.ridbMarker} />
             </Marker>
           );
         })}
@@ -1155,7 +1229,7 @@ export default function MapScreen() {
             <Marker
               key={`usfs-${i}`}
               lngLat={coord}
-              onPress={() => setSelectedUsfsFeature(f)}
+              onPress={() => setSelectedGuide(fromUsfsFeature(f))}
             >
               <View style={styles.usfsMarker} />
             </Marker>
@@ -1444,107 +1518,29 @@ export default function MapScreen() {
         />
       </TouchableOpacity>
 
-      {/* ── OSM TRAIL POPUP ─────────────────────────────────────────────── */}
-      {selectedOsmFeature && (
-        <View style={[styles.usfsPopup, { bottom: tabBarHeight + 80, backgroundColor: colors.card, borderColor: "#3DAA5C" }]}>
-          <View style={styles.usfsPopupHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.usfsPopupTitle, { color: colors.foreground }]} numberOfLines={2}>
-                {osmFeatureDisplayName(selectedOsmFeature)}
-              </Text>
-              <Text style={[styles.usfsPopupSub, { color: colors.mutedForeground }]}>
-                {osmFeatureType(selectedOsmFeature)} · {osmFeatureSurface(selectedOsmFeature)}
-                {(() => { const mi = osmFeatureLengthMiles(selectedOsmFeature); return mi ? ` · ~${mi} mi` : ""; })()}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => setSelectedOsmFeature(null)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="x" size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={[styles.usfsNavBtn, { backgroundColor: "#3DAA5C" }]}
-            activeOpacity={0.8}
-            onPress={() => {
-              const route = osmExtractRoute(selectedOsmFeature);
-              if (route.length < 2) return;
-              const osmTrail: UserTrail = {
-                id: `osm-${selectedOsmFeature.properties.id}`,
-                title: osmFeatureDisplayName(selectedOsmFeature),
-                coords: { latitude: route[0].lat, longitude: route[0].lng },
-                difficulty: osmFeatureType(selectedOsmFeature),
-                difficultyRating: selectedOsmFeature.properties["4wd_only"] === "yes" ? 7 : 5,
-                size: "All Sizes",
-                suspension: "Varies",
-                region: "OpenStreetMap",
-                state: "US",
-                vehicleTypes: ["4x4"],
-                routeCoordinates: route,
-              };
-              navigateTrail(osmTrail);
-            }}
-          >
-            <MaterialIcons name="navigation" size={14} color="#fff" />
-            <Text style={[styles.usfsNavBtnText, { color: "#fff" }]}>FOLLOW THIS TRAIL</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* USFS TRAIL POPUP — shown when user taps a USFS route pin */}
-      {selectedUsfsFeature && (
-        <View
-          style={[
-            styles.usfsPopup,
-            { bottom: tabBarHeight + 80, backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <View style={styles.usfsPopupHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.usfsPopupTitle, { color: colors.foreground }]} numberOfLines={2}>
-                {featureDisplayName(selectedUsfsFeature)}
-              </Text>
-              <Text style={[styles.usfsPopupSub, { color: colors.mutedForeground }]}>
-                {formatTerraUse(selectedUsfsFeature.properties.ALLOWED_TERRA_USE)}
-                {selectedUsfsFeature.properties.GIS_MILES
-                  ? ` · ${Number(selectedUsfsFeature.properties.GIS_MILES).toFixed(1)} mi`
-                  : ""}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setSelectedUsfsFeature(null)}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Feather name="x" size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={[styles.usfsNavBtn, { backgroundColor: colors.primary }]}
-            activeOpacity={0.8}
-            onPress={() => {
-              const route = extractBestRoute({ type: "FeatureCollection", features: [selectedUsfsFeature] });
-              if (!route || route.length < 2) return;
-              const usfsTrail: UserTrail = {
-                id: `usfs-${Date.now()}`,
-                title: featureDisplayName(selectedUsfsFeature),
-                coords: { latitude: route[0].lat, longitude: route[0].lng },
-                difficulty: "USFS Route",
-                difficultyRating: 5,
-                size: "All Sizes",
-                suspension: "Varies",
-                region: "National Forest",
-                state: "US",
-                vehicleTypes: ["4x4"],
-                routeCoordinates: route,
-              };
-              navigateTrail(usfsTrail);
-            }}
-          >
-            <MaterialIcons name="navigation" size={14} color={colors.primaryForeground} />
-            <Text style={[styles.usfsNavBtnText, { color: colors.primaryForeground }]}>
-              NAVIGATE THIS TRAIL
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* ── UNIFIED TRAIL GUIDE SHEET ─────────────────────────────────── */}
+      <TrailGuideSheet
+        guide={selectedGuide}
+        onClose={() => setSelectedGuide(null)}
+        onNavigate={(coords, name) => {
+          const start = coords[0];
+          if (!start) return;
+          const trail: UserTrail = {
+            id: selectedGuide?.id ?? `guide-${Date.now()}`,
+            title: name,
+            coords: { latitude: start.lat, longitude: start.lng },
+            difficulty: selectedGuide?.subtitle ?? "Off-Road Route",
+            difficultyRating: 5,
+            size: "All Sizes",
+            suspension: "Varies",
+            region: selectedGuide?.managingOrg ?? "Public Lands",
+            state: "US",
+            vehicleTypes: ["4x4"],
+            routeCoordinates: coords,
+          };
+          navigateTrail(trail);
+        }}
+      />
 
       {/* BOTTOM BUTTONS */}
       <View style={[styles.bottomBtns, { bottom: tabBarHeight + 16 }]}>
@@ -1711,6 +1707,42 @@ export default function MapScreen() {
                 </Text>
               </View>
               {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : colors.mutedForeground} />}
+            </TouchableOpacity>
+
+            {/* NFS Trail System toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, { backgroundColor: showNfsOverlay ? "#2D6A4F" : "rgba(255,255,255,0.05)", borderColor: showNfsOverlay ? "#2D6A4F" : colors.border, marginTop: 8 }]}
+              onPress={() => setShowNfsOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="hiking" size={20} color={showNfsOverlay ? "#fff" : colors.mutedForeground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showNfsOverlay ? "#fff" : colors.foreground }]}>
+                  USFS NFS TRAILS{nfsLoading ? "  ⏳" : nfsGeoJSON ? `  (${nfsGeoJSON.features.length} trails)` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showNfsOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  National Forest System — 158k mi of classified trails (dark green)
+                </Text>
+              </View>
+              {nfsLoading ? <ActivityIndicator size="small" color={showNfsOverlay ? "#fff" : "#2D6A4F"} /> : <MaterialIcons name={showNfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNfsOverlay ? "#fff" : colors.mutedForeground} />}
+            </TouchableOpacity>
+
+            {/* Recreation.gov (RIDB) toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, { backgroundColor: showRidbOverlay ? "#7B3F9E" : "rgba(255,255,255,0.05)", borderColor: showRidbOverlay ? "#7B3F9E" : colors.border, marginTop: 8 }]}
+              onPress={() => setShowRidbOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showRidbOverlay ? "#fff" : colors.foreground }]}>
+                  RECREATION.GOV TRAILHEADS{ridbFacilities.length > 0 ? `  (${ridbFacilities.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showRidbOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  {ridbHasApiKey() ? "Official federal trailheads + OHV facilities (purple)" : "Add EXPO_PUBLIC_RIDB_API_KEY to enable"}
+                </Text>
+              </View>
+              <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -2224,6 +2256,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: "transparent",
     transform: [{ rotate: "45deg" }],
+  },
+  nfsMarker: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#2D6A4F",
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  ridbMarker: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#7B3F9E",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   trailNameInput: {
     borderWidth: 1,
