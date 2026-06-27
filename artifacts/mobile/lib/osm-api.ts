@@ -1,0 +1,187 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// ─── OpenStreetMap Overpass API ───────────────────────────────────────────────
+// Free public API. Queries 4x4 tracks, OHV paths, and unpaved roads.
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface OsmFeature {
+  type: "Feature";
+  geometry: { type: "LineString"; coordinates: number[][] };
+  properties: {
+    id: number;
+    name?: string;
+    highway?: string;
+    surface?: string;
+    "4wd_only"?: string;
+    tracktype?: string;
+    access?: string;
+    motor_vehicle?: string;
+    sac_scale?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface OsmCollection {
+  type: "FeatureCollection";
+  features: OsmFeature[];
+}
+
+// Internal Overpass response shapes
+interface OsmOverpassNode {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  tags?: Record<string, string>;
+  geometry?: Array<{ lat: number; lon: number }>;
+}
+
+// ─── Cache helpers ─────────────────────────────────────────────────────────────
+
+async function getCached<T>(key: string): Promise<T | null> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const entry: { data: T; ts: number } = JSON.parse(raw);
+    if (Date.now() - entry.ts > CACHE_TTL_MS) return null;
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+async function setCached<T>(key: string, data: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Fetch off-road OSM ways (4x4 tracks, OHV paths, unpaved roads) near a point.
+ * Results include geometry inline (Overpass `out geom;`) and are cached 12h.
+ */
+export async function fetchOsmTrailsNear(
+  lat: number,
+  lng: number,
+  radiusMiles = 5,
+): Promise<OsmCollection> {
+  const deg = radiusMiles / 69.0;
+  const minLat = lat - deg, maxLat = lat + deg;
+  const minLng = lng - deg, maxLng = lng + deg;
+
+  const key = `osm_trails_${minLat.toFixed(2)}_${minLng.toFixed(2)}_${maxLat.toFixed(2)}_${maxLng.toFixed(2)}`;
+  const cached = await getCached<OsmCollection>(key);
+  if (cached) return cached;
+
+  // Overpass QL: designated OHV tracks + any 4wd_only + unpaved motorized paths
+  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
+  const query = [
+    "[out:json][timeout:30];",
+    "(",
+    // All highway=track not explicitly private/no
+    `  way["highway"="track"]["access"!~"^(private|no)$"](${bbox});`,
+    // Explicitly 4wd_only
+    `  way["4wd_only"="yes"](${bbox});`,
+    // Motorized unpaved paths
+    `  way["highway"="path"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
+    // Unpaved unclassified roads (fire roads, forest roads)
+    `  way["highway"~"^(unclassified|tertiary)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel)$"](${bbox});`,
+    ");",
+    "out geom;",
+  ].join("\n");
+
+  const resp = await fetch(OVERPASS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+  if (!resp.ok) throw new Error(`Overpass API ${resp.status}`);
+
+  const json = (await resp.json()) as { elements: OsmOverpassNode[] };
+
+  const features: OsmFeature[] = json.elements
+    .filter(
+      (el): el is OsmOverpassNode & Required<Pick<OsmOverpassNode, "geometry">> =>
+        el.type === "way" &&
+        Array.isArray(el.geometry) &&
+        el.geometry.length >= 2,
+    )
+    .map((el) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: el.geometry!.map((n) => [n.lon, n.lat]),
+      },
+      properties: {
+        id: el.id,
+        ...(el.tags ?? {}),
+      },
+    }));
+
+  const collection: OsmCollection = { type: "FeatureCollection", features };
+  await setCached(key, collection);
+  return collection;
+}
+
+// ─── Helper functions ─────────────────────────────────────────────────────────
+
+export function osmFeatureDisplayName(f: OsmFeature): string {
+  const p = f.properties;
+  if (p.name) return p.name;
+  if (p["4wd_only"] === "yes") return `4WD Track`;
+  if (p.highway === "track") {
+    const grade = p.tracktype ? ` (${p.tracktype.replace("grade", "Grade ")})` : "";
+    return `Off-Road Track${grade}`;
+  }
+  if (p.highway === "path") return "OHV Path";
+  return "Unpaved Road";
+}
+
+export function osmFeatureSurface(f: OsmFeature): string {
+  const s = f.properties.surface as string | undefined;
+  if (!s) return "Unpaved";
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
+}
+
+export function osmFeatureType(f: OsmFeature): string {
+  const p = f.properties;
+  if (p["4wd_only"] === "yes") return "4WD Only";
+  if (p.motor_vehicle === "designated") return "Designated OHV";
+  if (p.highway === "track") return "Off-Road Track";
+  if (p.highway === "path") return "Trail Path";
+  return "Unpaved Road";
+}
+
+export function osmFeatureStartCoord(f: OsmFeature): [number, number] | null {
+  const c = f.geometry.coordinates[0];
+  return c ? [c[0], c[1]] : null;
+}
+
+export function osmExtractRoute(f: OsmFeature): Array<{ lat: number; lng: number }> {
+  return f.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+}
+
+export function osmFeatureLengthMiles(f: OsmFeature): number | null {
+  const coords = f.geometry.coordinates;
+  if (coords.length < 2) return null;
+  let total = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const [lng1, lat1] = coords[i - 1];
+    const [lng2, lat2] = coords[i];
+    const R = 3958.8;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    total += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  return parseFloat(total.toFixed(2));
+}

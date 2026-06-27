@@ -68,6 +68,25 @@ import {
   type UsfsFeature,
   type UsfsCollection,
 } from "@/lib/usfs-api";
+import {
+  fetchOsmTrailsNear,
+  osmFeatureDisplayName,
+  osmFeatureSurface,
+  osmFeatureType,
+  osmFeatureStartCoord,
+  osmExtractRoute,
+  osmFeatureLengthMiles,
+  type OsmFeature,
+  type OsmCollection,
+} from "@/lib/osm-api";
+import {
+  fetchBlmOhvNear,
+  blmAreaDisplayName,
+  blmAreaAcres,
+  BLM_SMA_TILES,
+  type BlmOhvFeature,
+  type BlmOhvCollection,
+} from "@/lib/blm-api";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 
 interface TrailPhoto {
@@ -172,8 +191,55 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   };
   style.sources = sources;
 
-  // Enable terrain exaggeration
-  style.terrain = { source: "terrain-dem", exaggeration: 1.5 };
+  // Dramatic terrain exaggeration (was 1.5)
+  style.terrain = { source: "terrain-dem", exaggeration: 2.2 };
+
+  // Inject hillshade layer before labels
+  const layers = (style.layers as unknown[]) ?? [];
+  // Insert hillshade right after background/fill layers but before labels
+  const insertIdx = layers.findIndex(
+    (l) => (l as { type: string }).type === "symbol"
+  );
+  const hillshadeLayer = {
+    id: "terrain-hillshade",
+    type: "hillshade",
+    source: "terrain-dem",
+    paint: {
+      "hillshade-exaggeration": 0.55,
+      "hillshade-shadow-color": "#2D1B0E",
+      "hillshade-highlight-color": "#FFF8EE",
+      "hillshade-accent-color": "#7A5C3A",
+      "hillshade-illumination-direction": 315,
+      "hillshade-illumination-anchor": "map",
+    },
+  };
+  if (insertIdx > 0) {
+    layers.splice(insertIdx, 0, hillshadeLayer);
+  } else {
+    layers.push(hillshadeLayer);
+  }
+
+  // Atmospheric sky layer for depth
+  layers.push({
+    id: "sky",
+    type: "sky",
+    paint: {
+      "sky-type": "atmosphere",
+      "sky-atmosphere-sun": [0.0, 0.0],
+      "sky-atmosphere-sun-intensity": 15,
+      "sky-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0, 5, 0.3, 8, 1],
+    },
+  });
+
+  style.layers = layers;
+
+  // Stronger directional lighting
+  style.light = {
+    anchor: "map",
+    position: [1.5, 315, 45],
+    color: "#FFF5E0",
+    intensity: 0.35,
+  };
 
   return style;
 }
@@ -320,6 +386,15 @@ export default function MapScreen() {
   const [usfsLoading, setUsfsLoading] = useState(false);
   const [selectedUsfsFeature, setSelectedUsfsFeature] = useState<UsfsFeature | null>(null);
 
+  const [showOsmOverlay, setShowOsmOverlay] = useState(false);
+  const [osmGeoJSON, setOsmGeoJSON] = useState<OsmCollection | null>(null);
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [selectedOsmFeature, setSelectedOsmFeature] = useState<OsmFeature | null>(null);
+
+  const [showBlmOverlay, setShowBlmOverlay] = useState(false);
+  const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
+  const [blmLoading, setBlmLoading] = useState(false);
+
   // Core navigation: takes a trail explicitly so it works from any call site
   const navigateTrail = useCallback((trail: UserTrail) => {
     const route = trail.routeCoordinates;
@@ -352,6 +427,34 @@ export default function MapScreen() {
     setNavDistTotal(0);
     setFollowUser(false);
   }, []);
+
+  // ── OSM overlay fetch ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showOsmOverlay) { setOsmGeoJSON(null); setSelectedOsmFeature(null); return; }
+    let cancelled = false;
+    setOsmLoading(true);
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchOsmTrailsNear(center.latitude, center.longitude, 5)
+      .then(data => { if (!cancelled) setOsmGeoJSON(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setOsmLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showOsmOverlay]);
+
+  // ── BLM overlay fetch ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showBlmOverlay) { setBlmOhvData(null); return; }
+    let cancelled = false;
+    setBlmLoading(true);
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchBlmOhvNear(center.latitude, center.longitude, 25)
+      .then(data => { if (!cancelled) setBlmOhvData(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBlmLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBlmOverlay]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on
   useEffect(() => {
@@ -906,7 +1009,7 @@ export default function MapScreen() {
           ref={cameraRef}
           center={[-98.5795, 39.8283]}
           zoom={3}
-          pitch={mapLayer === "terrain3d" ? 50 : 0}
+          pitch={mapLayer === "terrain3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
 
@@ -988,7 +1091,52 @@ export default function MapScreen() {
           </RasterSource>
         )}
 
-        {/* USFS live GeoJSON routes layer */}
+        {/* ── BLM land-status raster overlay ─────────────────────────────── */}
+        {showBlmOverlay && (
+          <RasterSource id="blm-sma" tiles={BLM_SMA_TILES} tileSize={256} minzoom={6}>
+            <Layer id="blm-sma-layer" type="raster" paint={{ "raster-opacity": 0.45 }} />
+          </RasterSource>
+        )}
+
+        {/* ── BLM OHV designated area polygons ──────────────────────────── */}
+        {blmOhvData && blmOhvData.features.length > 0 && (
+          <GeoJSONSource id="blm-ohv" data={blmOhvData as never}>
+            <Layer
+              id="blm-ohv-fill"
+              type="fill"
+              paint={{ "fill-color": "#D4860A", "fill-opacity": 0.18 }}
+            />
+            <Layer
+              id="blm-ohv-outline"
+              type="line"
+              paint={{ "line-color": "#D4860A", "line-width": 1.5, "line-opacity": 0.7 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
+        {osmGeoJSON && osmGeoJSON.features.length > 0 && (
+          <GeoJSONSource id="osm-trails" data={osmGeoJSON as never}>
+            <Layer
+              id="osm-trails-line"
+              type="line"
+              paint={{ "line-color": "#3DAA5C", "line-width": 2, "line-opacity": 0.85, "line-dasharray": [2, 1.5] }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── Tappable OSM pins (cap 120) ────────────────────────────────── */}
+        {osmGeoJSON && osmGeoJSON.features.slice(0, 120).map((f, i) => {
+          const coord = osmFeatureStartCoord(f);
+          if (!coord) return null;
+          return (
+            <Marker key={`osm-${i}`} lngLat={coord} onPress={() => { setSelectedOsmFeature(f); setSelectedUsfsFeature(null); }}>
+              <View style={styles.osmMarker} />
+            </Marker>
+          );
+        })}
+
+        {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
         {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
             <Layer
@@ -1296,6 +1444,51 @@ export default function MapScreen() {
         />
       </TouchableOpacity>
 
+      {/* ── OSM TRAIL POPUP ─────────────────────────────────────────────── */}
+      {selectedOsmFeature && (
+        <View style={[styles.usfsPopup, { bottom: tabBarHeight + 80, backgroundColor: colors.card, borderColor: "#3DAA5C" }]}>
+          <View style={styles.usfsPopupHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.usfsPopupTitle, { color: colors.foreground }]} numberOfLines={2}>
+                {osmFeatureDisplayName(selectedOsmFeature)}
+              </Text>
+              <Text style={[styles.usfsPopupSub, { color: colors.mutedForeground }]}>
+                {osmFeatureType(selectedOsmFeature)} · {osmFeatureSurface(selectedOsmFeature)}
+                {(() => { const mi = osmFeatureLengthMiles(selectedOsmFeature); return mi ? ` · ~${mi} mi` : ""; })()}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedOsmFeature(null)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Feather name="x" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={[styles.usfsNavBtn, { backgroundColor: "#3DAA5C" }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              const route = osmExtractRoute(selectedOsmFeature);
+              if (route.length < 2) return;
+              const osmTrail: UserTrail = {
+                id: `osm-${selectedOsmFeature.properties.id}`,
+                title: osmFeatureDisplayName(selectedOsmFeature),
+                coords: { latitude: route[0].lat, longitude: route[0].lng },
+                difficulty: osmFeatureType(selectedOsmFeature),
+                difficultyRating: selectedOsmFeature.properties["4wd_only"] === "yes" ? 7 : 5,
+                size: "All Sizes",
+                suspension: "Varies",
+                region: "OpenStreetMap",
+                state: "US",
+                vehicleTypes: ["4x4"],
+                routeCoordinates: route,
+              };
+              navigateTrail(osmTrail);
+            }}
+          >
+            <MaterialIcons name="navigation" size={14} color="#fff" />
+            <Text style={[styles.usfsNavBtnText, { color: "#fff" }]}>FOLLOW THIS TRAIL</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* USFS TRAIL POPUP — shown when user taps a USFS route pin */}
       {selectedUsfsFeature && (
         <View
@@ -1466,40 +1659,58 @@ export default function MapScreen() {
             <Text style={[styles.layerTitle, { color: colors.mutedForeground, fontSize: 10, marginBottom: 10 }]}>
               OVERLAYS
             </Text>
+            {/* USFS toggle */}
             <TouchableOpacity
-              style={[
-                styles.overlayToggle,
-                {
-                  backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)",
-                  borderColor: showUsfsOverlay ? colors.accent : colors.border,
-                },
-              ]}
+              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? colors.accent : colors.border }]}
               onPress={() => setShowUsfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons
-                name="forest"
-                size={20}
-                color={showUsfsOverlay ? "#000" : colors.mutedForeground}
-              />
+              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
-                  USFS TRAILS
-                  {usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length} routes)` : ""}
+                  USFS TRAILS{usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length})` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
-                  Real gov. OHV / 4x4 routes · fetches near your location
+                  Official OHV / 4x4 gov. routes (blue)
                 </Text>
               </View>
-              {usfsLoading ? (
-                <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} />
-              ) : (
-                <MaterialIcons
-                  name={showUsfsOverlay ? "toggle-on" : "toggle-off"}
-                  size={28}
-                  color={showUsfsOverlay ? "#000" : colors.mutedForeground}
-                />
-              )}
+              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />}
+            </TouchableOpacity>
+
+            {/* OSM toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, { backgroundColor: showOsmOverlay ? "#3DAA5C" : "rgba(255,255,255,0.05)", borderColor: showOsmOverlay ? "#3DAA5C" : colors.border, marginTop: 8 }]}
+              onPress={() => setShowOsmOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="terrain" size={20} color={showOsmOverlay ? "#fff" : colors.mutedForeground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showOsmOverlay ? "#fff" : colors.foreground }]}>
+                  OSM TRAILS{osmLoading ? "  ⏳" : osmGeoJSON ? `  (${osmGeoJSON.features.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showOsmOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  Community 4x4 tracks, dirt roads, OHV paths (green)
+                </Text>
+              </View>
+              {osmLoading ? <ActivityIndicator size="small" color={showOsmOverlay ? "#fff" : "#3DAA5C"} /> : <MaterialIcons name={showOsmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showOsmOverlay ? "#fff" : colors.mutedForeground} />}
+            </TouchableOpacity>
+
+            {/* BLM toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, { backgroundColor: showBlmOverlay ? "#D4860A" : "rgba(255,255,255,0.05)", borderColor: showBlmOverlay ? "#D4860A" : colors.border, marginTop: 8 }]}
+              onPress={() => setShowBlmOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="map" size={20} color={showBlmOverlay ? "#fff" : colors.mutedForeground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showBlmOverlay ? "#fff" : colors.foreground }]}>
+                  BLM LAND STATUS{blmLoading ? "  ⏳" : blmOhvData ? `  (${blmOhvData.features.length} areas)` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showBlmOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  Public land boundaries + designated OHV areas (orange)
+                </Text>
+              </View>
+              {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : colors.mutedForeground} />}
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -1677,6 +1888,14 @@ const styles = StyleSheet.create({
   navProgressFill: { height: 4, borderRadius: 2 },
   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  osmMarker: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: "#3DAA5C",
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
   usfsMarker: {
     width: 10,
     height: 10,
