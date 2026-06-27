@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
-const TUTORIAL_KEY = "tp_tutorial_v1_seen";
+const TUTORIAL_KEY = "tp_tutorial_v2_seen";
 const { width: SCREEN_W } = Dimensions.get("window");
 
 interface Slide {
@@ -61,10 +61,34 @@ const SLIDES: Slide[] = [
   {
     iconLib: "material",
     icon: "layers",
-    tag: "MAP LAYERS",
+    tag: "MAP STYLES",
     title: "Switch Map Styles",
-    body: "Use the Layers button on the right side of the map to switch between Standard, USGS Topo, and 3D Terrain views. In 3D mode, pinch and tilt to see real elevation.",
+    body: "Use the Layers button on the right side of the map to switch between Standard, USGS Topo, and 3D Terrain views. In 3D mode, pinch and tilt to see real elevation with hillshade.",
     accent: "#FF5500",
+  },
+  {
+    iconLib: "material",
+    icon: "terrain",
+    tag: "3D TERRAIN",
+    title: "Fly Over Real Terrain",
+    body: "Switch to 3D Terrain in the layers panel. Use two fingers to tilt and rotate the map and see true elevation with hillshade shadows — perfect for scouting canyons, ridgelines, and mountain passes before you go.",
+    accent: "#D4860A",
+  },
+  {
+    iconLib: "material",
+    icon: "map",
+    tag: "LIVE TRAIL DATA",
+    title: "5 Trail Data Sources",
+    body: "Open the layers panel and toggle on USFS Motor Vehicle Use Maps, USFS NFS Trails (158,000+ miles of classified national forest trails), OpenStreetMap off-road tracks, and BLM land status — each with its own color and on/off switch.",
+    accent: "#2D6A4F",
+  },
+  {
+    iconLib: "material",
+    icon: "navigation",
+    tag: "TRAIL GUIDE",
+    title: "Guided Trail Navigation",
+    body: "Tap any trail pin on the map to open the Trail Guide sheet. See the trail's length, surface type, trail class, allowed vehicles, and mileage waypoints. Hit FOLLOW THIS TRAIL to start live GPS navigation along that exact route.",
+    accent: "#1A6B9E",
   },
   {
     iconLib: "material",

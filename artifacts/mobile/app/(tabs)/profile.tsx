@@ -478,16 +478,16 @@ export default function ProfileScreen() {
       {activeSection === "gallery" && (
         <View style={{ flex: 1 }}>
           <TouchableOpacity
-            style={[styles.uploadBtn, { backgroundColor: colors.accent }, uploading && { opacity: 0.6 }]}
+            style={[styles.uploadBtn, { backgroundColor: "#74C274" }, uploading && { opacity: 0.6 }]}
             onPress={pickAndUpload}
             disabled={uploading}
           >
             {uploading ? (
-              <Text style={styles.uploadBtnText}>UPLOADING... {uploadProgress}%</Text>
+              <Text style={[styles.uploadBtnText, { color: "#fff" }]}>UPLOADING... {uploadProgress}%</Text>
             ) : (
               <>
-                <Feather name="plus" size={16} color="#000" />
-                <Text style={styles.uploadBtnText}>ADD PHOTOS / VIDEOS</Text>
+                <Feather name="plus" size={16} color="#fff" />
+                <Text style={[styles.uploadBtnText, { color: "#fff" }]}>ADD PHOTOS / VIDEOS</Text>
               </>
             )}
           </TouchableOpacity>
