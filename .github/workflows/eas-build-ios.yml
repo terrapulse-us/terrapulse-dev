@@ -1,5 +1,16 @@
 name: EAS Build iOS
 
+# Required GitHub repo secrets:
+#   EXPO_TOKEN             — expo.dev → Account Settings → Access Tokens
+#   MAPTILER_API_KEY       — your MapTiler key
+#   GOOGLE_WEB_CLIENT_ID   — Google OAuth client ID
+#   MAPBOX_PUBLIC_TOKEN    — Mapbox public token
+#
+# Required for automatic TestFlight submission (step below):
+#   ASC_API_KEY_ID         — App Store Connect → Users → Integrations → API Keys → Key ID
+#   ASC_API_KEY_ISSUER_ID  — Issuer ID on that same page (shown at top)
+#   ASC_API_KEY_CONTENT    — full text of the .p8 file you downloaded
+
 on:
   workflow_dispatch:
     inputs:
@@ -72,6 +83,26 @@ jobs:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
         run: eas build --platform ios --profile ${{ inputs.profile || 'preview' }} --non-interactive
 
+      # ── Automatic TestFlight submission ────────────────────────────────────
+      # Requires ASC_API_KEY_* secrets (see top of file).
+      # If those secrets aren't set yet, skip this step — go to expo.dev after
+      # the build finishes and click "Submit to App Store" manually.
       - name: Submit iOS to TestFlight
+        if: ${{ env.ASC_API_KEY_ID != '' }}
         working-directory: artifacts/mobile
-        run: eas submit --platform ios --latest --non-interactive
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+        run: |
+          # Write the .p8 content to a temp file then delete it after submit
+          KEY_PATH="/tmp/AuthKey_${ASC_API_KEY_ID}.p8"
+          printf '%s' "$ASC_API_KEY_CONTENT" > "$KEY_PATH"
+          eas submit \
+            --platform ios \
+            --latest \
+            --non-interactive \
+            --asc-api-key-path "$KEY_PATH" \
+            --asc-api-key-id "$ASC_API_KEY_ID" \
+            --asc-api-key-issuer-id "$ASC_API_KEY_ISSUER_ID"
+          rm -f "$KEY_PATH"
