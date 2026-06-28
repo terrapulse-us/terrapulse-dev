@@ -22,14 +22,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-// In pnpm workspaces, Metro resolves symlinks so real file paths go through
+// In pnpm workspaces Metro resolves symlinks, so file paths go through
 // node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/...
-// The default Metro ignore pattern skips everything after the first node_modules/
-// which means .pnpm packages (including those using private class fields like
-// @maplibre/maplibre-react-native v11) are never Babel-transformed.
-// Adding .pnpm to the allowlist ensures all packages inside the store get
-// transpiled — private class fields become valid Hermes bytecode.
-config.transformer.transformIgnorePatterns = [
+// The default Metro pattern ignores everything after the first node_modules/,
+// which means packages like react-native's DOMRect (using private class fields
+// #x #y #width #height added in RN 0.81) are never Babel-transformed and
+// Hermes refuses to compile them.
+//
+// NOTE: Metro reads transformIgnorePatterns at the TOP LEVEL of config,
+// not under config.transformer — setting it there silently does nothing.
+config.transformIgnorePatterns = [
   "node_modules/(?!(\\.pnpm|react-native|@react-native|expo|@expo|@maplibre)/)",
 ];
 
