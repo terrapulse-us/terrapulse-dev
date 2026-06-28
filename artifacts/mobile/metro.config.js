@@ -36,4 +36,8 @@ config.transformIgnorePatterns = [
   `${workspaceRoot}/node_modules/(?!\\.pnpm)`,
 ];
 
+// Bump this string whenever babel.config.js plugins change to force Metro to
+// discard all cached module transforms and re-run Babel on every file.
+config.cacheVersion = 'hermesc-compat-v3';
+
 module.exports = config;

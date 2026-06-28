@@ -3,34 +3,44 @@
  *
  * hermesc linux64 v0.12.0 (bundled with RN 0.81.5) cannot compile:
  *   - private class fields:  #field
- *   - ANY class field declarations: field; / field = value;
+ *   - public class field declarations: field; / field = value;
+ *   - ES6 class declarations in certain module contexts (extends Y.default pattern)
  *
- * These three plugins (loaded by absolute pnpm-store path to avoid needing
- * `pnpm install` for them as direct dependencies) transform all class-field
- * syntax to constructor assignments before hermesc is invoked.
+ * Plugins loaded from pnpm store by absolute path (they exist as transitive
+ * deps of @babel/core@7.29.0 — no `pnpm install` needed).
  *
- * The plugins are already in the pnpm store as transitive dependencies of
- * @babel/core@7.29.0 / babel-preset-expo@54.
+ * @babel/plugin-transform-classes       — converts ALL class syntax to ES5 functions
+ * @babel/plugin-transform-class-properties — moves class field declarations to constructor
+ * @babel/plugin-transform-private-methods  — renames private methods
+ * @babel/plugin-transform-private-property-in-object — handles `#field in obj`
  */
 const path = require('path');
+const fs = require('fs');
+
+const STORE_DIR = path.join(__dirname, '../../node_modules/.pnpm');
 
 function loadFromStore(pkgName) {
-  const encoded = pkgName.replace(/@/g, '').replace(/\//g, '+');
-  const storeDir = path.join(__dirname, '../../node_modules/.pnpm');
-  const fs = require('fs');
-  const entries = fs.readdirSync(storeDir);
-  const match = entries.find(
-    e => e.startsWith(encoded + '@') || e.startsWith('@' + encoded + '@')
-  );
-  if (!match) return null;
-  const full = path.join(storeDir, match, 'node_modules', pkgName);
+  // Encode package name to pnpm store directory prefix format
+  // @babel/plugin-foo  →  @babel+plugin-foo
+  const encoded = pkgName.replace(/\//g, '+');
+  let entries;
   try {
-    return require(full);
+    entries = fs.readdirSync(STORE_DIR);
+  } catch {
+    return null;
+  }
+  const match = entries.find(e => e.startsWith(encoded + '@'));
+  if (!match) return null;
+  const full = path.join(STORE_DIR, match, 'node_modules', pkgName);
+  try {
+    const m = require(full);
+    return m && (m.default || m);
   } catch {
     return null;
   }
 }
 
+const classesPlugin = loadFromStore('@babel/plugin-transform-classes');
 const classPropertiesPlugin = loadFromStore(
   '@babel/plugin-transform-class-properties'
 );
@@ -42,10 +52,21 @@ const privatePropInObjPlugin = loadFromStore(
 );
 
 const extraPlugins = [
+  classesPlugin && [classesPlugin, {loose: true}],
   classPropertiesPlugin && [classPropertiesPlugin, {loose: true}],
   privateMethodsPlugin && [privateMethodsPlugin, {loose: true}],
   privatePropInObjPlugin && [privatePropInObjPlugin, {loose: true}],
 ].filter(Boolean);
+
+// Log plugin loading result once (visible in Metro console)
+if (extraPlugins.length > 0) {
+  console.log(
+    '[babel.config] hermesc-compat plugins loaded:',
+    extraPlugins.length
+  );
+} else {
+  console.warn('[babel.config] WARNING: hermesc-compat plugins NOT loaded');
+}
 
 module.exports = function (api) {
   api.cache(true);

@@ -66,3 +66,28 @@ These transform ALL class field syntax (private `#field`, public `field;`, publi
 hermesc reports "invalid statement encountered" at a CLASS DECLARATION when its parser previously failed on something inside an earlier class body. This cascades: one unhandled class field causes ALL subsequent class declarations to fail.
 
 Root classes that must be clean: DOMRectReadOnly, DOMRect, Event, CustomEvent (react-native src/private) — any unhandled class field in these causes hundreds of cascade errors.
+
+## loadFromStore encoding bug
+
+WRONG: `pkgName.replace(/@/g, '').replace(/\//g, '+')` 
+- `@babel/plugin-foo` → `babel+plugin-foo` → looks for `@babel+plugin-foo@` → NO MATCH
+
+CORRECT: `pkgName.replace(/\//g, '+')` only
+- `@babel/plugin-foo` → `@babel+plugin-foo` → looks for `@babel+plugin-foo@` → MATCH ✓
+
+pnpm store dirs are `@scope+package@version_...` — the leading `@` is part of the directory name, NOT removed.
+
+## plugin-transform-classes required
+
+`@babel/plugin-transform-class-properties` handles class FIELD declarations (moves to constructor).
+`@babel/plugin-transform-classes` handles the class DECLARATION SYNTAX itself (converts to function).
+
+If a class has NO fields (only getters/setters), class-properties has nothing to transform, and the class declaration remains. hermesc 0.12.0 fails on `class X extends Y.Z {}` even with an empty body.
+
+Fix: add `@babel/plugin-transform-classes` (loose: true) to convert ALL class syntax to function form.
+
+## metro.config.js cacheVersion pattern
+
+Metro caches transform results persistently keyed by Babel config hash. Changing babel.config.js does NOT necessarily invalidate the cache if the config hash didn't change (e.g., if plugins returned null and were filtered out silently). 
+
+Reliable cache bust: set `config.cacheVersion = 'some-new-string'` in metro.config.js. Bump this string whenever babel.config.js changes.
