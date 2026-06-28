@@ -1,0 +1,98 @@
+~/.../artifacts/mobile$ eas update --branch preview --message "Trail count fix, USFS+OSM on by default, layer color fix"
+[expo-cli] Starting Metro Bundler
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  1.0% (1/1)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 18.9% (120/325)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 46/211)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 18.9% (197/457)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓░░░░░░░░░░░░░░ 16.0% (122/314)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 31.5% (324/577)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 25.7% (257/507)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 31.8% (490/869)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 31.2% (320/573)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 39.1% (559/896)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 35.5% (495/869)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓░░░░░░░░░ 47.7% ( 761/1102)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 39.8% (562/891)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57.3% ( 864/1141)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 42.0% (592/913)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57.3% ( 864/1141)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 56.1% ( 851/1137)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 63.7% ( 936/1173)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57.4% ( 862/1138)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 74.5% (1086/1258)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 65.9% ( 950/1176)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.1% (1121/1350)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 74.6% (1084/1255)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.1% (1202/1388)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.9% (1191/1381)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.5% (1335/1452)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.1% (1309/1419)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1461/1461)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 96.3% (1431/1458)
+[expo-cli] Failed to generate Hermes bytecode for: /home/runner/workspace/node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3747:5: error: private properties are not supported
+[expo-cli]     #x;
+[expo-cli]     ^~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3748:5: error: private properties are not supported
+[expo-cli]     #y;
+[expo-cli]     ^~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3749:5: error: private properties are not supported
+[expo-cli]     #width;
+[expo-cli]     ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3750:5: error: private properties are not supported
+[expo-cli]     #height;
+[expo-cli]     ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3758:19: error: private properties are not supported
+[expo-cli]       return this.#x;
+[expo-cli]                   ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3761:19: error: private properties are not supported
+[expo-cli]       return this.#y;
+[expo-cli]                   ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3764:19: error: private properties are not supported
+[expo-cli]       return this.#width;
+[expo-cli]                   ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3767:19: error: private properties are not supported
+[expo-cli]       return this.#height;
+[expo-cli]                   ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3770:25: error: private properties are not supported
+[expo-cli]       var height = this.#height;
+[expo-cli]                         ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3771:20: error: private properties are not supported
+[expo-cli]       var y = this.#y;
+[expo-cli]                    ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3778:24: error: private properties are not supported
+[expo-cli]       var width = this.#width;
+[expo-cli]                        ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3779:20: error: private properties are not supported
+[expo-cli]       var x = this.#x;
+[expo-cli]                    ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3786:25: error: private properties are not supported
+[expo-cli]       var height = this.#height;
+[expo-cli]                         ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3787:20: error: private properties are not supported
+[expo-cli]       var y = this.#y;
+[expo-cli]                    ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3794:24: error: private properties are not supported
+[expo-cli]       var width = this.#width;
+[expo-cli]                        ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3795:20: error: private properties are not supported
+[expo-cli]       var x = this.#x;
+[expo-cli]                    ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3830:19: error: private properties are not supported
+[expo-cli]       return this.#x;
+[expo-cli]                   ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3833:19: error: private properties are not supported
+[expo-cli]       return this.#y;
+[expo-cli]                   ^~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3836:19: error: private properties are not supported
+[expo-cli]       return this.#width;
+[expo-cli]                   ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js:3839:19: error: private properties are not supported
+[expo-cli]       return this.#height;
+[expo-cli]                   ^~~~~~~
+[expo-cli] <unknown>:0: error: too many errors emitted
+[expo-cli] Error: /home/runner/workspace/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@types+react@19.1.17_react@19.1.0/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc -emit-binary -out /tmp/expo-bundler-0.8094085435894979-1782672083086/index.hbc /tmp/expo-bundler-0.8094085435894979-1782672083086/index.js -O -output-source-map exited with non-zero code: 2
+[expo-cli] iOS Bundling failed 54488ms node_modules/.pnpm/expo-router@6.0.24_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__82eaae7e59e3ea981697f10451789af2/node_modules/expo-router/entry.js (1461 modules)
+✖ Export failed
+/home/runner/workspace/node_modules/.pnpm/expo@54.0.35_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_1c6fa8026af1b19ad2a5aacd4e91f6ed/node_modules/expo/bin/cli export --output-dir dist --source-maps --dump-assetmap --platform ios --platform android exited with non-zero code: 1
