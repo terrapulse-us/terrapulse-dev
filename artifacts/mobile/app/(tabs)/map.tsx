@@ -298,7 +298,7 @@ export default function MapScreen() {
 
   const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
-  const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
+  const [showUsfsOverlay, setShowUsfsOverlay] = useState(true);
 
   const [terrain3dStyleObj, setTerrain3dStyleObj] =
     useState<Record<string, unknown> | null>(null);
@@ -407,7 +407,7 @@ export default function MapScreen() {
   const [nfsGeoJSON, setNfsGeoJSON] = useState<UsfsNfsCollection | null>(null);
   const [nfsLoading, setNfsLoading] = useState(false);
 
-  const [showOsmOverlay, setShowOsmOverlay] = useState(false);
+  const [showOsmOverlay, setShowOsmOverlay] = useState(true);
   const [osmGeoJSON, setOsmGeoJSON] = useState<OsmCollection | null>(null);
   const [osmLoading, setOsmLoading] = useState(false);
 
@@ -1303,7 +1303,12 @@ export default function MapScreen() {
             <Text
               style={[styles.topSub, { color: colors.mutedForeground }]}
             >
-              {filteredTrails.length} TRAILS ·{" "}
+              {filteredTrails.length +
+                (usfsGeoJSON?.features.length ?? 0) +
+                (osmGeoJSON?.features.length ?? 0) +
+                (nfsGeoJSON?.features.length ?? 0) +
+                ridbFacilities.length +
+                npsParks.length} TRAILS ·{" "}
               {selectedState === "All States"
                 ? "NATIONWIDE"
                 : STATE_NAMES[selectedState] ?? selectedState}
@@ -1665,12 +1670,12 @@ export default function MapScreen() {
                     <MaterialIcons
                       name={opt.icon as never}
                       size={24}
-                      color={active ? "#000" : colors.mutedForeground}
+                      color={active ? "#fff" : colors.mutedForeground}
                     />
                     <Text
                       style={[
                         styles.layerCardLabel,
-                        { color: active ? "#000" : colors.foreground },
+                        { color: active ? "#fff" : colors.foreground },
                       ]}
                     >
                       {opt.label}
@@ -1693,20 +1698,20 @@ export default function MapScreen() {
             </Text>
             {/* USFS toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? colors.accent : colors.border }]}
+              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? "#1A6B9E" : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? "#1A6B9E" : colors.border }]}
               onPress={() => setShowUsfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />
+              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#fff" : colors.mutedForeground} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
+                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#fff" : colors.foreground }]}>
                   USFS TRAILS{usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length})` : ""}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
+                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
                   Official OHV / 4x4 gov. routes (blue)
                 </Text>
               </View>
-              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />}
+              {usfsLoading ? <ActivityIndicator size="small" color="#fff" /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : colors.mutedForeground} />}
             </TouchableOpacity>
 
             {/* OSM toggle */}
