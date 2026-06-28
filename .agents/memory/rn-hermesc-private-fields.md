@@ -67,6 +67,27 @@ hermesc reports "invalid statement encountered" at a CLASS DECLARATION when its 
 
 Root classes that must be clean: DOMRectReadOnly, DOMRect, Event, CustomEvent (react-native src/private) — any unhandled class field in these causes hundreds of cascade errors.
 
+## hermesc bundle post-transform (DEFINITIVE FIX for `eas update`)
+
+Adding `@babel/plugin-transform-classes` to `babel.config.js` (for individual source files during Metro transform) CANNOT work due to pnpm isolated module caches. When class-properties and transform-classes both run in a Metro worker, they each load a SEPARATE instance of `@babel/helper-create-class-features-plugin` → registration coordination fails → "Missing class properties transform".
+
+**Solution: run the transforms on the ASSEMBLED BUNDLE OUTPUT** in the hermesc wrapper, before passing to `hermesc.real`. In a single Node.js process all plugins share the same `require()` cache → same helper instance → registration works.
+
+Script: `scripts/transform-bundle-classes.cjs` (must be `.cjs` — `scripts/` package.json has `"type": "module"`).
+
+Plugin order in the bundle transform (critical):
+1. `@babel/plugin-transform-class-properties` (loose: true) — moves static/instance fields
+2. `@babel/plugin-transform-class-static-block` — static { } blocks
+3. `@babel/plugin-transform-classes` (loose: true) — class declarations → functions
+4. `@babel/plugin-transform-async-to-generator` — async/await → generator
+5. `@babel/plugin-transform-async-generator-functions` — async function*
+
+The hermesc wrapper (`scripts/install-hermesc-wrapper.sh`, installs via postinstall) now calls:
+```bash
+node --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || ...
+```
+Run with `--force` to update already-installed wrappers: `bash scripts/install-hermesc-wrapper.sh --force`
+
 ## loadFromStore encoding bug
 
 WRONG: `pkgName.replace(/@/g, '').replace(/\//g, '+')` 

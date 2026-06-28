@@ -1,18 +1,28 @@
 /**
  * babel.config.js
  *
- * hermesc linux64 v0.12.0 (bundled with RN 0.81.5) cannot compile:
- *   - private class fields:  #field
- *   - public class field declarations: field; / field = value;
- *   - ES6 class declarations in certain module contexts (extends Y.default pattern)
+ * hermesc linux64 v0.12.0 (bundled with RN 0.81.5) cannot compile class syntax
+ * (class declarations, class expressions, private fields, private methods).
  *
- * Plugins loaded from pnpm store by absolute path (they exist as transitive
- * deps of @babel/core@7.29.0 — no `pnpm install` needed).
+ * Plugins loaded from pnpm store by absolute path (exist as transitive deps
+ * of @babel/core@7.29.0 — no `pnpm install` needed).
  *
- * @babel/plugin-transform-classes       — converts ALL class syntax to ES5 functions
- * @babel/plugin-transform-class-properties — moves class field declarations to constructor
- * @babel/plugin-transform-private-methods  — renames private methods
- * @babel/plugin-transform-private-property-in-object — handles `#field in obj`
+ * WHY NO @babel/plugin-transform-classes here:
+ *   That plugin uses @babel/helper-create-class-features-plugin internally.
+ *   When it processes a class with fields, the helper checks whether the
+ *   class-properties plugin has "claimed" those fields via a shared registry
+ *   keyed by plugin version. With v7 and v8 of the helper both present in the
+ *   pnpm store (used by different packages), they use different registry keys
+ *   and can't coordinate → "Missing class properties transform" on FlatList.js
+ *   regardless of plugin ordering. Instead, plain class declarations are handled
+ *   by patching the react-native source directly (see patches/react-native@0.81.5.patch).
+ *
+ * @babel/plugin-transform-class-properties is intentionally OMITTED:
+ *   babel-preset-expo (via @react-native/babel-preset) already includes it.
+ *
+ * Plugins included:
+ *   @babel/plugin-transform-private-methods  — #method() → mangled names
+ *   @babel/plugin-transform-private-property-in-object — #field in obj
  */
 const path = require('path');
 const fs = require('fs');
@@ -40,10 +50,6 @@ function loadFromStore(pkgName) {
   }
 }
 
-const classesPlugin = loadFromStore('@babel/plugin-transform-classes');
-const classPropertiesPlugin = loadFromStore(
-  '@babel/plugin-transform-class-properties'
-);
 const privateMethodsPlugin = loadFromStore(
   '@babel/plugin-transform-private-methods'
 );
@@ -52,13 +58,10 @@ const privatePropInObjPlugin = loadFromStore(
 );
 
 const extraPlugins = [
-  classesPlugin && [classesPlugin, {loose: true}],
-  classPropertiesPlugin && [classPropertiesPlugin, {loose: true}],
-  privateMethodsPlugin && [privateMethodsPlugin, {loose: true}],
-  privatePropInObjPlugin && [privatePropInObjPlugin, {loose: true}],
+  privateMethodsPlugin && [privateMethodsPlugin],
+  privatePropInObjPlugin && [privatePropInObjPlugin],
 ].filter(Boolean);
 
-// Log plugin loading result once (visible in Metro console)
 if (extraPlugins.length > 0) {
   console.log(
     '[babel.config] hermesc-compat plugins loaded:',

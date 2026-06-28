@@ -18,3 +18,8 @@ description: How to authenticate and configure EAS CLI within the Replit shell e
 **eas.json submit section:** Empty string values for `ios.appleId`, `ios.ascAppId`, `ios.appleTeamId` fail validation. Remove the ios block entirely until Apple credentials are available.
 
 **owner field:** Must match the exact Expo account slug that owns the project (from `eas whoami`). Personal account vs team account matters — use the one that has project creation permission.
+
+**`eas update` in Replit main agent:** The final step of `eas update` triggers a destructive git operation (creating/recording a git commit) which the Replit sandbox blocks. Use `EAS_SKIP_AUTO_FINGERPRINT=1` to skip the fingerprint+git step and publish successfully:
+```bash
+EAS_SKIP_AUTO_FINGERPRINT=1 eas update --branch preview --message "..."
+```
