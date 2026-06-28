@@ -12,10 +12,6 @@ on:
           - preview
           - development
           - production
-  push:
-    branches:
-      - main
-      - "release/**"
 
 jobs:
   build:
