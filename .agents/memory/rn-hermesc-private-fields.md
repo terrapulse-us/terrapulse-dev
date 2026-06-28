@@ -1,25 +1,46 @@
 ---
-name: RN 0.81 hermesc linux64 private class fields
-description: The linux64 hermesc binary bundled with react-native@0.81.5 is v0.12.0 and rejects private class fields — affects eas update on Linux
+name: RN 0.81 hermesc private class fields workaround
+description: hermesc linux64 v0.12.0 (bundled with react-native@0.81.5) rejects both private class fields (#field) and ANY class field declaration (field; / field = value;). Documents the two-part fix.
 ---
 
-## Rule
-When running `eas update` on Linux with react-native@0.81.5, the bundled `hermesc` (linux64-bin, v0.12.0) rejects private class fields (`#field`) in the bundle with "private properties are not supported". This affects 39 files across `src/private/` and `Libraries/` in RN 0.81.5.
+## Problem
+hermesc linux64 v0.12.0 (bundled with RN 0.81.5) cannot compile:
+1. `this.#field` — private property access
+2. `#field;` / `#field = value;` — private field declarations  
+3. `field;` / `field = value;` — ANY public class field declarations
 
-**Why:** The linux hermesc shipped in the npm package is an old build (v0.12.0, HBC bytecode 96) that predates private class field support, even though the on-device Hermes runtime supports them fine. This only surfaces during `eas update` (which uses local hermesc to compile bytecode), not during dev or EAS cloud builds.
+This surfaces as "private properties are not supported" errors during `eas update` (OTA build) even though EAS cloud builds work fine (they use a different hermesc).
 
-**How to apply:** A comprehensive pnpm patch is committed at `patches/react-native@0.81.5.patch` (registered in `pnpm-workspace.yaml`). It replaces all `#field` → `___field` across 39 files. This patch covers:
-- `src/private/webapis/` — DOMRect, DOMRectReadOnly, DOMRectList, EventTarget, EventHandlerAttributes, Event, CustomEvent, NodeList, HTMLCollection, Performance*, DOM nodes, errors, websockets, xhr
-- `Libraries/vendor/emitter/EventEmitter.js` and ~8 other Libraries/ files
-- `src/private/devsupport/` — dev tools files
+## Fix: hermesc wrapper script
 
-If `pnpm install` is re-run and the patch stops applying (hash mismatch), re-generate via:
-```bash
-RN_PATCHED="node_modules/.pnpm/react-native@0.81.5_patch_hash=.../node_modules/react-native"
-RN_ORIG="node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_.../node_modules/react-native"
-# diff -u each changed file and concatenate into patches/react-native@0.81.5.patch
-```
+Install a bash wrapper at `sdks/hermesc/linux64-bin/hermesc` (rename real binary to `hermesc.real`). The wrapper uses sed to:
+1. Replace `this.#identifier` → `this.___identifier` (field access)
+2. DELETE lines matching `^[spaces]#identifier[spaces][;=]` (private field declarations)
+3. DELETE lines matching `^[spaces]___identifier[spaces][;=]` (converted public field declarations from pnpm patch)
 
-**Metro config:** `transformIgnorePatterns` at the top level of `metro.config.js` (NOT `config.transformer.transformIgnorePatterns`) was also adjusted to include `.pnpm` in the allowlist — this is a secondary fix and may not be strictly necessary given the patch, but doesn't hurt.
+Deleting declaration lines is safe — JS does not require class fields to be pre-declared; assignments in the constructor via `this.___field = x` work fine without them.
 
-**babel-preset-expo:** Add as explicit devDependency in `artifacts/mobile/package.json` — pnpm strict resolution prevents Metro from finding it otherwise, causing the first bundling error.
+**Why not rename declarations?** Renaming `#x;` → `___x;` still leaves a class field declaration that hermesc 0.12.0 cannot parse.
+
+## Persistence problem
+
+Every `pnpm install` potentially creates a NEW patched react-native directory with a different hash, discarding the wrapper. Two mitigations:
+1. `scripts/install-hermesc-wrapper.sh` — finds all `react-native@0.81*/hermesc` binaries and installs the wrapper if not already present
+2. Root `package.json` `"postinstall": "sh scripts/install-hermesc-wrapper.sh"` — runs automatically after every `pnpm install`
+
+**Trigger**: Adding/removing deps to `artifacts/mobile/package.json` can change the pnpm patch hash for react-native, creating a new directory.
+
+## pnpm patch
+
+`patches/react-native@0.81.5.patch` — 39-file patch converting `#field` → `___field` in the compiled JS sources (Libraries/ and src/private/). This handles files that DON'T go through Babel (transformIgnorePatterns excludes node_modules by default).
+
+The patch changes field NAMES but not declarations; the wrapper deletes declarations. Both are needed.
+
+## What doesn't work
+
+- **Babel plugins** (`@babel/plugin-transform-class-properties` etc.): declaring them in `artifacts/mobile/package.json` as devDeps and running `pnpm install` keeps timing out. Also caused a partial install that shifted the pnpm patch hash.  
+- Babel plugins ARE available transitively via `babel-preset-expo` for `private-methods` and `private-property-in-object` but NOT for `class-properties`.
+
+## Key distinction: EAS cloud build vs OTA update
+
+EAS cloud build (`eas build`) uses a newer hermesc on Expo's servers — no issue there. Only `eas update` (OTA, runs on the local machine) uses the bundled linux64 hermesc, which is the ancient v0.12.0.
