@@ -1,0 +1,189 @@
+~/workspace$ cd artifacts/mobile
+~/.../artifacts/mobile$ eas update --branch preview --message "Trail count fix, USFS+OSM on by default, layer color fix"
+[expo-cli] Starting Metro Bundler
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  1.0% (1/1)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 21.0% ( 89/299)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓░░░░░░░░░░░░░░░ 10.6% (15/46)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 21.0% (140/358)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓░░░░░░░░░░░░░░ 14.6% (123/322)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 31.5% (324/578)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓░░░░░░░░░░░░░░ 18.5% (171/398)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 31.5% (386/775)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 31.4% (322/575)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 39.1% (560/896)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 34.8% (391/663)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 41.6% (584/905)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 40.2% (566/893)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓░░░░░░░░░ 44.0% ( 689/1039)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 40.2% (566/893)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 56.4% ( 856/1140)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 40.2% (566/893)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57.5% ( 866/1142)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 56.1% ( 850/1135)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 64.0% ( 931/1164)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57.0% ( 859/1138)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 75.0% (1091/1260)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.7% ( 873/1139)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 75.0% (1091/1260)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 66.0% ( 954/1174)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 77.7% (1165/1380)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 74.6% (1084/1255)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 82.3% (1277/1408)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.0% (1205/1389)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 87.7% (1366/1459)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.4% (1330/1449)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 94.5% (1420/1461)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1458/1458)
+[expo-cli] Failed to generate Hermes bytecode for: /home/runner/workspace/node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js
+[expo-cli] 
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:2237:34: warning: the variable "AbortController" was not declared in anonymous function " 69#"
+[expo-cli]         if ("function" == typeof AbortController) return new AbortController();
+[expo-cli]                                  ^~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:2389:165: warning: the variable "Promise" was not declared in anonymous arrow function " 93#"
+[expo-cli]             te || de.push(() => "writable" === z._state ? wt(z, D) : c(undefined)), re || de.push(() => "readable" === r._state ? Br(r, D) : c(undefined)), q(() => Promise.all(de.map(r => r())), true, D);
+[expo-cli]                                                                                                                                                                     ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:891:32: warning: the variable "queueMicrotask" was not declared in arrow function "y"
+[expo-cli]       if ("function" == typeof queueMicrotask) y = queueMicrotask;else {
+[expo-cli]                                ^~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:1138:100: warning: the variable "structuredClone" was not declared in arrow function "ie"
+[expo-cli]     var ie = r => (ie = "function" == typeof r.transfer ? r => r.transfer() : "function" == typeof structuredClone ? r => structuredClone(r, {
+[expo-cli]                                                                                                    ^~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:2355:84: warning: the variable "self" was not declared in anonymous function " 28#"
+[expo-cli]     var wo = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : "undefined" != typeof global ? global : undefined,
+[expo-cli]                                                                                    ^~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3437:24: warning: the variable "URL" was not declared in arrow function "_fetch"
+[expo-cli]         props[0] = new URL(props[0], window.location?.origin).toString();
+[expo-cli]                        ^~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3462:42: warning: the variable "fetch" was not declared in anonymous function " 235#"
+[expo-cli]       value: wrapFetchWithWindowLocation(fetch)
+[expo-cli]                                          ^~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3652:14: warning: the variable "DOMRect" was not declared in function "get 24#"
+[expo-cli]       return DOMRect;
+[expo-cli]              ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3658:3: error: invalid statement encountered.
+[expo-cli]   class DOMRect extends DOMRectReadOnly.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3739:14: warning: the variable "DOMRectReadOnly" was not declared in function "get 26#"
+[expo-cli]       return DOMRectReadOnly;
+[expo-cli]              ^~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3746:3: error: invalid statement encountered.
+[expo-cli]   class DOMRectReadOnly {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3897:16: warning: the variable "DOMRectList" was not declared in function "createDOMRectList"
+[expo-cli]     return new DOMRectList(elements);
+[expo-cli]                ^~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3869:3: error: invalid statement encountered.
+[expo-cli]   class DOMRectList {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3971:16: warning: the variable "HTMLCollection" was not declared in function "createHTMLCollection"
+[expo-cli]     return new HTMLCollection(elements);
+[expo-cli]                ^~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3940:3: error: invalid statement encountered.
+[expo-cli]   class HTMLCollection {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4034:16: warning: the variable "NodeList" was not declared in function "createNodeList"
+[expo-cli]     return new NodeList(elements);
+[expo-cli]                ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:3989:3: error: invalid statement encountered.
+[expo-cli]   class NodeList {
+[expo-cli]   ^~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4051:14: warning: the variable "ReadOnlyNode" was not declared in function "get 30#"
+[expo-cli]       return ReadOnlyNode;
+[expo-cli]              ^~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4060:3: error: invalid statement encountered.
+[expo-cli]   class ReadOnlyNode {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4295:16: warning: the variable "ReactNativeDocumentElementInstanceHandleImpl" was not declared in function "createReactNativeDocumentElementInstanceHandle"
+[expo-cli]     return new ReactNativeDocumentElementInstanceHandleImpl();
+[expo-cli]                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4293:3: error: invalid statement encountered.
+[expo-cli]   class ReactNativeDocumentElementInstanceHandleImpl {}
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4591:21: warning: the variable "SyntheticError" was not declared in function "handleException"
+[expo-cli]         error = new SyntheticError(e);
+[expo-cli]                     ^~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:4513:3: error: invalid statement encountered.
+[expo-cli]   class SyntheticError extends Error {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:5210:3: error: invalid statement encountered.
+[expo-cli]   class MessageQueue {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:5389:18: warning: the variable "MessageQueue" was not declared in anonymous function " 292#"
+[expo-cli]   var _default = MessageQueue;
+[expo-cli]                  ^~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:5903:49: warning: the variable "reportError" was not declared in anonymous function " 304#"
+[expo-cli]   var reportGlobalError = "function" === typeof reportError ? reportError : function (error) {
+[expo-cli]                                                 ^~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:9976:3: error: invalid statement encountered.
+[expo-cli]   class AssetSourceResolver {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10039:18: warning: the variable "AssetSourceResolver" was not declared in anonymous function " 394#"
+[expo-cli]   var _default = AssetSourceResolver;
+[expo-cli]                  ^~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10054:3: error: invalid statement encountered.
+[expo-cli]   class PixelRatio {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10070:18: warning: the variable "PixelRatio" was not declared in anonymous function " 395#"
+[expo-cli]   var _default = PixelRatio;
+[expo-cli]                  ^~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10100:3: error: invalid statement encountered.
+[expo-cli]   class Dimensions {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10150:5: warning: the variable "Dimensions" was not declared in anonymous arrow function " 397#"
+[expo-cli]     Dimensions.set(update);
+[expo-cli]     ^~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10175:3: error: invalid statement encountered.
+[expo-cli]   class RCTDeviceEventEmitterImpl extends EventEmitter.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10182:35: warning: the variable "RCTDeviceEventEmitterImpl" was not declared in anonymous function " 398#"
+[expo-cli]   var RCTDeviceEventEmitter = new RCTDeviceEventEmitterImpl();
+[expo-cli]                                   ^~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10198:14: warning: the variable "EventEmitter" was not declared in function "get 175#"
+[expo-cli]       return EventEmitter;
+[expo-cli]              ^~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:10201:3: error: invalid statement encountered.
+[expo-cli]   class EventEmitter {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12223:14: warning: the variable "CustomEvent" was not declared in function "get 216#"
+[expo-cli]       return CustomEvent;
+[expo-cli]              ^~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12228:3: error: invalid statement encountered.
+[expo-cli]   class CustomEvent extends Event.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12247:14: warning: the variable "Event" was not declared in function "get 217#"
+[expo-cli]       return Event;
+[expo-cli]              ^~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12252:3: error: invalid statement encountered.
+[expo-cli]   class Event {
+[expo-cli]   ^~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12923:24: warning: the variable "ReactNativeDocument" was not declared in function "createReactNativeDocument"
+[expo-cli]     var document = new ReactNativeDocument(rootTag, instanceHandle);
+[expo-cli]                        ^~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12878:3: error: invalid statement encountered.
+[expo-cli]   class ReactNativeDocument extends ReadOnlyNode.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:12955:3: error: invalid statement encountered.
+[expo-cli]   class ReactNativeElement extends ReadOnlyElement.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:13048:49: warning: the variable "ReactNativeElement" was not declared in anonymous function " 466#"
+[expo-cli]   var _default = replaceConstructorWithoutSuper(ReactNativeElement);
+[expo-cli]                                                 ^~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:13237:92: warning: the variable "ReadOnlyElement" was not declared in anonymous arrow function " 469#"
+[expo-cli]     return (0, _ReadOnlyNode.getChildNodes)(node).filter(childNode => childNode instanceof ReadOnlyElement);
+[expo-cli]                                                                                            ^~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:13091:3: error: invalid statement encountered.
+[expo-cli]   class ReadOnlyElement extends ReadOnlyNode.default {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:13404:14: warning: the variable "ReactFabricHostComponent" was not declared in function "get 233#"
+[expo-cli]       return ReactFabricHostComponent;
+[expo-cli]              ^~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js:13424:3: error: invalid statement encountered.
+[expo-cli]   class ReactFabricHostComponent {
+[expo-cli]   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] <unknown>:0: error: too many errors emitted
+[expo-cli] Emitted 20 errors. exiting.
+[expo-cli] iOS Bundling failed 65153ms node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js (1461 modules)
+[expo-cli] Error: /home/runner/workspace/node_modules/.pnpm/react-native@0.81.5_patch_hash=a5ba7a6c409d44e4f489604f87ba9cfb69b13a28270b1ab6875b5907_a89f5a0f165944e577393db6014c8561/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc -emit-binary -out /tmp/expo-bundler-0.5968570956516128-1782676291967/index.hbc /tmp/expo-bundler-0.5968570956516128-1782676291967/index.js -O -output-source-map exited with non-zero code: 2
+✖ Export failed
+/home/runner/workspace/node_modules/.pnpm/expo@54.0.35_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_0f76b5139db9537ec4a37b200e397ef1/node_modules/expo/bin/cli export --output-dir dist --source-maps --dump-assetmap --platform ios --platform android exited with non-zero code: 1
