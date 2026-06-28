@@ -1191,3 +1191,897 @@
   */
  
  // flowlint unsafe-getters-setters:off
+--- a/Libraries/Animated/animations/Animation.js
++++ b/Libraries/Animated/animations/Animation.js
+@@ -41,9 +41,9 @@
+ // Once an animation has been stopped or finished its course, it will
+ // not be reused.
+ export default class Animation {
+-  #nativeID: ?number;
+-  #onEnd: ?EndCallback;
+-  #useNativeDriver: boolean;
++  ___nativeID: ?number;
++  ___onEnd: ?EndCallback;
++  ___useNativeDriver: boolean;
+ 
+   __active: boolean;
+   __isInteraction: boolean;
+@@ -52,10 +52,10 @@
+   __debugID: ?string;
+ 
+   constructor(config: AnimationConfig) {
+-    this.#useNativeDriver = NativeAnimatedHelper.shouldUseNativeDriver(config);
++    this.___useNativeDriver = NativeAnimatedHelper.shouldUseNativeDriver(config);
+ 
+     this.__active = false;
+-    this.__isInteraction = config.isInteraction ?? !this.#useNativeDriver;
++    this.__isInteraction = config.isInteraction ?? !this.___useNativeDriver;
+     this.__isLooping = config.isLooping;
+     this.__iterations = config.iterations ?? 1;
+     if (__DEV__) {
+@@ -70,7 +70,7 @@
+     previousAnimation: ?Animation,
+     animatedValue: AnimatedValue,
+   ): void {
+-    if (!this.#useNativeDriver && animatedValue.__isNative === true) {
++    if (!this.___useNativeDriver && animatedValue.__isNative === true) {
+       throw new Error(
+         'Attempting to run JS driven animation on animated node ' +
+           'that has been moved to "native" earlier by starting an ' +
+@@ -78,13 +78,13 @@
+       );
+     }
+ 
+-    this.#onEnd = onEnd;
++    this.___onEnd = onEnd;
+     this.__active = true;
+   }
+ 
+   stop(): void {
+-    if (this.#nativeID != null) {
+-      const nativeID = this.#nativeID;
++    if (this.___nativeID != null) {
++      const nativeID = this.___nativeID;
+       const identifier = `${nativeID}:stopAnimation`;
+       try {
+         // This is only required when singleOpBatching is used, as otherwise
+@@ -123,7 +123,7 @@
+   }
+ 
+   __startAnimationIfNative(animatedValue: AnimatedValue): boolean {
+-    if (!this.#useNativeDriver) {
++    if (!this.___useNativeDriver) {
+       return false;
+     }
+ 
+@@ -135,9 +135,9 @@
+     try {
+       const config = this.__getNativeAnimationConfig();
+       animatedValue.__makeNative(config.platformConfig);
+-      this.#nativeID = NativeAnimatedHelper.generateNewAnimationId();
++      this.___nativeID = NativeAnimatedHelper.generateNewAnimationId();
+       NativeAnimatedHelper.API.startAnimatingNode(
+-        this.#nativeID,
++        this.___nativeID,
+         animatedValue.__getNativeTag(),
+         config,
+         result => {
+@@ -185,9 +185,9 @@
+    * callback will never be called more than once.
+    */
+   __notifyAnimationEnd(result: EndResult): void {
+-    const callback = this.#onEnd;
++    const callback = this.___onEnd;
+     if (callback != null) {
+-      this.#onEnd = null;
++      this.___onEnd = null;
+       callback(result);
+     }
+   }
+--- a/Libraries/Animated/nodes/AnimatedNode.js
++++ b/Libraries/Animated/nodes/AnimatedNode.js
+@@ -28,7 +28,7 @@
+ };
+ 
+ export default class AnimatedNode {
+-  #listeners: Map<string, ValueListenerCallback>;
++  ___listeners: Map<string, ValueListenerCallback>;
+ 
+   _platformConfig: ?PlatformConfig = undefined;
+ 
+@@ -38,7 +38,7 @@
+       ...
+     }>,
+   ) {
+-    this.#listeners = new Map();
++    this.___listeners = new Map();
+     if (__DEV__) {
+       this.__debugID = config?.debugID;
+     }
+@@ -85,7 +85,7 @@
+    */
+   addListener(callback: (value: any) => mixed): string {
+     const id = String(_uniqueId++);
+-    this.#listeners.set(id, callback);
++    this.___listeners.set(id, callback);
+     return id;
+   }
+ 
+@@ -96,7 +96,7 @@
+    * See https://reactnative.dev/docs/animatedvalue#removelistener
+    */
+   removeListener(id: string): void {
+-    this.#listeners.delete(id);
++    this.___listeners.delete(id);
+   }
+ 
+   /**
+@@ -105,11 +105,11 @@
+    * See https://reactnative.dev/docs/animatedvalue#removealllisteners
+    */
+   removeAllListeners(): void {
+-    this.#listeners.clear();
++    this.___listeners.clear();
+   }
+ 
+   hasListeners(): boolean {
+-    return this.#listeners.size > 0;
++    return this.___listeners.size > 0;
+   }
+ 
+   __onAnimatedValueUpdateReceived(value: number, offset: number): void {
+@@ -118,7 +118,7 @@
+ 
+   __callListeners(value: number): void {
+     const event = {value};
+-    this.#listeners.forEach(listener => {
++    this.___listeners.forEach(listener => {
+       listener(event);
+     });
+   }
+--- a/Libraries/Animated/nodes/AnimatedObject.js
++++ b/Libraries/Animated/nodes/AnimatedObject.js
+@@ -82,7 +82,7 @@
+ }
+ 
+ export default class AnimatedObject extends AnimatedWithChildren {
+-  #nodes: $ReadOnlyArray<AnimatedNode>;
++  ___nodes: $ReadOnlyArray<AnimatedNode>;
+   _value: mixed;
+ 
+   /**
+@@ -106,7 +106,7 @@
+     config?: ?AnimatedNodeConfig,
+   ) {
+     super(config);
+-    this.#nodes = nodes;
++    this.___nodes = nodes;
+     this._value = value;
+   }
+ 
+@@ -117,7 +117,7 @@
+   }
+ 
+   __getValueWithStaticObject(staticObject: mixed): any {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     let index = 0;
+     // NOTE: We can depend on `this._value` and `staticObject` sharing a
+     // structure because of `useAnimatedPropsMemo`.
+@@ -131,7 +131,7 @@
+   }
+ 
+   __attach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__addChild(this);
+@@ -140,7 +140,7 @@
+   }
+ 
+   __detach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__removeChild(this);
+@@ -149,7 +149,7 @@
+   }
+ 
+   __makeNative(platformConfig: ?PlatformConfig): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__makeNative(platformConfig);
+--- a/Libraries/Animated/nodes/AnimatedProps.js
++++ b/Libraries/Animated/nodes/AnimatedProps.js
+@@ -92,11 +92,11 @@
+ }
+ 
+ export default class AnimatedProps extends AnimatedNode {
+-  #callback: () => void;
+-  #nodeKeys: $ReadOnlyArray<string>;
+-  #nodes: $ReadOnlyArray<AnimatedNode>;
+-  #props: {[string]: mixed};
+-  #target: ?TargetView = null;
++  ___callback: () => void;
++  ___nodeKeys: $ReadOnlyArray<string>;
++  ___nodes: $ReadOnlyArray<AnimatedNode>;
++  ___props: {[string]: mixed};
++  ___target: ?TargetView = null;
+ 
+   constructor(
+     inputProps: {[string]: mixed},
+@@ -106,19 +106,19 @@
+   ) {
+     super(config);
+     const [nodeKeys, nodes, props] = createAnimatedProps(inputProps, allowlist);
+-    this.#nodeKeys = nodeKeys;
+-    this.#nodes = nodes;
+-    this.#props = props;
+-    this.#callback = callback;
++    this.___nodeKeys = nodeKeys;
++    this.___nodes = nodes;
++    this.___props = props;
++    this.___callback = callback;
+   }
+ 
+   __getValue(): Object {
+     const props: {[string]: mixed} = {};
+ 
+-    const keys = Object.keys(this.#props);
++    const keys = Object.keys(this.___props);
+     for (let ii = 0, length = keys.length; ii < length; ii++) {
+       const key = keys[ii];
+-      const value = this.#props[key];
++      const value = this.___props[key];
+ 
+       if (value instanceof AnimatedNode) {
+         props[key] = value.__getValue();
+@@ -143,7 +143,7 @@
+     const keys = Object.keys(staticProps);
+     for (let ii = 0, length = keys.length; ii < length; ii++) {
+       const key = keys[ii];
+-      const maybeNode = this.#props[key];
++      const maybeNode = this.___props[key];
+ 
+       if (key === 'style') {
+         const staticStyle = staticProps.style;
+@@ -176,10 +176,10 @@
+   __getNativeAnimatedEventTuples(): $ReadOnlyArray<[string, AnimatedEvent]> {
+     const tuples = [];
+ 
+-    const keys = Object.keys(this.#props);
++    const keys = Object.keys(this.___props);
+     for (let ii = 0, length = keys.length; ii < length; ii++) {
+       const key = keys[ii];
+-      const value = this.#props[key];
++      const value = this.___props[key];
+ 
+       if (value instanceof AnimatedEvent && value.__isNative) {
+         tuples.push([key, value]);
+@@ -192,8 +192,8 @@
+   __getAnimatedValue(): Object {
+     const props: {[string]: mixed} = {};
+ 
+-    const nodeKeys = this.#nodeKeys;
+-    const nodes = this.#nodes;
++    const nodeKeys = this.___nodeKeys;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const key = nodeKeys[ii];
+       const node = nodes[ii];
+@@ -204,7 +204,7 @@
+   }
+ 
+   __attach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__addChild(this);
+@@ -213,12 +213,12 @@
+   }
+ 
+   __detach(): void {
+-    if (this.__isNative && this.#target != null) {
+-      this.#disconnectAnimatedView(this.#target);
++    if (this.__isNative && this.___target != null) {
++      this.___disconnectAnimatedView(this.___target);
+     }
+-    this.#target = null;
++    this.___target = null;
+ 
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__removeChild(this);
+@@ -228,11 +228,11 @@
+   }
+ 
+   update(): void {
+-    this.#callback();
++    this.___callback();
+   }
+ 
+   __makeNative(platformConfig: ?PlatformConfig): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__makeNative(platformConfig);
+@@ -246,23 +246,23 @@
+       // where it will be needed to traverse the graph of attached values.
+       super.__setPlatformConfig(platformConfig);
+ 
+-      if (this.#target != null) {
+-        this.#connectAnimatedView(this.#target);
++      if (this.___target != null) {
++        this.___connectAnimatedView(this.___target);
+       }
+     }
+   }
+ 
+   setNativeView(instance: TargetViewInstance): void {
+-    if (this.#target?.instance === instance) {
++    if (this.___target?.instance === instance) {
+       return;
+     }
+-    this.#target = {instance, connectedViewTag: null};
++    this.___target = {instance, connectedViewTag: null};
+     if (this.__isNative) {
+-      this.#connectAnimatedView(this.#target);
++      this.___connectAnimatedView(this.___target);
+     }
+   }
+ 
+-  #connectAnimatedView(target: TargetView): void {
++  ___connectAnimatedView(target: TargetView): void {
+     invariant(this.__isNative, 'Expected node to be marked as "native"');
+     let viewTag: ?number = findNodeHandle(target.instance);
+     if (viewTag == null) {
+@@ -279,7 +279,7 @@
+     target.connectedViewTag = viewTag;
+   }
+ 
+-  #disconnectAnimatedView(target: TargetView): void {
++  ___disconnectAnimatedView(target: TargetView): void {
+     invariant(this.__isNative, 'Expected node to be marked as "native"');
+     const viewTag = target.connectedViewTag;
+     if (viewTag == null) {
+@@ -306,8 +306,8 @@
+     const platformConfig = this.__getPlatformConfig();
+     const propsConfig: {[string]: number} = {};
+ 
+-    const nodeKeys = this.#nodeKeys;
+-    const nodes = this.#nodes;
++    const nodeKeys = this.___nodeKeys;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const key = nodeKeys[ii];
+       const node = nodes[ii];
+--- a/Libraries/Animated/nodes/AnimatedStyle.js
++++ b/Libraries/Animated/nodes/AnimatedStyle.js
+@@ -82,10 +82,10 @@
+ }
+ 
+ export default class AnimatedStyle extends AnimatedWithChildren {
+-  #originalStyleForWeb: ?mixed;
+-  #nodeKeys: $ReadOnlyArray<string>;
+-  #nodes: $ReadOnlyArray<AnimatedNode>;
+-  #style: {[string]: mixed};
++  ___originalStyleForWeb: ?mixed;
++  ___nodeKeys: $ReadOnlyArray<string>;
++  ___nodes: $ReadOnlyArray<AnimatedNode>;
++  ___style: {[string]: mixed};
+ 
+   /**
+    * Creates an `AnimatedStyle` if `value` contains `AnimatedNode` instances.
+@@ -118,9 +118,9 @@
+     config?: ?AnimatedNodeConfig,
+   ) {
+     super(config);
+-    this.#nodeKeys = nodeKeys;
+-    this.#nodes = nodes;
+-    this.#style = style;
++    this.___nodeKeys = nodeKeys;
++    this.___nodes = nodes;
++    this.___style = style;
+ 
+     if ((Platform.OS as string) === 'web') {
+       // $FlowIgnore[cannot-write] - Intentional shadowing.
+@@ -134,10 +134,10 @@
+   __getValue(): FlatStyleForWeb<FlatStyle> | FlatStyle {
+     const style: {[string]: mixed} = {};
+ 
+-    const keys = Object.keys(this.#style);
++    const keys = Object.keys(this.___style);
+     for (let ii = 0, length = keys.length; ii < length; ii++) {
+       const key = keys[ii];
+-      const value = this.#style[key];
++      const value = this.___style[key];
+ 
+       if (value instanceof AnimatedNode) {
+         style[key] = value.__getValue();
+@@ -166,7 +166,7 @@
+     const keys = Object.keys(style);
+     for (let ii = 0, length = keys.length; ii < length; ii++) {
+       const key = keys[ii];
+-      const maybeNode = this.#style[key];
++      const maybeNode = this.___style[key];
+ 
+       if (key === 'transform' && maybeNode instanceof AnimatedTransform) {
+         style[key] = maybeNode.__getValueWithStaticTransforms(
+@@ -185,8 +185,8 @@
+   __getAnimatedValue(): Object {
+     const style: {[string]: mixed} = {};
+ 
+-    const nodeKeys = this.#nodeKeys;
+-    const nodes = this.#nodes;
++    const nodeKeys = this.___nodeKeys;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const key = nodeKeys[ii];
+       const node = nodes[ii];
+@@ -197,7 +197,7 @@
+   }
+ 
+   __attach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__addChild(this);
+@@ -206,7 +206,7 @@
+   }
+ 
+   __detach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__removeChild(this);
+@@ -215,7 +215,7 @@
+   }
+ 
+   __makeNative(platformConfig: ?PlatformConfig) {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__makeNative(platformConfig);
+@@ -227,8 +227,8 @@
+     const platformConfig = this.__getPlatformConfig();
+     const styleConfig: {[string]: ?number} = {};
+ 
+-    const nodeKeys = this.#nodeKeys;
+-    const nodes = this.#nodes;
++    const nodeKeys = this.___nodeKeys;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const key = nodeKeys[ii];
+       const node = nodes[ii];
+--- a/Libraries/Animated/nodes/AnimatedTransform.js
++++ b/Libraries/Animated/nodes/AnimatedTransform.js
+@@ -47,7 +47,7 @@
+ export default class AnimatedTransform extends AnimatedWithChildren {
+   // NOTE: For potentially historical reasons, some operations only operate on
+   // the first level of AnimatedNode instances. This optimizes that bevavior.
+-  #nodes: $ReadOnlyArray<AnimatedNode>;
++  ___nodes: $ReadOnlyArray<AnimatedNode>;
+ 
+   _transforms: $ReadOnlyArray<Transform<>>;
+ 
+@@ -74,12 +74,12 @@
+     config?: ?AnimatedNodeConfig,
+   ) {
+     super(config);
+-    this.#nodes = nodes;
++    this.___nodes = nodes;
+     this._transforms = transforms;
+   }
+ 
+   __makeNative(platformConfig: ?PlatformConfig) {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__makeNative(platformConfig);
+@@ -112,7 +112,7 @@
+   }
+ 
+   __attach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__addChild(this);
+@@ -121,7 +121,7 @@
+   }
+ 
+   __detach(): void {
+-    const nodes = this.#nodes;
++    const nodes = this.___nodes;
+     for (let ii = 0, length = nodes.length; ii < length; ii++) {
+       const node = nodes[ii];
+       node.__removeChild(this);
+--- a/Libraries/Animated/nodes/AnimatedValue.js
++++ b/Libraries/Animated/nodes/AnimatedValue.js
+@@ -85,8 +85,8 @@
+  * See https://reactnative.dev/docs/animatedvalue
+  */
+ export default class AnimatedValue extends AnimatedWithChildren {
+-  #listenerCount: number;
+-  #updateSubscription: ?EventSubscription;
++  ___listenerCount: number;
++  ___updateSubscription: ?EventSubscription;
+ 
+   _value: number;
+   _startingValue: number;
+@@ -100,8 +100,8 @@
+       throw new Error('AnimatedValue: Attempting to set value to undefined');
+     }
+ 
+-    this.#listenerCount = 0;
+-    this.#updateSubscription = null;
++    this.___listenerCount = 0;
++    this.___updateSubscription = null;
+ 
+     this._startingValue = this._value = value;
+     this._offset = 0;
+@@ -127,38 +127,38 @@
+ 
+   __makeNative(platformConfig: ?PlatformConfig): void {
+     super.__makeNative(platformConfig);
+-    if (this.#listenerCount > 0) {
+-      this.#ensureUpdateSubscriptionExists();
++    if (this.___listenerCount > 0) {
++      this.___ensureUpdateSubscriptionExists();
+     }
+   }
+ 
+   addListener(callback: (value: any) => mixed): string {
+     const id = super.addListener(callback);
+-    this.#listenerCount++;
++    this.___listenerCount++;
+     if (this.__isNative) {
+-      this.#ensureUpdateSubscriptionExists();
++      this.___ensureUpdateSubscriptionExists();
+     }
+     return id;
+   }
+ 
+   removeListener(id: string): void {
+     super.removeListener(id);
+-    this.#listenerCount--;
+-    if (this.__isNative && this.#listenerCount === 0) {
+-      this.#updateSubscription?.remove();
++    this.___listenerCount--;
++    if (this.__isNative && this.___listenerCount === 0) {
++      this.___updateSubscription?.remove();
+     }
+   }
+ 
+   removeAllListeners(): void {
+     super.removeAllListeners();
+-    this.#listenerCount = 0;
++    this.___listenerCount = 0;
+     if (this.__isNative) {
+-      this.#updateSubscription?.remove();
++      this.___updateSubscription?.remove();
+     }
+   }
+ 
+-  #ensureUpdateSubscriptionExists(): void {
+-    if (this.#updateSubscription != null) {
++  ___ensureUpdateSubscriptionExists(): void {
++    if (this.___updateSubscription != null) {
+       return;
+     }
+     const nativeTag = this.__getNativeTag();
+@@ -173,13 +173,13 @@
+         },
+       );
+ 
+-    this.#updateSubscription = {
++    this.___updateSubscription = {
+       remove: () => {
+-        // Only this function assigns to `this.#updateSubscription`.
+-        if (this.#updateSubscription == null) {
++        // Only this function assigns to `this.___updateSubscription`.
++        if (this.___updateSubscription == null) {
+           return;
+         }
+-        this.#updateSubscription = null;
++        this.___updateSubscription = null;
+         subscription.remove();
+         NativeAnimatedAPI.stopListeningToAnimatedNodeValue(nativeTag);
+       },
+--- a/Libraries/Debugging/DebuggingOverlayRegistry.js
++++ b/Libraries/Debugging/DebuggingOverlayRegistry.js
+@@ -55,27 +55,27 @@
+ };
+ 
+ class DebuggingOverlayRegistry {
+-  #registry: Set<DebuggingOverlayRegistrySubscriberProtocol> = new Set();
+-  #reactDevToolsAgent: ReactDevToolsAgent | null = null;
++  ___registry: Set<DebuggingOverlayRegistrySubscriberProtocol> = new Set();
++  ___reactDevToolsAgent: ReactDevToolsAgent | null = null;
+ 
+   constructor() {
+     if (reactDevToolsHook?.reactDevtoolsAgent != null) {
+-      this.#onReactDevToolsAgentAttached(reactDevToolsHook.reactDevtoolsAgent);
++      this.___onReactDevToolsAgentAttached(reactDevToolsHook.reactDevtoolsAgent);
+     }
+ 
+     // There could be cases when frontend is disconnected and then connected again for the same React Native runtime.
+     reactDevToolsHook?.on?.(
+       'react-devtools',
+-      this.#onReactDevToolsAgentAttached,
++      this.___onReactDevToolsAgentAttached,
+     );
+   }
+ 
+   subscribe(subscriber: DebuggingOverlayRegistrySubscriberProtocol) {
+-    this.#registry.add(subscriber);
++    this.___registry.add(subscriber);
+   }
+ 
+   unsubscribe(subscriber: DebuggingOverlayRegistrySubscriberProtocol) {
+-    const wasPresent = this.#registry.delete(subscriber);
++    const wasPresent = this.___registry.delete(subscriber);
+     if (!wasPresent) {
+       console.error(
+         '[DebuggingOverlayRegistry] Unexpected argument for unsubscription, which was not previously subscribed:',
+@@ -84,15 +84,15 @@
+     }
+   }
+ 
+-  #onReactDevToolsAgentAttached = (agent: ReactDevToolsAgent): void => {
+-    this.#reactDevToolsAgent = agent;
++  ___onReactDevToolsAgentAttached = (agent: ReactDevToolsAgent): void => {
++    this.___reactDevToolsAgent = agent;
+ 
+-    agent.addListener('drawTraceUpdates', this.#onDrawTraceUpdates);
+-    agent.addListener('showNativeHighlight', this.#onHighlightElements);
+-    agent.addListener('hideNativeHighlight', this.#onClearElementsHighlights);
++    agent.addListener('drawTraceUpdates', this.___onDrawTraceUpdates);
++    agent.addListener('showNativeHighlight', this.___onHighlightElements);
++    agent.addListener('hideNativeHighlight', this.___onClearElementsHighlights);
+   };
+ 
+-  #getPublicInstanceFromInstance = (
++  ___getPublicInstanceFromInstance = (
+     instanceHandle: InstanceFromReactDevTools,
+   ): HostInstance | null => {
+     // `canonical.publicInstance` => Fabric
+@@ -118,12 +118,12 @@
+     return null;
+   };
+ 
+-  #findLowestParentFromRegistryForInstance(
++  ___findLowestParentFromRegistryForInstance(
+     instance: ReactNativeElement,
+   ): ?DebuggingOverlayRegistrySubscriberProtocol {
+     let iterator: ?ReadOnlyElement = instance;
+     while (iterator != null) {
+-      for (const subscriber of this.#registry) {
++      for (const subscriber of this.___registry) {
+         if (subscriber.rootViewRef.current === iterator) {
+           return subscriber;
+         }
+@@ -135,12 +135,12 @@
+     return null;
+   }
+ 
+-  #findLowestParentFromRegistryForInstanceLegacy(
++  ___findLowestParentFromRegistryForInstanceLegacy(
+     instance: HostInstance,
+   ): ?DebuggingOverlayRegistrySubscriberProtocol {
+     const candidates: Array<DebuggingOverlayRegistrySubscriberProtocol> = [];
+ 
+-    for (const subscriber of this.#registry) {
++    for (const subscriber of this.___registry) {
+       if (
+         subscriber.rootViewRef.current != null &&
+         // $FlowFixMe[incompatible-call] There is a lot of stuff to untangle to make types for refs work.
+@@ -213,14 +213,14 @@
+     return candidatesWithNoChildren[0];
+   }
+ 
+-  #onDrawTraceUpdates: (
++  ___onDrawTraceUpdates: (
+     ...ReactDevToolsAgentEvents['drawTraceUpdates']
+   ) => void = traceUpdates => {
+     const modernNodesUpdates: Array<ModernNodeUpdate> = [];
+     const legacyNodesUpdates: Array<LegacyNodeUpdate> = [];
+ 
+     for (const {node, color} of traceUpdates) {
+-      const publicInstance = this.#getPublicInstanceFromInstance(node);
++      const publicInstance = this.___getPublicInstanceFromInstance(node);
+       if (publicInstance == null) {
+         return;
+       }
+@@ -249,21 +249,21 @@
+     }
+ 
+     if (modernNodesUpdates.length > 0) {
+-      this.#drawTraceUpdatesModern(modernNodesUpdates);
++      this.___drawTraceUpdatesModern(modernNodesUpdates);
+     }
+ 
+     if (legacyNodesUpdates.length > 0) {
+-      this.#drawTraceUpdatesLegacy(legacyNodesUpdates);
++      this.___drawTraceUpdatesLegacy(legacyNodesUpdates);
+     }
+   };
+ 
+-  #drawTraceUpdatesModern(updates: Array<ModernNodeUpdate>): void {
++  ___drawTraceUpdatesModern(updates: Array<ModernNodeUpdate>): void {
+     const parentToTraceUpdatesMap = new Map<
+       DebuggingOverlayRegistrySubscriberProtocol,
+       Array<TraceUpdate>,
+     >();
+     for (const {id, instance, color} of updates) {
+-      const parent = this.#findLowestParentFromRegistryForInstance(instance);
++      const parent = this.___findLowestParentFromRegistryForInstance(instance);
+       if (parent == null) {
+         continue;
+       }
+@@ -302,7 +302,7 @@
+   }
+ 
+   // TODO: remove once DOM Node APIs are opt-in by default and Paper is no longer supported.
+-  #drawTraceUpdatesLegacy(updates: Array<LegacyNodeUpdate>): void {
++  ___drawTraceUpdatesLegacy(updates: Array<LegacyNodeUpdate>): void {
+     const parentToTraceUpdatesPromisesMap = new Map<
+       DebuggingOverlayRegistrySubscriberProtocol,
+       Array<Promise<TraceUpdate>>,
+@@ -310,7 +310,7 @@
+ 
+     for (const {id, instance, color} of updates) {
+       const parent =
+-        this.#findLowestParentFromRegistryForInstanceLegacy(instance);
++        this.___findLowestParentFromRegistryForInstanceLegacy(instance);
+ 
+       if (parent == null) {
+         continue;
+@@ -363,11 +363,11 @@
+     }
+   }
+ 
+-  #onHighlightElements: (
++  ___onHighlightElements: (
+     ...ReactDevToolsAgentEvents['showNativeHighlight']
+   ) => void = nodes => {
+     // First clear highlights for every container
+-    for (const subscriber of this.#registry) {
++    for (const subscriber of this.___registry) {
+       subscriber.debuggingOverlayRef.current?.clearElementsHighlight();
+     }
+ 
+@@ -379,7 +379,7 @@
+     const legacyPublicInstances: Array<HostInstance> = [];
+ 
+     for (const node of nodes) {
+-      const publicInstance = this.#getPublicInstanceFromInstance(node);
++      const publicInstance = this.___getPublicInstanceFromInstance(node);
+       if (publicInstance == null) {
+         continue;
+       }
+@@ -392,22 +392,22 @@
+     }
+ 
+     if (reactNativeElements.length > 0) {
+-      this.#onHighlightElementsModern(reactNativeElements);
++      this.___onHighlightElementsModern(reactNativeElements);
+     }
+ 
+     if (legacyPublicInstances.length > 0) {
+-      this.#onHighlightElementsLegacy(legacyPublicInstances);
++      this.___onHighlightElementsLegacy(legacyPublicInstances);
+     }
+   };
+ 
+-  #onHighlightElementsModern(elements: Array<ReactNativeElement>): void {
++  ___onHighlightElementsModern(elements: Array<ReactNativeElement>): void {
+     const parentToElementsMap = new Map<
+       DebuggingOverlayRegistrySubscriberProtocol,
+       Array<ReactNativeElement>,
+     >();
+ 
+     for (const element of elements) {
+-      const parent = this.#findLowestParentFromRegistryForInstance(element);
++      const parent = this.___findLowestParentFromRegistryForInstance(element);
+       if (parent == null) {
+         continue;
+       }
+@@ -444,7 +444,7 @@
+   }
+ 
+   // TODO: remove once DOM Node APIs are opt-in by default and Paper is no longer supported.
+-  #onHighlightElementsLegacy(elements: Array<HostInstance>): void {
++  ___onHighlightElementsLegacy(elements: Array<HostInstance>): void {
+     const parentToElementsMap = new Map<
+       DebuggingOverlayRegistrySubscriberProtocol,
+       Array<HostInstance>,
+@@ -452,7 +452,7 @@
+ 
+     for (const element of elements) {
+       const parent =
+-        this.#findLowestParentFromRegistryForInstanceLegacy(element);
++        this.___findLowestParentFromRegistryForInstanceLegacy(element);
+       if (parent == null) {
+         continue;
+       }
+@@ -501,10 +501,10 @@
+     }
+   }
+ 
+-  #onClearElementsHighlights: (
++  ___onClearElementsHighlights: (
+     ...ReactDevToolsAgentEvents['hideNativeHighlight']
+   ) => void = () => {
+-    for (const subscriber of this.#registry) {
++    for (const subscriber of this.___registry) {
+       subscriber.debuggingOverlayRef.current?.clearElementsHighlight();
+     }
+   };
+--- a/Libraries/vendor/emitter/EventEmitter.js
++++ b/Libraries/vendor/emitter/EventEmitter.js
+@@ -72,11 +72,11 @@
+   > = $ReadOnly<Record<string, $ReadOnlyArray<UnsafeEventObject>>>,
+ > implements IEventEmitter<TEventToArgsMap>
+ {
+-  #registry: Registry<TEventToArgsMap>;
++  ___registry: Registry<TEventToArgsMap>;
+ 
+   constructor() {
+     // $FlowFixMe[incompatible-type]
+-    this.#registry = {};
++    this.___registry = {};
+   }
+ 
+   /**
+@@ -97,7 +97,7 @@
+       TEventToArgsMap,
+       $Keys<TEventToArgsMap>,
+       TEventToArgsMap[TEvent],
+-    >(this.#registry, eventType);
++    >(this.___registry, eventType);
+     const registration: Registration<TEventToArgsMap[TEvent]> = {
+       context,
+       listener,
+@@ -121,7 +121,7 @@
+     ...args: TEventToArgsMap[TEvent]
+   ): void {
+     const registrations: ?Set<Registration<TEventToArgsMap[TEvent]>> =
+-      this.#registry[eventType];
++      this.___registry[eventType];
+     if (registrations != null) {
+       // Copy `registrations` to take a snapshot when we invoke `emit`, in case
+       // registrations are added or removed when listeners are invoked.
+@@ -140,9 +140,9 @@
+   ): void {
+     if (eventType == null) {
+       // $FlowFixMe[incompatible-type]
+-      this.#registry = {};
++      this.___registry = {};
+     } else {
+-      delete this.#registry[eventType];
++      delete this.___registry[eventType];
+     }
+   }
+ 
+@@ -151,7 +151,7 @@
+    */
+   listenerCount<TEvent: $Keys<TEventToArgsMap>>(eventType: TEvent): number {
+     const registrations: ?Set<Registration<TEventToArgsMap[TEvent]>> =
+-      this.#registry[eventType];
++      this.___registry[eventType];
+     return registrations == null ? 0 : registrations.size;
+   }
+ }
