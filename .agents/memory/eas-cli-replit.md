@@ -19,7 +19,7 @@ description: How to authenticate and configure EAS CLI within the Replit shell e
 
 **owner field:** Must match the exact Expo account slug that owns the project (from `eas whoami`). Personal account vs team account matters — use the one that has project creation permission.
 
-**`eas update` in Replit main agent:** The final step of `eas update` triggers a destructive git operation (creating/recording a git commit) which the Replit sandbox blocks. Use `EAS_SKIP_AUTO_FINGERPRINT=1` to skip the fingerprint+git step and publish successfully:
+**`eas update` in Replit main agent:** Requires BOTH env vars — `EAS_SKIP_AUTO_FINGERPRINT=1` skips fingerprint computation, `CI=1` skips the post-publish git write-back. Without both, the sandbox blocks the git index write and the update group is never finalized (bundles upload but publish fails silently):
 ```bash
-EAS_SKIP_AUTO_FINGERPRINT=1 eas update --branch preview --message "..."
+CI=1 EAS_SKIP_AUTO_FINGERPRINT=1 eas update --branch preview --message "..." --non-interactive
 ```

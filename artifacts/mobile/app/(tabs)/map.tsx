@@ -1656,9 +1656,9 @@ export default function MapScreen() {
                       styles.layerCard,
                       {
                         backgroundColor: active
-                          ? colors.accent
-                          : "rgba(255,255,255,0.05)",
-                        borderColor: active ? colors.accent : colors.border,
+                          ? "#1A6B9E"
+                          : colors.secondary,
+                        borderColor: active ? "#1A6B9E" : colors.border,
                       },
                     ]}
                     onPress={() => {
@@ -1670,7 +1670,7 @@ export default function MapScreen() {
                     <MaterialIcons
                       name={opt.icon as never}
                       size={24}
-                      color={active ? "#fff" : colors.mutedForeground}
+                      color={active ? "#fff" : colors.foreground}
                     />
                     <Text
                       style={[
