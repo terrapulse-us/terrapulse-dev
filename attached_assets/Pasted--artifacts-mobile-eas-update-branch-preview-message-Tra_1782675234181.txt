@@ -1,0 +1,73 @@
+~/.../artifacts/mobile$ eas update --branch preview --message "Trail count fix, USFS+OSM on by default, layer color fix"
+[expo-cli] Starting Metro Bundler
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1461/1461)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 98.9% (1450/1458)
+[expo-cli] Failed to generate Hermes bytecode for: /home/runner/workspace/node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218377:5: error: private properties are not supported
+[expo-cli]     #focused;
+[expo-cli]     ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218378:5: error: private properties are not supported
+[expo-cli]     #cleanup;
+[expo-cli]     ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218379:5: error: private properties are not supported
+[expo-cli]     #setup;
+[expo-cli]     ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218382:12: error: private properties are not supported
+[expo-cli]       this.#setup = onFocus => {
+[expo-cli]            ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218394:17: error: private properties are not supported
+[expo-cli]       if (!this.#cleanup) {
+[expo-cli]                 ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218395:36: error: private properties are not supported
+[expo-cli]         this.setEventListener(this.#setup);
+[expo-cli]                                    ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218400:14: error: private properties are not supported
+[expo-cli]         this.#cleanup?.();
+[expo-cli]              ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218401:14: error: private properties are not supported
+[expo-cli]         this.#cleanup = undefined;
+[expo-cli]              ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218405:12: error: private properties are not supported
+[expo-cli]       this.#setup = setup;
+[expo-cli]            ^~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218406:12: error: private properties are not supported
+[expo-cli]       this.#cleanup?.();
+[expo-cli]            ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218407:12: error: private properties are not supported
+[expo-cli]       this.#cleanup = setup(focused => {
+[expo-cli]            ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218416:26: error: private properties are not supported
+[expo-cli]       var changed = this.#focused !== focused;
+[expo-cli]                          ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218418:14: error: private properties are not supported
+[expo-cli]         this.#focused = focused;
+[expo-cli]              ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218429:23: error: private properties are not supported
+[expo-cli]       if (typeof this.#focused === "boolean") {
+[expo-cli]                       ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218430:21: error: private properties are not supported
+[expo-cli]         return this.#focused;
+[expo-cli]                     ^~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218955:5: error: private properties are not supported
+[expo-cli]     #provider = defaultTimeoutProvider;
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218956:5: error: private properties are not supported
+[expo-cli]     #providerCalled = false;
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218958:12: error: private properties are not supported
+[expo-cli]       this.#provider = provider;
+[expo-cli]            ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218961:19: error: private properties are not supported
+[expo-cli]       return this.#provider.setTimeout(callback, delay);
+[expo-cli]                   ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js:218964:12: error: private properties are not supported
+[expo-cli]       this.#provider.clearTimeout(timeoutId);
+[expo-cli]            ^~~~~~~~~
+[expo-cli] <unknown>:0: error: too many errors emitted
+[expo-cli] Error: /home/runner/workspace/node_modules/.pnpm/react-native@0.81.5_patch_hash=a5ba7a6c409d44e4f489604f87ba9cfb69b13a28270b1ab6875b5907_a89f5a0f165944e577393db6014c8561/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc -emit-binary -out /tmp/expo-bundler-0.23201609942462742-1782675213256/index.hbc /tmp/expo-bundler-0.23201609942462742-1782675213256/index.js -O -output-source-map exited with non-zero code: 2
+[expo-cli] Android Bundling failed 6392ms node_modules/.pnpm/expo-router@6.0.24_9836cd3e832509599f02fe5f6294c981/node_modules/expo-router/entry.js (1458 modules)
+✖ Export failed
+/home/runner/workspace/node_modules/.pnpm/expo@54.0.35_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_0f76b5139db9537ec4a37b200e397ef1/node_modules/expo/bin/cli export --output-dir dist --source-maps --dump-assetmap --platform ios --platform android exited with non-zero code: 1
+    Error: update command failed.
