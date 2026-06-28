@@ -22,17 +22,18 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-// In pnpm workspaces Metro resolves symlinks, so file paths go through
-// node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/...
-// The default Metro pattern ignores everything after the first node_modules/,
-// which means packages like react-native's DOMRect (using private class fields
-// #x #y #width #height added in RN 0.81) are never Babel-transformed and
-// Hermes refuses to compile them.
+// In pnpm workspaces, packages live at:
+//   <workspaceRoot>/node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/file.js
 //
-// NOTE: Metro reads transformIgnorePatterns at the TOP LEVEL of config,
-// not under config.transformer — setting it there silently does nothing.
+// The default Metro transformIgnorePatterns regex matches BOTH:
+//   1. <workspaceRoot>/node_modules/.pnpm/   (first segment — .pnpm is in allowlist, OK)
+//   2. <pkg>/node_modules/<other-pkg>/        (second segment — other-pkg not in allowlist → WRONGLY excluded)
+//
+// Fix: anchor the pattern to the absolute workspace root path so it only fires once.
+// Anything inside node_modules/.pnpm/ is then transformed by Babel (including our
+// private-class-field plugins), making the bundle compatible with hermesc linux64 v0.12.0.
 config.transformIgnorePatterns = [
-  "node_modules/(?!(\\.pnpm|react-native|@react-native|expo|@expo|@maplibre)/)",
+  `${workspaceRoot}/node_modules/(?!\\.pnpm)`,
 ];
 
 module.exports = config;
