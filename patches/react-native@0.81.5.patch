@@ -1,137 +1,1193 @@
---- a/src/private/webapis/geometry/DOMRectReadOnly.js
-+++ b/src/private/webapis/geometry/DOMRectReadOnly.js
-@@ -35,10 +35,10 @@
-  * This is a (mostly) spec-compliant version of `DOMRectReadOnly` (https://developer.mozilla.org/en-US/docs/Web/API/DOMRectReadOnly).
+--- a/src/private/devsupport/devmenu/elementinspector/NetworkOverlay.js
++++ b/src/private/devsupport/devmenu/elementinspector/NetworkOverlay.js
+@@ -555,7 +555,7 @@
+   },
+   methodTitleCellView: {
+     height: 18,
+-    borderColor: '#DCD7CD',
++    borderColor: '___DCD7CD',
+     borderTopWidth: 1,
+     borderBottomWidth: 1,
+     borderRightWidth: 1,
+@@ -566,7 +566,7 @@
+   },
+   urlTitleCellView: {
+     height: 18,
+-    borderColor: '#DCD7CD',
++    borderColor: '___DCD7CD',
+     borderTopWidth: 1,
+     borderBottomWidth: 1,
+     borderLeftWidth: 1,
+@@ -578,7 +578,7 @@
+   },
+   methodCellView: {
+     height: 15,
+-    borderColor: '#DCD7CD',
++    borderColor: '___DCD7CD',
+     borderRightWidth: 1,
+     alignItems: 'center',
+     justifyContent: 'center',
+@@ -586,7 +586,7 @@
+   },
+   urlCellView: {
+     height: 15,
+-    borderColor: '#DCD7CD',
++    borderColor: '___DCD7CD',
+     borderLeftWidth: 1,
+     borderRightWidth: 1,
+     justifyContent: 'center',
+--- a/src/private/devsupport/devmenu/elementinspector/StyleInspector.js
++++ b/src/private/devsupport/devmenu/elementinspector/StyleInspector.js
+@@ -61,7 +61,7 @@
+   },
+   attr: {
+     fontSize: 10,
+-    color: '#ccc',
++    color: '___ccc',
+   },
+   value: {
+     fontSize: 10,
+--- a/src/private/devsupport/rndevtools/FuseboxSessionObserver.js
++++ b/src/private/devsupport/rndevtools/FuseboxSessionObserver.js
+@@ -9,16 +9,16 @@
   */
- export default class DOMRectReadOnly {
--  #x: number;
--  #y: number;
--  #width: number;
--  #height: number;
-+  _x: number;
-+  _y: number;
-+  _width: number;
-+  _height: number;
  
-   constructor(x: ?number, y: ?number, width: ?number, height: ?number) {
-     this.__setInternalX(x);
-@@ -51,36 +51,36 @@
-    * The x coordinate of the `DOMRectReadOnly`'s origin.
+ class FuseboxSessionObserver {
+-  #hasNativeSupport: boolean;
++  ___hasNativeSupport: boolean;
+ 
+   constructor() {
+-    this.#hasNativeSupport = global.hasOwnProperty(
++    this.___hasNativeSupport = global.hasOwnProperty(
+       '__DEBUGGER_SESSION_OBSERVER__',
+     );
+   }
+ 
+   hasActiveSession(): boolean {
+-    if (!this.#hasNativeSupport) {
++    if (!this.___hasNativeSupport) {
+       return false;
+     }
+ 
+@@ -26,7 +26,7 @@
+   }
+ 
+   subscribe(callback: (status: boolean) => void): () => void {
+-    if (!this.#hasNativeSupport) {
++    if (!this.___hasNativeSupport) {
+       return () => {};
+     }
+ 
+--- a/src/private/devsupport/rndevtools/setUpFuseboxReactDevToolsDispatcher.js
++++ b/src/private/devsupport/rndevtools/setUpFuseboxReactDevToolsDispatcher.js
+@@ -18,19 +18,19 @@
+ type DomainName = 'react-devtools';
+ 
+ class EventScope<T> {
+-  #listeners: Set<(T) => void> = new Set();
++  ___listeners: Set<(T) => void> = new Set();
+ 
+   addEventListener(listener: T => void): void {
+-    this.#listeners.add(listener);
++    this.___listeners.add(listener);
+   }
+ 
+   removeEventListener(listener: T => void): void {
+-    this.#listeners.delete(listener);
++    this.___listeners.delete(listener);
+   }
+ 
+   emit(value: T): void {
+     // Assuming that listeners won't throw.
+-    for (const listener of this.#listeners) {
++    for (const listener of this.___listeners) {
+       listener(value);
+     }
+   }
+@@ -68,7 +68,7 @@
+  * @see {@link ./__docs__/FuseboxReactDevToolsDispatcher.excalidraw.svg}
+  */
+ class FuseboxReactDevToolsDispatcher {
+-  static #domainNameToDomainMap: Map<DomainName, Domain> = new Map();
++  static ___domainNameToDomainMap: Map<DomainName, Domain> = new Map();
+ 
+   // Referenced and initialized from Chrome DevTools frontend.
+   static BINDING_NAME: string = '__CHROME_DEVTOOLS_FRONTEND_BINDING__';
+@@ -78,7 +78,7 @@
+   static initializeDomain(domainName: DomainName): Domain {
+     const domain = new Domain(domainName);
+ 
+-    this.#domainNameToDomainMap.set(domainName, domain);
++    this.___domainNameToDomainMap.set(domainName, domain);
+     this.onDomainInitialization.emit(domain);
+ 
+     return domain;
+@@ -86,7 +86,7 @@
+ 
+   // Should be private, referenced from Chrome DevTools frontend only.
+   static sendMessage(domainName: DomainName, message: string): void {
+-    const domain = this.#domainNameToDomainMap.get(domainName);
++    const domain = this.___domainNameToDomainMap.get(domainName);
+     if (domain == null) {
+       throw new Error(
+         `Could not send message to ${domainName}: domain doesn't exist`,
+--- a/src/private/specs_DEPRECATED/components/ActivityIndicatorViewNativeComponent.js
++++ b/src/private/specs_DEPRECATED/components/ActivityIndicatorViewNativeComponent.js
+@@ -21,21 +21,21 @@
+   /**
+    * Whether the indicator should hide when not animating (true by default).
+    *
+-   * See https://reactnative.dev/docs/activityindicator#hideswhenstopped-ios
++   * See https://reactnative.dev/docs/activityindicator___hideswhenstopped-ios
     */
-   get x(): number {
--    return this.#x;
-+    return this._x;
+   hidesWhenStopped?: WithDefault<boolean, true>,
+ 
+   /**
+    * Whether to show the indicator (true, the default) or hide it (false).
+    *
+-   * See https://reactnative.dev/docs/activityindicator#animating
++   * See https://reactnative.dev/docs/activityindicator___animating
+    */
+   animating?: WithDefault<boolean, true>,
+ 
+   /**
+    * The foreground color of the spinner (default is gray).
+    *
+-   * See https://reactnative.dev/docs/activityindicator#color
++   * See https://reactnative.dev/docs/activityindicator___color
+    */
+   color?: ?ColorValue,
+ 
+@@ -43,7 +43,7 @@
+    * Size of the indicator (default is 'small').
+    * Passing a number to the size prop is only supported on Android.
+    *
+-   * See https://reactnative.dev/docs/activityindicator#size
++   * See https://reactnative.dev/docs/activityindicator___size
+    */
+   size?: WithDefault<'small' | 'large', 'small'>,
+ }>;
+--- a/src/private/specs_DEPRECATED/components/RCTModalHostViewNativeComponent.js
++++ b/src/private/specs_DEPRECATED/components/RCTModalHostViewNativeComponent.js
+@@ -28,14 +28,14 @@
+   /**
+    * The `animationType` prop controls how the modal animates.
+    *
+-   * See https://reactnative.dev/docs/modal#animationtype
++   * See https://reactnative.dev/docs/modal___animationtype
+    */
+   animationType?: WithDefault<'none' | 'slide' | 'fade', 'none'>,
+ 
+   /**
+    * The `presentationStyle` prop controls how the modal appears.
+    *
+-   * See https://reactnative.dev/docs/modal#presentationstyle
++   * See https://reactnative.dev/docs/modal___presentationstyle
+    */
+   presentationStyle?: WithDefault<
+     'fullScreen' | 'pageSheet' | 'formSheet' | 'overFullScreen',
+@@ -46,7 +46,7 @@
+    * The `transparent` prop determines whether your modal will fill the
+    * entire view.
+    *
+-   * See https://reactnative.dev/docs/modal#transparent
++   * See https://reactnative.dev/docs/modal___transparent
+    */
+   transparent?: WithDefault<boolean, false>,
+ 
+@@ -54,7 +54,7 @@
+    * The `statusBarTranslucent` prop determines whether your modal should go under
+    * the system statusbar.
+    *
+-   * See https://reactnative.dev/docs/modal#statusBarTranslucent
++   * See https://reactnative.dev/docs/modal___statusBarTranslucent
+    */
+   statusBarTranslucent?: WithDefault<boolean, false>,
+ 
+@@ -62,7 +62,7 @@
+    * The `navigationBarTranslucent` prop determines whether your modal should go under
+    * the system navigationbar.
+    *
+-   * See https://reactnative.dev/docs/modal#navigationBarTranslucent
++   * See https://reactnative.dev/docs/modal___navigationBarTranslucent
+    */
+   navigationBarTranslucent?: WithDefault<boolean, false>,
+ 
+@@ -70,7 +70,7 @@
+    * The `hardwareAccelerated` prop controls whether to force hardware
+    * acceleration for the underlying window.
+    *
+-   * See https://reactnative.dev/docs/modal#hardwareaccelerated
++   * See https://reactnative.dev/docs/modal___hardwareaccelerated
+    */
+   hardwareAccelerated?: WithDefault<boolean, false>,
+ 
+@@ -80,7 +80,7 @@
+    *
+    * This is required on Apple TV and Android.
+    *
+-   * See https://reactnative.dev/docs/modal#onrequestclose
++   * See https://reactnative.dev/docs/modal___onrequestclose
+    */
+   onRequestClose?: ?DirectEventHandler<null>,
+ 
+@@ -88,7 +88,7 @@
+    * The `onShow` prop allows passing a function that will be called once the
+    * modal has been shown.
+    *
+-   * See https://reactnative.dev/docs/modal#onshow
++   * See https://reactnative.dev/docs/modal___onshow
+    */
+   onShow?: ?DirectEventHandler<null>,
+ 
+@@ -96,14 +96,14 @@
+    * The `onDismiss` prop allows passing a function that will be called once
+    * the modal has been dismissed.
+    *
+-   * See https://reactnative.dev/docs/modal#ondismiss
++   * See https://reactnative.dev/docs/modal___ondismiss
+    */
+   onDismiss?: ?DirectEventHandler<null>,
+ 
+   /**
+    * The `visible` prop determines whether your modal is visible.
+    *
+-   * See https://reactnative.dev/docs/modal#visible
++   * See https://reactnative.dev/docs/modal___visible
+    */
+   visible?: WithDefault<boolean, false>,
+ 
+@@ -121,7 +121,7 @@
+   /**
+    * The `supportedOrientations` prop allows the modal to be rotated to any of the specified orientations.
+    *
+-   * See https://reactnative.dev/docs/modal#supportedorientations
++   * See https://reactnative.dev/docs/modal___supportedorientations
+    */
+   supportedOrientations?: WithDefault<
+     $ReadOnlyArray<
+@@ -137,7 +137,7 @@
+   /**
+    * The `onOrientationChange` callback is called when the orientation changes while the modal is being displayed.
+    *
+-   * See https://reactnative.dev/docs/modal#onorientationchange
++   * See https://reactnative.dev/docs/modal___onorientationchange
+    */
+   onOrientationChange?: ?DirectEventHandler<OrientationChangeEvent>,
+ 
+--- a/src/private/specs_DEPRECATED/modules/NativeUIManager.js
++++ b/src/private/specs_DEPRECATED/modules/NativeUIManager.js
+@@ -83,7 +83,7 @@
+    * Note that these measurements are not available until after the rendering
+    * has been completed in native. If you need the measurements as soon as
+    * possible, consider using the [`onLayout`
+-   * prop](docs/view.html#onlayout) instead.
++   * prop](docs/view.html___onlayout) instead.
+    *
+    * @deprecated Use `ref.measure` instead.
+    */
+@@ -118,7 +118,7 @@
+     callback: (result: Array<boolean>) => void,
+   ) => void;
+   /**
+-   * Like [`measure()`](#measure), but measures the view relative an ancestor,
++   * Like [`measure()`](___measure), but measures the view relative an ancestor,
+    * specified as `relativeToNativeNode`. This means that the returned x, y
+    * are relative to the origin x, y of the ancestor view.
+    *
+--- a/src/private/types/HostInstance.js
++++ b/src/private/types/HostInstance.js
+@@ -39,7 +39,7 @@
+  * Note, however, that they are not available on composite components that aren't directly backed by a
+  * native view. This will generally include most components that you define in your own app.
+  * For more information, see [Direct Manipulation](https://reactnative.dev/docs/the-new-architecture/direct-manipulation-new-architecture).
+- * @see https://github.com/facebook/react-native/blob/master/Libraries/Renderer/shims/ReactNativeTypes.js#L87
++ * @see https://github.com/facebook/react-native/blob/master/Libraries/Renderer/shims/ReactNativeTypes.js___L87
+  */
+ export interface LegacyHostInstanceMethods {
+   /**
+@@ -66,7 +66,7 @@
+    * Note that these measurements are not available until after the rendering
+    * has been completed in native. If you need the measurements as soon as
+    * possible, consider using the [`onLayout`
+-   * prop](docs/view.html#onlayout) instead.
++   * prop](docs/view.html___onlayout) instead.
+    */
+   measure(callback: MeasureOnSuccessCallback): void;
+   /**
+@@ -86,7 +86,7 @@
+    */
+   measureInWindow(callback: MeasureInWindowOnSuccessCallback): void;
+   /**
+-   * Like [`measure()`](#measure), but measures the view relative an ancestor,
++   * Like [`measure()`](___measure), but measures the view relative an ancestor,
+    * specified as `relativeToNativeComponentRef`. This means that the returned x, y
+    * are relative to the origin x, y of the ancestor view.
+    * _Can also be called with a relativeNativeNodeHandle but is deprecated._
+--- a/src/private/webapis/dom/events/CustomEvent.js
++++ b/src/private/webapis/dom/events/CustomEvent.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `CustomEvent` interface from the DOM.
+- * See https://dom.spec.whatwg.org/#interface-customevent.
++ * See https://dom.spec.whatwg.org/___interface-customevent.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
+--- a/src/private/webapis/dom/events/EventHandlerAttributes.js
++++ b/src/private/webapis/dom/events/EventHandlerAttributes.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module provides helpers for classes to implement event handler IDL
+- * attributes, as defined in https://html.spec.whatwg.org/multipage/webappapis.html#event-handler-idl-attributes.
++ * attributes, as defined in https://html.spec.whatwg.org/multipage/webappapis.html___event-handler-idl-attributes.
+  *
+  * Expected usage:
+  * ```
+--- a/src/private/webapis/dom/events/Event.js
++++ b/src/private/webapis/dom/events/Event.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `Event` interface from the DOM.
+- * See https://dom.spec.whatwg.org/#interface-event.
++ * See https://dom.spec.whatwg.org/___interface-event.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
+--- a/src/private/webapis/dom/events/EventTarget.js
++++ b/src/private/webapis/dom/events/EventTarget.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `EventTarget` and related interfaces from the DOM.
+- * See https://dom.spec.whatwg.org/#interface-eventtarget.
++ * See https://dom.spec.whatwg.org/___interface-eventtarget.
+  */
+ 
+ import type {EventPhase} from './Event';
+@@ -214,7 +214,7 @@
+    * propagation.
+    *
+    * Should implement the "get the parent" algorithm
+-   * (see https://dom.spec.whatwg.org/#get-the-parent).
++   * (see https://dom.spec.whatwg.org/___get-the-parent).
+    */
+   // $FlowExpectedError[unsupported-syntax]
+   [EVENT_TARGET_GET_THE_PARENT_KEY](): EventTarget | null {
+@@ -253,7 +253,7 @@
+  * and not trusted events.
+  *
+  * Implements the "event dispatch" concept
+- * (see https://dom.spec.whatwg.org/#concept-event-dispatch).
++ * (see https://dom.spec.whatwg.org/___concept-event-dispatch).
+  */
+ function dispatch(eventTarget: EventTarget, event: Event): void {
+   setEventDispatchFlag(event, true);
+@@ -304,7 +304,7 @@
+ 
+ /**
+  * Builds the event path for an event about to be dispatched in this target
+- * (see https://dom.spec.whatwg.org/#event-path).
++ * (see https://dom.spec.whatwg.org/___event-path).
+  *
+  * The return value is also set as `composedPath` for the event.
+  */
+@@ -326,7 +326,7 @@
+ 
+ /**
+  * Implements the event listener invoke concept
+- * (see https://dom.spec.whatwg.org/#concept-event-listener-invoke).
++ * (see https://dom.spec.whatwg.org/___concept-event-listener-invoke).
+  */
+ function invoke(
+   eventTarget: EventTarget,
+--- a/src/private/webapis/dom/nodes/ReactNativeDocument.js
++++ b/src/private/webapis/dom/nodes/ReactNativeDocument.js
+@@ -60,7 +60,7 @@
+   }
+ 
+   get nodeName(): string {
+-    return '#document';
++    return '___document';
+   }
+ 
+   get nodeType(): number {
+--- a/src/private/webapis/dom/nodes/ReadOnlyText.js
++++ b/src/private/webapis/dom/nodes/ReadOnlyText.js
+@@ -18,7 +18,7 @@
+    * @override
+    */
+   get nodeName(): string {
+-    return '#text';
++    return '___text';
    }
  
    /**
-    * The y coordinate of the `DOMRectReadOnly`'s origin.
-    */
-   get y(): number {
--    return this.#y;
-+    return this._y;
-   }
+--- a/src/private/webapis/dom/oldstylecollections/HTMLCollection.js
++++ b/src/private/webapis/dom/oldstylecollections/HTMLCollection.js
+@@ -20,7 +20,7 @@
+ 
+ // $FlowIssue[prop-missing] Flow doesn't understand [Symbol.iterator]() {} and thinks this class doesn't implement the Iterable<T> interface.
+ export default class HTMLCollection<T> implements Iterable<T>, ArrayLike<T> {
+-  #length: number;
++  ___length: number;
  
    /**
-    * The width of the `DOMRectReadOnly`.
-    */
-   get width(): number {
--    return this.#width;
-+    return this._width;
+    * Use `createHTMLCollection` to create instances of this class.
+@@ -38,15 +38,15 @@
+       });
+     }
+ 
+-    this.#length = elements.length;
++    this.___length = elements.length;
    }
+ 
+   get length(): number {
+-    return this.#length;
++    return this.___length;
+   }
+ 
+   item(index: number): T | null {
+-    if (index < 0 || index >= this.#length) {
++    if (index < 0 || index >= this.___length) {
+       return null;
+     }
+ 
+--- a/src/private/webapis/dom/oldstylecollections/NodeList.js
++++ b/src/private/webapis/dom/oldstylecollections/NodeList.js
+@@ -24,7 +24,7 @@
+ 
+ // $FlowIssue[prop-missing] Flow doesn't understand [Symbol.iterator]() {} and thinks this class doesn't implement the Iterable<T> interface.
+ export default class NodeList<T> implements Iterable<T>, ArrayLike<T> {
+-  #length: number;
++  ___length: number;
  
    /**
-    * The height of the `DOMRectReadOnly`.
-    */
-   get height(): number {
--    return this.#height;
-+    return this._height;
+    * Use `createNodeList` to create instances of this class.
+@@ -39,15 +39,15 @@
+         writable: false,
+       });
+     }
+-    this.#length = elements.length;
++    this.___length = elements.length;
    }
  
-   /**
-    * Returns the top coordinate value of the `DOMRect` (has the same value as `y`, or `y + height` if `height` is negative).
-    */
-   get top(): number {
--    const height = this.#height;
--    const y = this.#y;
-+    const height = this._height;
-+    const y = this._y;
- 
-     if (height < 0) {
-       return y + height;
-@@ -93,8 +93,8 @@
-    * Returns the right coordinate value of the `DOMRect` (has the same value as ``x + width`, or `x` if `width` is negative).
-    */
-   get right(): number {
--    const width = this.#width;
--    const x = this.#x;
-+    const width = this._width;
-+    const x = this._x;
- 
-     if (width < 0) {
-       return x;
-@@ -107,8 +107,8 @@
-    * Returns the bottom coordinate value of the `DOMRect` (has the same value as `y + height`, or `y` if `height` is negative).
-    */
-   get bottom(): number {
--    const height = this.#height;
--    const y = this.#y;
-+    const height = this._height;
-+    const y = this._y;
- 
-     if (height < 0) {
-       return y;
-@@ -121,8 +121,8 @@
-    * Returns the left coordinate value of the `DOMRect` (has the same value as `x`, or `x + width` if `width` is negative).
-    */
-   get left(): number {
--    const width = this.#width;
--    const x = this.#x;
-+    const width = this._width;
-+    const x = this._x;
- 
-     if (width < 0) {
-       return x + width;
-@@ -157,35 +157,35 @@
+   get length(): number {
+-    return this.#length;
++    return this.___length;
    }
  
-   __getInternalX(): number {
--    return this.#x;
-+    return this._x;
+   item(index: number): T | null {
+-    if (index < 0 || index >= this.#length) {
++    if (index < 0 || index >= this.___length) {
+       return null;
+     }
+ 
+@@ -71,7 +71,7 @@
+     // eslint-disable-next-line consistent-this
+     const arrayLike: ArrayLike<T> = this;
+ 
+-    for (let index = 0; index < this.#length; index++) {
++    for (let index = 0; index < this.___length; index++) {
+       if (thisArg == null) {
+         callbackFn(arrayLike[index], index, this);
+       } else {
+--- a/src/private/webapis/errors/DOMException.js
++++ b/src/private/webapis/errors/DOMException.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `DOMException` interface from WebIDL.
+- * See https://webidl.spec.whatwg.org/#idl-DOMException.
++ * See https://webidl.spec.whatwg.org/___idl-DOMException.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
+@@ -125,27 +125,27 @@
+   +INVALID_NODE_TYPE_ERR: 24;
+   +DATA_CLONE_ERR: 25;
+ 
+-  #name: string;
+-  #code: number;
++  ___name: string;
++  ___code: number;
+ 
+   constructor(message?: string, name?: string) {
+     super(message);
+ 
+     if (typeof name === 'undefined') {
+-      this.#name = 'Error';
+-      this.#code = 0;
++      this.___name = 'Error';
++      this.___code = 0;
+     } else {
+-      this.#name = String(name);
+-      this.#code = ERROR_NAME_TO_ERROR_CODE_MAP[this.name] ?? 0;
++      this.___name = String(name);
++      this.___code = ERROR_NAME_TO_ERROR_CODE_MAP[this.name] ?? 0;
+     }
    }
  
-   __getInternalY(): number {
--    return this.#y;
-+    return this._y;
+   get name(): string {
+-    return this.#name;
++    return this.___name;
    }
  
-   __getInternalWidth(): number {
--    return this.#width;
-+    return this._width;
-   }
- 
-   __getInternalHeight(): number {
--    return this.#height;
-+    return this._height;
-   }
- 
-   __setInternalX(x: ?number) {
--    this.#x = castToNumber(x);
-+    this._x = castToNumber(x);
-   }
- 
-   __setInternalY(y: ?number) {
--    this.#y = castToNumber(y);
-+    this._y = castToNumber(y);
-   }
- 
-   __setInternalWidth(width: ?number) {
--    this.#width = castToNumber(width);
-+    this._width = castToNumber(width);
-   }
- 
-   __setInternalHeight(height: ?number) {
--    this.#height = castToNumber(height);
-+    this._height = castToNumber(height);
+   get code(): number {
+-    return this.#code;
++    return this.___code;
    }
  }
  
+--- a/src/private/webapis/geometry/DOMRectList.js
++++ b/src/private/webapis/geometry/DOMRectList.js
+@@ -21,7 +21,7 @@
+ 
+ // $FlowIssue[prop-missing] Flow doesn't understand [Symbol.iterator]() {} and thinks this class doesn't implement the Iterable interface.
+ export default class DOMRectList implements Iterable<DOMRectReadOnly> {
+-  #length: number;
++  ___length: number;
+ 
+   /**
+    * Use `createDOMRectList` to create instances of this class.
+@@ -39,15 +39,15 @@
+       });
+     }
+ 
+-    this.#length = elements.length;
++    this.___length = elements.length;
+   }
+ 
+   get length(): number {
+-    return this.#length;
++    return this.___length;
+   }
+ 
+   item(index: number): DOMRectReadOnly | null {
+-    if (index < 0 || index >= this.#length) {
++    if (index < 0 || index >= this.___length) {
+       return null;
+     }
+ 
+--- a/src/private/webapis/html/events/MessageEvent.js
++++ b/src/private/webapis/html/events/MessageEvent.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `MessageEvent` interface from the HTML spec.
+- * See https://html.spec.whatwg.org/multipage/comms.html#messageevent.
++ * See https://html.spec.whatwg.org/multipage/comms.html___messageevent.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
+--- a/src/private/webapis/performance/EventTiming.js
++++ b/src/private/webapis/performance/EventTiming.js
+@@ -28,9 +28,9 @@
+ };
+ 
+ export class PerformanceEventTiming extends PerformanceEntry {
+-  #processingStart: DOMHighResTimeStamp;
+-  #processingEnd: DOMHighResTimeStamp;
+-  #interactionId: number;
++  ___processingStart: DOMHighResTimeStamp;
++  ___processingEnd: DOMHighResTimeStamp;
++  ___interactionId: number;
+ 
+   constructor(init: {
+     name: string,
+@@ -46,29 +46,29 @@
+       startTime: init.startTime ?? 0,
+       duration: init.duration ?? 0,
+     });
+-    this.#processingStart = init.processingStart ?? 0;
+-    this.#processingEnd = init.processingEnd ?? 0;
+-    this.#interactionId = init.interactionId ?? 0;
++    this.___processingStart = init.processingStart ?? 0;
++    this.___processingEnd = init.processingEnd ?? 0;
++    this.___interactionId = init.interactionId ?? 0;
+   }
+ 
+   get processingStart(): DOMHighResTimeStamp {
+-    return this.#processingStart;
++    return this.___processingStart;
+   }
+ 
+   get processingEnd(): DOMHighResTimeStamp {
+-    return this.#processingEnd;
++    return this.___processingEnd;
+   }
+ 
+   get interactionId(): number {
+-    return this.#interactionId;
++    return this.___interactionId;
+   }
+ 
+   toJSON(): PerformanceEventTimingJSON {
+     return {
+       ...super.toJSON(),
+-      processingStart: this.#processingStart,
+-      processingEnd: this.#processingEnd,
+-      interactionId: this.#interactionId,
++      processingStart: this.___processingStart,
++      processingEnd: this.___processingEnd,
++      interactionId: this.___interactionId,
+     };
+   }
+ }
+@@ -112,7 +112,7 @@
+ /**
+  * Implementation of the EventCounts Web Performance API
+  * corresponding to the standard in
+- * https://www.w3.org/TR/event-timing/#eventcounts
++ * https://www.w3.org/TR/event-timing/___eventcounts
+  */
+ export class EventCounts {
+   get size(): number {
+--- a/src/private/webapis/performance/MemoryInfo.js
++++ b/src/private/webapis/performance/MemoryInfo.js
+@@ -20,15 +20,15 @@
+ 
+ // Read-only object with JS memory information. This is returned by the performance.memory API.
+ export default class MemoryInfo {
+-  #jsHeapSizeLimit: ?number;
+-  #totalJSHeapSize: ?number;
+-  #usedJSHeapSize: ?number;
++  ___jsHeapSizeLimit: ?number;
++  ___totalJSHeapSize: ?number;
++  ___usedJSHeapSize: ?number;
+ 
+   constructor(memoryInfo: ?MemoryInfoLike) {
+     if (memoryInfo != null) {
+-      this.#jsHeapSizeLimit = memoryInfo.jsHeapSizeLimit;
+-      this.#totalJSHeapSize = memoryInfo.totalJSHeapSize;
+-      this.#usedJSHeapSize = memoryInfo.usedJSHeapSize;
++      this.___jsHeapSizeLimit = memoryInfo.jsHeapSizeLimit;
++      this.___totalJSHeapSize = memoryInfo.totalJSHeapSize;
++      this.___usedJSHeapSize = memoryInfo.usedJSHeapSize;
+     }
+   }
+ 
+@@ -36,21 +36,21 @@
+    * The maximum size of the heap, in bytes, that is available to the context
+    */
+   get jsHeapSizeLimit(): ?number {
+-    return this.#jsHeapSizeLimit;
++    return this.___jsHeapSizeLimit;
+   }
+ 
+   /**
+    * The total allocated heap size, in bytes
+    */
+   get totalJSHeapSize(): ?number {
+-    return this.#totalJSHeapSize;
++    return this.___totalJSHeapSize;
+   }
+ 
+   /**
+    * The currently active segment of JS heap, in bytes.
+    */
+   get usedJSHeapSize(): ?number {
+-    return this.#usedJSHeapSize;
++    return this.___usedJSHeapSize;
+   }
+ }
+ 
+--- a/src/private/webapis/performance/PerformanceEntry.js
++++ b/src/private/webapis/performance/PerformanceEntry.js
+@@ -29,10 +29,10 @@
+ };
+ 
+ export class PerformanceEntry {
+-  #name: string;
+-  #entryType: PerformanceEntryType;
+-  #startTime: DOMHighResTimeStamp;
+-  #duration: DOMHighResTimeStamp;
++  ___name: string;
++  ___entryType: PerformanceEntryType;
++  ___startTime: DOMHighResTimeStamp;
++  ___duration: DOMHighResTimeStamp;
+ 
+   constructor(init: {
+     name: string,
+@@ -40,34 +40,34 @@
+     startTime: DOMHighResTimeStamp,
+     duration: DOMHighResTimeStamp,
+   }) {
+-    this.#name = init.name;
+-    this.#entryType = init.entryType;
+-    this.#startTime = init.startTime;
+-    this.#duration = init.duration;
++    this.___name = init.name;
++    this.___entryType = init.entryType;
++    this.___startTime = init.startTime;
++    this.___duration = init.duration;
+   }
+ 
+   get name(): string {
+-    return this.#name;
++    return this.___name;
+   }
+ 
+   get entryType(): PerformanceEntryType {
+-    return this.#entryType;
++    return this.___entryType;
+   }
+ 
+   get startTime(): DOMHighResTimeStamp {
+-    return this.#startTime;
++    return this.___startTime;
+   }
+ 
+   get duration(): DOMHighResTimeStamp {
+-    return this.#duration;
++    return this.___duration;
+   }
+ 
+   toJSON(): PerformanceEntryJSON {
+     return {
+-      name: this.#name,
+-      entryType: this.#entryType,
+-      startTime: this.#startTime,
+-      duration: this.#duration,
++      name: this.___name,
++      entryType: this.___entryType,
++      startTime: this.___startTime,
++      duration: this.___duration,
+     };
+   }
+ }
+--- a/src/private/webapis/performance/Performance.js
++++ b/src/private/webapis/performance/Performance.js
+@@ -51,7 +51,7 @@
+ /**
+  * Partial implementation of the Performance interface for RN,
+  * corresponding to the standard in
+- * https://www.w3.org/TR/user-timing/#extensions-performance-interface
++ * https://www.w3.org/TR/user-timing/___extensions-performance-interface
+  */
+ export default class Performance {
+   eventCounts: EventCounts = new EventCounts();
+@@ -240,7 +240,7 @@
+   /**
+    * An extension that allows to get back to JS all currently logged marks/measures
+    * (in our case, be it from JS or native), see
+-   * https://www.w3.org/TR/performance-timeline/#extensions-to-the-performance-interface
++   * https://www.w3.org/TR/performance-timeline/___extensions-to-the-performance-interface
+    */
+   getEntries(): PerformanceEntryList {
+     if (!NativePerformance?.getEntries) {
+--- a/src/private/webapis/performance/PerformanceObserver.js
++++ b/src/private/webapis/performance/PerformanceObserver.js
+@@ -28,18 +28,18 @@
+ export {PerformanceEntry} from './PerformanceEntry';
+ 
+ export class PerformanceObserverEntryList {
+-  #entries: PerformanceEntryList;
++  ___entries: PerformanceEntryList;
+ 
+   constructor(entries: PerformanceEntryList) {
+-    this.#entries = entries;
++    this.___entries = entries;
+   }
+ 
+   getEntries(): PerformanceEntryList {
+-    return this.#entries;
++    return this.___entries;
+   }
+ 
+   getEntriesByType(type: PerformanceEntryType): PerformanceEntryList {
+-    return this.#entries.filter(entry => entry.entryType === type);
++    return this.___entries.filter(entry => entry.entryType === type);
+   }
+ 
+   getEntriesByName(
+@@ -47,9 +47,9 @@
+     type?: PerformanceEntryType,
+   ): PerformanceEntryList {
+     if (type === undefined) {
+-      return this.#entries.filter(entry => entry.name === name);
++      return this.___entries.filter(entry => entry.name === name);
+     } else {
+-      return this.#entries.filter(
++      return this.___entries.filter(
+         entry => entry.name === name && entry.entryType === type,
+       );
+     }
+@@ -110,13 +110,13 @@
+  * observer.observe({ type: "event" });
+  */
+ export class PerformanceObserver {
+-  #nativeObserverHandle: OpaqueNativeObserverHandle | null = null;
+-  #callback: PerformanceObserverCallback;
+-  #type: 'single' | 'multiple' | void;
+-  #calledAtLeastOnce = false;
++  ___nativeObserverHandle: OpaqueNativeObserverHandle | null = null;
++  ___callback: PerformanceObserverCallback;
++  ___type: 'single' | 'multiple' | void;
++  ___calledAtLeastOnce = false;
+ 
+   constructor(callback: PerformanceObserverCallback) {
+-    this.#callback = callback;
++    this.___callback = callback;
+   }
+ 
+   observe(options: PerformanceObserverInit): void {
+@@ -125,21 +125,21 @@
+       return;
+     }
+ 
+-    this.#validateObserveOptions(options);
++    this.___validateObserveOptions(options);
+ 
+-    if (this.#nativeObserverHandle == null) {
+-      this.#nativeObserverHandle = this.#createNativeObserver();
++    if (this.___nativeObserverHandle == null) {
++      this.___nativeObserverHandle = this.___createNativeObserver();
+     }
+ 
+-    const observerHandle = nullthrows(this.#nativeObserverHandle);
++    const observerHandle = nullthrows(this.___nativeObserverHandle);
+ 
+     if (options.entryTypes) {
+-      this.#type = 'multiple';
++      this.___type = 'multiple';
+       NativePerformance.observe?.(observerHandle, {
+         entryTypes: options.entryTypes.map(performanceEntryTypeToRaw),
+       });
+     } else if (options.type) {
+-      this.#type = 'single';
++      this.___type = 'single';
+       NativePerformance.observe?.(observerHandle, {
+         type: performanceEntryTypeToRaw(options.type),
+         buffered: options.buffered,
+@@ -154,20 +154,20 @@
+       return;
+     }
+ 
+-    if (this.#nativeObserverHandle == null || !NativePerformance.disconnect) {
++    if (this.___nativeObserverHandle == null || !NativePerformance.disconnect) {
+       return;
+     }
+ 
+-    NativePerformance.disconnect(this.#nativeObserverHandle);
++    NativePerformance.disconnect(this.___nativeObserverHandle);
+   }
+ 
+-  #createNativeObserver(): OpaqueNativeObserverHandle | null {
++  ___createNativeObserver(): OpaqueNativeObserverHandle | null {
+     if (!NativePerformance || !NativePerformance.createObserver) {
+       warnNoNativePerformance();
+       return null;
+     }
+ 
+-    this.#calledAtLeastOnce = false;
++    this.___calledAtLeastOnce = false;
+ 
+     const observerHandle: OpaqueNativeObserverHandle =
+       NativePerformance.createObserver(() => {
+@@ -183,19 +183,19 @@
+         const entryList = new PerformanceObserverEntryList(entries);
+ 
+         let droppedEntriesCount = 0;
+-        if (!this.#calledAtLeastOnce) {
++        if (!this.___calledAtLeastOnce) {
+           droppedEntriesCount =
+             NativePerformance.getDroppedEntriesCount?.(observerHandle) ?? 0;
+-          this.#calledAtLeastOnce = true;
++          this.___calledAtLeastOnce = true;
+         }
+ 
+-        this.#callback(entryList, this, {droppedEntriesCount});
++        this.___callback(entryList, this, {droppedEntriesCount});
+       });
+ 
+     return observerHandle;
+   }
+ 
+-  #validateObserveOptions(options: PerformanceObserverInit): void {
++  ___validateObserveOptions(options: PerformanceObserverInit): void {
+     const {type, entryTypes, durationThreshold} = options;
+ 
+     if (!type && !entryTypes) {
+@@ -210,13 +210,13 @@
+       );
+     }
+ 
+-    if (this.#type === 'multiple' && type) {
++    if (this.___type === 'multiple' && type) {
+       throw new Error(
+         "Failed to execute 'observe' on 'PerformanceObserver': This observer has performed observe({entryTypes:...}, therefore it cannot perform observe({type:...})",
+       );
+     }
+ 
+-    if (this.#type === 'single' && entryTypes) {
++    if (this.___type === 'single' && entryTypes) {
+       throw new Error(
+         "Failed to execute 'observe' on 'PerformanceObserver': This PerformanceObserver has performed observe({type:...}, therefore it cannot perform observe({entryTypes:...})",
+       );
+--- a/src/private/webapis/performance/ReactNativeStartupTiming.js
++++ b/src/private/webapis/performance/ReactNativeStartupTiming.js
+@@ -28,22 +28,22 @@
+   // We do NOT match web spect here for two reasons:
+   // 1. The `ReactNativeStartupTiming` is non-standard API
+   // 2. The timing information is relative to the time origin, which means `0` has valid meaning
+-  #startTime: ?number;
+-  #endTime: ?number;
+-  #initializeRuntimeStart: ?number;
+-  #initializeRuntimeEnd: ?number;
+-  #executeJavaScriptBundleEntryPointStart: ?number;
+-  #executeJavaScriptBundleEntryPointEnd: ?number;
++  ___startTime: ?number;
++  ___endTime: ?number;
++  ___initializeRuntimeStart: ?number;
++  ___initializeRuntimeEnd: ?number;
++  ___executeJavaScriptBundleEntryPointStart: ?number;
++  ___executeJavaScriptBundleEntryPointEnd: ?number;
+ 
+   constructor(startUpTiming: ?ReactNativeStartupTimingLike) {
+     if (startUpTiming != null) {
+-      this.#startTime = startUpTiming.startTime;
+-      this.#endTime = startUpTiming.endTime;
+-      this.#initializeRuntimeStart = startUpTiming.initializeRuntimeStart;
+-      this.#initializeRuntimeEnd = startUpTiming.initializeRuntimeEnd;
+-      this.#executeJavaScriptBundleEntryPointStart =
++      this.___startTime = startUpTiming.startTime;
++      this.___endTime = startUpTiming.endTime;
++      this.___initializeRuntimeStart = startUpTiming.initializeRuntimeStart;
++      this.___initializeRuntimeEnd = startUpTiming.initializeRuntimeEnd;
++      this.___executeJavaScriptBundleEntryPointStart =
+         startUpTiming.executeJavaScriptBundleEntryPointStart;
+-      this.#executeJavaScriptBundleEntryPointEnd =
++      this.___executeJavaScriptBundleEntryPointEnd =
+         startUpTiming.executeJavaScriptBundleEntryPointEnd;
+     }
+   }
+@@ -52,42 +52,42 @@
+    * Start time of the RN app startup process. This is provided by the platform by implementing the `ReactMarker.setAppStartTime` API in the native platform code.
+    */
+   get startTime(): ?number {
+-    return this.#startTime;
++    return this.___startTime;
+   }
+ 
+   /**
+    * End time of the RN app startup process. This is equal to `executeJavaScriptBundleEntryPointEnd`.
+    */
+   get endTime(): ?number {
+-    return this.#endTime;
++    return this.___endTime;
+   }
+ 
+   /**
+    * Start time when RN runtime get initialized. This is when RN infra first kicks in app startup process.
+    */
+   get initializeRuntimeStart(): ?number {
+-    return this.#initializeRuntimeStart;
++    return this.___initializeRuntimeStart;
+   }
+ 
+   /**
+    * End time when RN runtime get initialized. This is the last marker before ends of the app startup process.
+    */
+   get initializeRuntimeEnd(): ?number {
+-    return this.#initializeRuntimeEnd;
++    return this.___initializeRuntimeEnd;
+   }
+ 
+   /**
+    * Start time of JS bundle being executed. This indicates the RN JS bundle is loaded and start to be evaluated.
+    */
+   get executeJavaScriptBundleEntryPointStart(): ?number {
+-    return this.#executeJavaScriptBundleEntryPointStart;
++    return this.___executeJavaScriptBundleEntryPointStart;
+   }
+ 
+   /**
+    * End time of JS bundle being executed. This indicates all the synchronous entry point jobs are finished.
+    */
+   get executeJavaScriptBundleEntryPointEnd(): ?number {
+-    return this.#executeJavaScriptBundleEntryPointEnd;
++    return this.___executeJavaScriptBundleEntryPointEnd;
+   }
+ }
+ 
+--- a/src/private/webapis/performance/ResourceTiming.js
++++ b/src/private/webapis/performance/ResourceTiming.js
+@@ -30,13 +30,13 @@
+ };
+ 
+ export class PerformanceResourceTiming extends PerformanceEntry {
+-  #fetchStart: DOMHighResTimeStamp;
+-  #requestStart: DOMHighResTimeStamp;
+-  #connectStart: DOMHighResTimeStamp;
+-  #connectEnd: DOMHighResTimeStamp;
+-  #responseStart: DOMHighResTimeStamp;
+-  #responseEnd: DOMHighResTimeStamp;
+-  #responseStatus: ?number;
++  ___fetchStart: DOMHighResTimeStamp;
++  ___requestStart: DOMHighResTimeStamp;
++  ___connectStart: DOMHighResTimeStamp;
++  ___connectEnd: DOMHighResTimeStamp;
++  ___responseStart: DOMHighResTimeStamp;
++  ___responseEnd: DOMHighResTimeStamp;
++  ___responseStatus: ?number;
+ 
+   constructor(init: {
+     name: string,
+@@ -56,53 +56,53 @@
+       startTime: init.startTime,
+       duration: init.duration,
+     });
+-    this.#fetchStart = init.fetchStart;
+-    this.#requestStart = init.requestStart;
+-    this.#connectStart = init.connectStart;
+-    this.#connectEnd = init.connectEnd;
+-    this.#responseStart = init.responseStart;
+-    this.#responseEnd = init.responseEnd;
+-    this.#responseStatus = init.responseStatus;
++    this.___fetchStart = init.fetchStart;
++    this.___requestStart = init.requestStart;
++    this.___connectStart = init.connectStart;
++    this.___connectEnd = init.connectEnd;
++    this.___responseStart = init.responseStart;
++    this.___responseEnd = init.responseEnd;
++    this.___responseStatus = init.responseStatus;
+   }
+ 
+   get fetchStart(): DOMHighResTimeStamp {
+-    return this.#fetchStart;
++    return this.___fetchStart;
+   }
+ 
+   get requestStart(): DOMHighResTimeStamp {
+-    return this.#requestStart;
++    return this.___requestStart;
+   }
+ 
+   get connectStart(): DOMHighResTimeStamp {
+-    return this.#connectStart;
++    return this.___connectStart;
+   }
+ 
+   get connectEnd(): DOMHighResTimeStamp {
+-    return this.#connectEnd;
++    return this.___connectEnd;
+   }
+ 
+   get responseStart(): DOMHighResTimeStamp {
+-    return this.#responseStart;
++    return this.___responseStart;
+   }
+ 
+   get responseEnd(): DOMHighResTimeStamp {
+-    return this.#responseEnd;
++    return this.___responseEnd;
+   }
+ 
+   get responseStatus(): ?number {
+-    return this.#responseStatus;
++    return this.___responseStatus;
+   }
+ 
+   toJSON(): PerformanceResourceTimingJSON {
+     return {
+       ...super.toJSON(),
+-      fetchStart: this.#fetchStart,
+-      requestStart: this.#requestStart,
+-      connectStart: this.#connectStart,
+-      connectEnd: this.#connectEnd,
+-      responseStart: this.#responseStart,
+-      responseEnd: this.#responseEnd,
+-      responseStatus: this.#responseStatus,
++      fetchStart: this.___fetchStart,
++      requestStart: this.___requestStart,
++      connectStart: this.___connectStart,
++      connectEnd: this.___connectEnd,
++      responseStart: this.___responseStart,
++      responseEnd: this.___responseEnd,
++      responseStatus: this.___responseStatus,
+     };
+   }
+ }
+--- a/src/private/webapis/performance/UserTiming.js
++++ b/src/private/webapis/performance/UserTiming.js
+@@ -30,7 +30,7 @@
+ };
+ 
+ export class PerformanceMark extends PerformanceEntry {
+-  #detail: DetailType;
++  ___detail: DetailType;
+ 
+   constructor(markName: string, markOptions?: PerformanceMarkOptions) {
+     super({
+@@ -41,17 +41,17 @@
+     });
+ 
+     if (markOptions) {
+-      this.#detail = markOptions.detail;
++      this.___detail = markOptions.detail;
+     }
+   }
+ 
+   get detail(): DetailType {
+-    return this.#detail;
++    return this.___detail;
+   }
+ }
+ 
+ export class PerformanceMeasure extends PerformanceEntry {
+-  #detail: DetailType;
++  ___detail: DetailType;
+ 
+   constructor(measureName: string, measureOptions: PerformanceMeasureInit) {
+     super({
+@@ -62,11 +62,11 @@
+     });
+ 
+     if (measureOptions) {
+-      this.#detail = measureOptions.detail;
++      this.___detail = measureOptions.detail;
+     }
+   }
+ 
+   get detail(): DetailType {
+-    return this.#detail;
++    return this.___detail;
+   }
+ }
+--- a/src/private/webapis/structuredClone/structuredClone.js
++++ b/src/private/webapis/structuredClone/structuredClone.js
+@@ -194,7 +194,7 @@
+  * See:
+  * - https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone.
+  * - https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+- * - https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning
++ * - https://html.spec.whatwg.org/multipage/structured-data.html___structured-cloning
+  *
+  * Supports cloning all built-in types supported by the spec, circular
+  * references and referential equality of the same objects found in the
+--- a/src/private/webapis/websockets/events/CloseEvent.js
++++ b/src/private/webapis/websockets/events/CloseEvent.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `CloseEvent` interface from `WebSocket`.
+- * See https://websockets.spec.whatwg.org/#the-closeevent-interface.
++ * See https://websockets.spec.whatwg.org/___the-closeevent-interface.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
+--- a/src/private/webapis/xhr/events/ProgressEvent.js
++++ b/src/private/webapis/xhr/events/ProgressEvent.js
+@@ -10,7 +10,7 @@
+ 
+ /**
+  * This module implements the `ProgressEvent` interface from `XMLHttpRequest`.
+- * See https://xhr.spec.whatwg.org/#interface-progressevent.
++ * See https://xhr.spec.whatwg.org/___interface-progressevent.
+  */
+ 
+ // flowlint unsafe-getters-setters:off
