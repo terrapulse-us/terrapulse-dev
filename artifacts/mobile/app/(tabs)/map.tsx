@@ -88,10 +88,17 @@ import {
   type RidbFacility,
 } from "@/lib/ridb-api";
 import {
+  fetchNpsOhvParksNear,
+  npsParkCoord,
+  npsHasApiKey,
+  type NpsPark,
+} from "@/lib/nps-api";
+import {
   fromUsfsFeature,
   fromUsfsNfsFeature,
   fromOsmFeature,
   fromRidbFacility,
+  fromNpsPark,
   type TrailGuide,
 } from "@/lib/trail-guide";
 import TrailGuideSheet from "@/components/TrailGuideSheet";
@@ -411,6 +418,10 @@ export default function MapScreen() {
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
   const [showRidbOverlay, setShowRidbOverlay] = useState(false);
 
+  const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
+  const [showNpsOverlay, setShowNpsOverlay] = useState(false);
+  const [npsLoading, setNpsLoading] = useState(false);
+
   // Core navigation: takes a trail explicitly so it works from any call site
   const navigateTrail = useCallback((trail: UserTrail) => {
     const route = trail.routeCoordinates;
@@ -450,7 +461,7 @@ export default function MapScreen() {
     let cancelled = false;
     setNfsLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchUsfsNfsNear(center.latitude, center.longitude, 8)
+    fetchUsfsNfsNear(center.latitude, center.longitude, 25)
       .then(data => { if (!cancelled) setNfsGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setNfsLoading(false); });
@@ -470,13 +481,27 @@ export default function MapScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showRidbOverlay]);
 
+  // ── NPS parks fetch ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showNpsOverlay || !npsHasApiKey()) { setNpsParks([]); return; }
+    let cancelled = false;
+    setNpsLoading(true);
+    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchNpsOhvParksNear(center.latitude, center.longitude, 150)
+      .then(data => { if (!cancelled) setNpsParks(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setNpsLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNpsOverlay]);
+
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
     let cancelled = false;
     setOsmLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchOsmTrailsNear(center.latitude, center.longitude, 5)
+    fetchOsmTrailsNear(center.latitude, center.longitude, 15)
       .then(data => { if (!cancelled) setOsmGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setOsmLoading(false); });
@@ -1210,6 +1235,17 @@ export default function MapScreen() {
           );
         })}
 
+        {/* ── NPS parks markers ─────────────────────────────────────────── */}
+        {npsParks.map((p, i) => {
+          const coord = npsParkCoord(p);
+          if (!coord) return null;
+          return (
+            <Marker key={`nps-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromNpsPark(p))}>
+              <View style={styles.npsMarker} />
+            </Marker>
+          );
+        })}
+
         {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
         {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
@@ -1744,6 +1780,24 @@ export default function MapScreen() {
               </View>
               <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
             </TouchableOpacity>
+
+            {/* National Park Service toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, { backgroundColor: showNpsOverlay ? "#1B5E20" : "rgba(255,255,255,0.05)", borderColor: showNpsOverlay ? "#1B5E20" : colors.border, marginTop: 8 }]}
+              onPress={() => setShowNpsOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="account-balance" size={20} color={showNpsOverlay ? "#fff" : colors.mutedForeground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showNpsOverlay ? "#fff" : colors.foreground }]}>
+                  NAT'L PARK SERVICE{npsLoading ? "  ⏳" : npsParks.length > 0 ? `  (${npsParks.length} parks)` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showNpsOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  {npsHasApiKey() ? "OHV/4WD national parks within 150 mi (forest green)" : "Add EXPO_PUBLIC_NPS_API_KEY to enable"}
+                </Text>
+              </View>
+              {npsLoading ? <ActivityIndicator size="small" color={showNpsOverlay ? "#fff" : "#1B5E20"} /> : <MaterialIcons name={showNpsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNpsOverlay ? "#fff" : colors.mutedForeground} />}
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2270,6 +2324,14 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: "#7B3F9E",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  npsMarker: {
+    width: 13,
+    height: 13,
+    borderRadius: 3,
+    backgroundColor: "#1B5E20",
     borderWidth: 2,
     borderColor: "#fff",
   },
