@@ -44,3 +44,25 @@ The patch changes field NAMES but not declarations; the wrapper deletes declarat
 ## Key distinction: EAS cloud build vs OTA update
 
 EAS cloud build (`eas build`) uses a newer hermesc on Expo's servers — no issue there. Only `eas update` (OTA, runs on the local machine) uses the bundled linux64 hermesc, which is the ancient v0.12.0.
+
+## Babel plugin loading without pnpm install
+
+To load Babel plugins that exist in the pnpm store as transitive deps but are NOT declared as direct deps of the mobile package (and thus not linked), use a `loadFromStore(pkgName)` helper in `babel.config.js` that:
+1. `encode` the package name: `pkgName.replace(/@/g, '').replace(/\//g, '+')`
+2. `readdirSync(node_modules/.pnpm)` and find entries starting with `@<encoded>@` or `<encoded>@`
+3. `require(path.join(storeDir, match, 'node_modules', pkgName))`
+
+This works because pnpm stores all downloaded packages in the content-addressable store regardless of whether they're declared as direct deps. No `pnpm install` needed.
+
+Plugins loaded this way in `artifacts/mobile/babel.config.js`:
+- `@babel/plugin-transform-class-properties` (loose: true)
+- `@babel/plugin-transform-private-methods` (loose: true)
+- `@babel/plugin-transform-private-property-in-object` (loose: true)
+
+These transform ALL class field syntax (private `#field`, public `field;`, public `field = value;`, computed `[KEY] = value;`) to constructor assignments BEFORE hermesc sees the bundle. This is the definitive fix for the hermesc limitation.
+
+## Failure cascade pattern
+
+hermesc reports "invalid statement encountered" at a CLASS DECLARATION when its parser previously failed on something inside an earlier class body. This cascades: one unhandled class field causes ALL subsequent class declarations to fail.
+
+Root classes that must be clean: DOMRectReadOnly, DOMRect, Event, CustomEvent (react-native src/private) — any unhandled class field in these causes hundreds of cascade errors.
