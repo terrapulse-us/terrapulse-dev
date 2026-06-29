@@ -60,9 +60,12 @@ export default function LoginScreen() {
         });
       }
       const response = await GoogleSignin.signIn();
-      const idToken = response.data?.idToken;
+      const idToken = response?.data?.idToken;
       if (!idToken) {
-        Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
+        Alert.alert(
+          "App Update Required",
+          "Google Sign-In requires a newer version of the app. Please reinstall from the latest build.",
+        );
         return;
       }
       await loginWithGoogleCredential(idToken);

@@ -1,3 +1,4 @@
+import "@/lib/native-guard";
 import {
   Inter_400Regular,
   Inter_500Medium,
