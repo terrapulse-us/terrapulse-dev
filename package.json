@@ -12,6 +12,11 @@
   "packageManager": "pnpm@10.26.1",
   "private": true,
   "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-class-properties": "^7.29.7",
+    "@babel/plugin-transform-private-methods": "^7.29.7",
+    "@babel/plugin-transform-private-property-in-object": "^7.29.7",
+    "babel-preset-expo": "^56.0.15",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"
   }
