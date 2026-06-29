@@ -37,6 +37,7 @@ jobs:
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.MAPTILER_API_KEY }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
