@@ -116,4 +116,5 @@ jobs:
 
       - name: Push OTA update
         working-directory: artifacts/mobile
-        run: eas update --channel "${{ inputs.ota_channel }}" --message "OTA: manual update" --non-interactive
+        run: |
+          eas update --channel "${{ inputs.ota_channel }}" --message "OTA manual update" --non-interactive

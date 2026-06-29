@@ -31,28 +31,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Publish OTA update → preview channel
+      - name: Publish OTA update to preview channel
         working-directory: artifacts/mobile
+        continue-on-error: true
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
-          eas update \
-            --channel preview \
-            --message "$SUBJECT" \
-            --non-interactive
-
-      - name: Publish OTA update → production channel
-        working-directory: artifacts/mobile
-        env:
-          MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-        run: |
-          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
-          eas update \
-            --channel production \
-            --message "$SUBJECT" \
-            --non-interactive
+          eas update --channel preview --message "$SUBJECT" --non-interactive
