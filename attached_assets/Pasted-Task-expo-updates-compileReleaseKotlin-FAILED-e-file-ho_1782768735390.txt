@@ -1,0 +1,19 @@
+Task :expo-updates:compileReleaseKotlin FAILED
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesModule.kt:26:34 Unresolved reference 'OptimizedRecord'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesModule.kt:227:4 Unresolved reference 'OptimizedRecord'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesPackage.kt:42:7 'onDidCreateReactHost' overrides nothing.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/UpdatesPackage.kt:63:7 'getDelayLoadAppHandler' overrides nothing. Potential signatures for overriding:
+fun getDelayLoadAppHandler(p0: ReactActivity!, p1: ReactNativeHost!): ReactActivityHandler.DelayLoadAppHandler?
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/reloadscreen/ReloadScreenConfiguration.kt:8:34 Unresolved reference 'OptimizedRecord'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/reloadscreen/ReloadScreenConfiguration.kt:10:2 Unresolved reference 'OptimizedRecord'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/reloadscreen/ReloadScreenConfiguration.kt:20:2 Unresolved reference 'OptimizedRecord'.
+e: file:///home/expo/workingdir/build/node_modules/.pnpm/expo-updates@56.0.19_expo-dev-client@56.0.20_expo@54.0.35_react-native@0.81.5_patch_has_b270c8d5ab4949534ec23f9b8f2c7967/node_modules/expo-updates/android/src/main/java/expo/modules/updates/reloadscreen/ReloadScreenConfiguration.kt:28:2 Unresolved reference 'OptimizedRecord'.
+> Task :expo-modules-core:lintVitalAnalyzeRelease
+> Task :maplibre_maplibre-react-native:lintVitalAnalyzeRelease
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/problems/problems-report.html
+FAILURE:
+Build failed with an exception.
+* What went wrong:
+Execution failed for task ':expo-updates:compileReleaseKotlin'.
+>
+A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
