@@ -313,6 +313,15 @@ export default function MapScreen() {
   const { user, logout } = useAuth();
   const cameraRef = useRef<CameraRef>(null);
 
+  const [mapDiag, setMapDiag] = useState<string>("");
+  useEffect(() => {
+    const key = MAPTILER_KEY;
+    const url = STANDARD_STYLE_URL;
+    if (!key) { setMapDiag("❌ MAPTILER_KEY empty"); return; }
+    fetch(url).then(r => {
+      setMapDiag(r.ok ? `✅ key OK (${key.slice(0,6)}…) HTTP ${r.status}` : `❌ HTTP ${r.status} key=${key.slice(0,6)}…`);
+    }).catch(e => setMapDiag(`❌ fetch error: ${String(e)}`));
+  }, []);
 
   const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
@@ -1125,6 +1134,11 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {!!mapDiag && (
+        <View style={{ position: "absolute", top: insets.top + 4, left: 8, right: 8, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 6, padding: 6, zIndex: 9999 }}>
+          <Text style={{ color: "#fff", fontSize: 11 }}>{mapDiag}</Text>
+        </View>
+      )}
       <MapLibreMap
         key={mapLayer}
         style={styles.map}
