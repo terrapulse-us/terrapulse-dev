@@ -1,0 +1,28 @@
+Starting Metro Bundler
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 21.8% (13/50)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 26.2% (252/493)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓░░░░░░░░░ 47.6% (601/871)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 65.5% ( 905/1125)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 81.9% (1121/1239)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.7% (1432/1479)
+Android Bundling failed 21128ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1481 modules)
+Error: Unable to resolve module @react-native-google-signin/google-signin from /home/expo/workingdir/build/artifacts/mobile/app/login.tsx: @react-native-google-signin/google-signin could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+[0m [90m 21 |[39m   [33mGoogleSignin[39m[33m,[39m
+ [90m 22 |[39m   statusCodes[33m,[39m
+[31m[1m>[22m[39m[90m 23 |[39m } [36mfrom[39m [32m"@react-native-google-signin/google-signin"[39m[33m;[39m
+ [90m    |[39m         [31m[1m^[22m[39m
+ [90m 24 |[39m [36mimport[39m [33mConstants[39m [36mfrom[39m [32m"expo-constants"[39m[33m;[39m
+ [90m 25 |[39m
+ [90m 26 |[39m [36mconst[39m [33mAPP_VERSION[39m [33m=[39m [33mConstants[39m[33m.[39mexpoConfig[33m?[39m[33m.[39mversion [33m?[39m[33m?[39m [32m"?"[39m[33m;[39m[0m
+
+Import stack:
+
+ artifacts/mobile/app/login.tsx
+ | import "@react-native-google-signin/google-signin"
+
+ artifacts/mobile/app (require.context)
+pnpm expo export:embed --eager --platform android --dev false exited with non-zero code: 1
