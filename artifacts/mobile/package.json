@@ -11,7 +11,6 @@
     "eas-build-pre-install": "echo 'MapLibre build starting'"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/cli": "54.0.23",
     "@expo/ngrok": "^4.1.0",
@@ -61,6 +60,7 @@
     "@react-navigation/bottom-tabs": "^7.18.2",
     "expo-dev-client": "^56.0.20",
     "expo-updates": "~29.0.18",
-    "firebase": "^12.15.0"
+    "firebase": "^12.15.0",
+    "@babel/core": "^7.25.2"
   }
 }
