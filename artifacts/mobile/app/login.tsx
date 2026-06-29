@@ -54,7 +54,11 @@ export default function LoginScreen() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices({
+          showPlayServicesUpdateDialog: true,
+        });
+      }
       const response = await GoogleSignin.signIn();
       const idToken = response.data?.idToken;
       if (!idToken) {

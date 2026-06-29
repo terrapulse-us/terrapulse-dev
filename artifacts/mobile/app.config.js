@@ -29,6 +29,8 @@ module.exports = () => ({
       appleTeamId: "TN4GRQ3Y6V",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        GIDClientID:
+          "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com",
         NSCameraUsageDescription:
           "TerraPulse uses your camera to broadcast live off-road streams.",
         NSMicrophoneUsageDescription:
@@ -87,7 +89,13 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
-      "@react-native-google-signin/google-signin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme:
+            "com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101",
+        },
+      ],
       "./plugins/withModularHeaders",
       "./plugins/withHermescWrapper",
     ],
