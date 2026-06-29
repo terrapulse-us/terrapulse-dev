@@ -110,6 +110,14 @@ interface TrailPhoto {
   createdAt: unknown;
 }
 
+interface TrailKeypoint {
+  type: string;
+  label: string;
+  customText: string;
+  lat: number;
+  lng: number;
+}
+
 interface RidePoint {
   latitude: number;
   longitude: number;
@@ -167,6 +175,15 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "topo", label: "Topo", icon: "terrain" },
   { id: "satellite", label: "Satellite", icon: "satellite-alt" },
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
+];
+
+interface KeypointConfig { id: string; label: string; icon: string; color: string; }
+const KEYPOINT_CONFIGS: KeypointConfig[] = [
+  { id: "closed",    label: "Closed",     icon: "block",       color: "#C0392B" },
+  { id: "flooded",   label: "Flooded",    icon: "water",       color: "#1565C0" },
+  { id: "rockslide", label: "Rock Slide", icon: "terrain",     color: "#795548" },
+  { id: "danger",    label: "Danger",     icon: "warning",     color: "#E65100" },
+  { id: "custom",    label: "Custom",     icon: "edit",        color: "#5A9A5A" },
 ];
 
 const MAPTILER_KEY: string =
@@ -376,6 +393,11 @@ export default function MapScreen() {
   const [trailDifficultyRating, setTrailDifficultyRating] = useState(5);
   const [submittingTrail, setSubmittingTrail] = useState(false);
   const [userTrails, setUserTrails] = useState<UserTrail[]>([]);
+
+  const [trailKeypoints, setTrailKeypoints] = useState<TrailKeypoint[]>([]);
+  const [showKeypointModal, setShowKeypointModal] = useState(false);
+  const [keypointSelectedType, setKeypointSelectedType] = useState<string | null>(null);
+  const [keypointCustomText, setKeypointCustomText] = useState("");
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -907,6 +929,26 @@ export default function MapScreen() {
     setFollowUser(true);
   }, [followUser, userLocation]);
 
+  const addKeypoint = useCallback(() => {
+    if (!keypointSelectedType) return;
+    const kpConfig = KEYPOINT_CONFIGS.find(k => k.id === keypointSelectedType);
+    const loc = userLocation;
+    if (!loc) {
+      Alert.alert("No Location", "Enable location to tag a keypoint.");
+      return;
+    }
+    setTrailKeypoints(prev => [...prev, {
+      type: keypointSelectedType,
+      label: kpConfig?.label ?? keypointSelectedType,
+      customText: keypointCustomText,
+      lat: loc.latitude,
+      lng: loc.longitude,
+    }]);
+    setShowKeypointModal(false);
+    setKeypointSelectedType(null);
+    setKeypointCustomText("");
+  }, [keypointSelectedType, keypointCustomText, userLocation]);
+
   const startTrailRecording = useCallback(async () => {
     if (isRecording) {
       Alert.alert("Already Recording", "Stop your ride recording first.");
@@ -921,6 +963,7 @@ export default function MapScreen() {
     trailDistRef.current = 0;
     setTrailPoints([]);
     setTrailDistanceMi(0);
+    setTrailKeypoints([]);
     setTrailElapsed(0);
     const start = Date.now();
     setTrailStartTime(start);
@@ -996,6 +1039,7 @@ export default function MapScreen() {
         createdAt: serverTimestamp(),
         routeCoordinates: pts.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         isUserSubmitted: true,
+        keypoints: trailKeypoints,
       });
       Alert.alert(
         "Trail Added!",
@@ -1059,6 +1103,20 @@ export default function MapScreen() {
       properties: {},
     };
   }, [isNavigating, navTrail, selectedTrail]);
+
+  const allTrailRoutesGeoJSON = useMemo(() => ({
+    type: "FeatureCollection" as const,
+    features: ALL_TRAILS
+      .filter(t => TRAIL_ROUTES[t.id] != null && TRAIL_ROUTES[t.id].length >= 2)
+      .map(t => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: TRAIL_ROUTES[t.id].map(p => [p.lng, p.lat]),
+        },
+        properties: { color: markerColor(t.difficultyRating) },
+      })),
+  }), []);
 
   const TOP_BAR_HEIGHT = insets.top + 64;
   const STATE_BAR_HEIGHT = 48;
@@ -1138,6 +1196,20 @@ export default function MapScreen() {
               id="selected-user-trail-line"
               type="line"
               paint={{ "line-color": "#FF9800", "line-width": 3, "line-opacity": 0.85 }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {allTrailRoutesGeoJSON.features.length > 0 && (
+          <GeoJSONSource id="all-trail-routes" data={allTrailRoutesGeoJSON as never}>
+            <Layer
+              id="all-trail-routes-line"
+              type="line"
+              paint={{
+                "line-color": ["get", "color"] as never,
+                "line-width": 3.5,
+                "line-opacity": 0.78,
+              }}
             />
           </GeoJSONSource>
         )}
@@ -1288,6 +1360,17 @@ export default function MapScreen() {
               />
             </Marker>
           ))}
+
+        {isTrailRecording && trailKeypoints.map((kp, i) => {
+          const kpConfig = KEYPOINT_CONFIGS.find(k => k.id === kp.type);
+          return (
+            <Marker key={`keypoint-${i}`} lngLat={[kp.lng, kp.lat]}>
+              <View style={[styles.keypointMarker, { backgroundColor: kpConfig?.color ?? "#999" }]}>
+                <MaterialIcons name={(kpConfig?.icon ?? "place") as never} size={12} color="#fff" />
+              </View>
+            </Marker>
+          );
+        })}
       </MapLibreMap>
 
       {/* TOP BAR */}
@@ -1494,6 +1577,16 @@ export default function MapScreen() {
               <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>PTS</Text>
             </View>
           </View>
+          <TouchableOpacity
+            style={[styles.tagKeypointBtn, { borderColor: colors.success }]}
+            onPress={() => setShowKeypointModal(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="add-location" size={13} color={colors.success} />
+            <Text style={[styles.tagKeypointText, { color: colors.success }]}>
+              TAG{trailKeypoints.length > 0 ? ` (${trailKeypoints.length})` : ""}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -1525,8 +1618,8 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 136,
-            backgroundColor: mapLayer !== "standard" ? colors.accent : colors.card,
-            borderColor: mapLayer !== "standard" ? colors.accent : colors.border,
+            backgroundColor: mapLayer !== "standard" ? "#5A9A5A" : colors.card,
+            borderColor: mapLayer !== "standard" ? "#5A9A5A" : colors.border,
           },
         ]}
         onPress={() => setShowLayerPicker(true)}
@@ -1535,7 +1628,7 @@ export default function MapScreen() {
         <MaterialIcons
           name="layers"
           size={20}
-          color={mapLayer !== "standard" ? "#000" : colors.mutedForeground}
+          color={mapLayer !== "standard" ? "#fff" : colors.mutedForeground}
         />
       </TouchableOpacity>
 
@@ -1545,8 +1638,8 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 80,
-            backgroundColor: followUser ? colors.accent : colors.card,
-            borderColor: followUser ? colors.accent : colors.border,
+            backgroundColor: followUser ? "#5A9A5A" : colors.card,
+            borderColor: followUser ? "#5A9A5A" : colors.border,
           },
         ]}
         onPress={locateMe}
@@ -1555,7 +1648,7 @@ export default function MapScreen() {
         <MaterialIcons
           name={followUser ? "gps-fixed" : "my-location"}
           size={20}
-          color={followUser ? "#000" : (userLocation ? colors.accent : colors.mutedForeground)}
+          color={followUser ? "#fff" : (userLocation ? colors.accent : colors.mutedForeground)}
         />
       </TouchableOpacity>
 
@@ -1656,9 +1749,9 @@ export default function MapScreen() {
                       styles.layerCard,
                       {
                         backgroundColor: active
-                          ? "#1A6B9E"
+                          ? "#5A9A5A"
                           : colors.secondary,
-                        borderColor: active ? "#1A6B9E" : colors.border,
+                        borderColor: active ? "#5A9A5A" : colors.border,
                       },
                     ]}
                     onPress={() => {
@@ -1698,7 +1791,7 @@ export default function MapScreen() {
             </Text>
             {/* USFS toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? "#1A6B9E" : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? "#1A6B9E" : colors.border }]}
+              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? "#5A9A5A" : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? "#5A9A5A" : colors.border }]}
               onPress={() => setShowUsfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
@@ -1931,6 +2024,7 @@ export default function MapScreen() {
                   trailPointsRef.current = [];
                   setTrailPoints([]);
                   setTrailDistanceMi(0);
+                  setTrailKeypoints([]);
                 }}
               >
                 <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>DISCARD</Text>
@@ -1947,6 +2041,106 @@ export default function MapScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      {/* KEYPOINT TAGGING MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showKeypointModal}
+        onRequestClose={() => {
+          setShowKeypointModal(false);
+          setKeypointSelectedType(null);
+          setKeypointCustomText("");
+        }}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E65100", borderTopWidth: 2 }]}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={styles.modalHandle} />
+              <Text style={[styles.layerTitle, { color: colors.foreground, marginBottom: 4 }]}>
+                TAG KEYPOINT
+              </Text>
+              <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 16 }]}>
+                Mark your current position with a hazard or note
+              </Text>
+
+              {KEYPOINT_CONFIGS.map((kp) => {
+                const isActive = keypointSelectedType === kp.id;
+                return (
+                  <TouchableOpacity
+                    key={kp.id}
+                    style={[
+                      styles.keypointTypeBtn,
+                      {
+                        backgroundColor: isActive ? kp.color : "rgba(0,0,0,0.04)",
+                        borderColor: isActive ? kp.color : colors.border,
+                        marginBottom: 8,
+                      },
+                    ]}
+                    onPress={() => {
+                      setKeypointSelectedType(kp.id);
+                      if (kp.id !== "custom") setKeypointCustomText("");
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons
+                      name={kp.icon as never}
+                      size={20}
+                      color={isActive ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text style={[styles.keypointTypeBtnText, { color: isActive ? "#fff" : colors.foreground }]}>
+                      {kp.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {keypointSelectedType === "custom" && (
+                <TextInput
+                  style={[
+                    styles.trailNameInput,
+                    { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background, marginBottom: 4 },
+                  ]}
+                  placeholder="Describe the condition..."
+                  placeholderTextColor={colors.mutedForeground}
+                  value={keypointCustomText}
+                  onChangeText={setKeypointCustomText}
+                  maxLength={120}
+                />
+              )}
+
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
+                  onPress={() => {
+                    setShowKeypointModal(false);
+                    setKeypointSelectedType(null);
+                    setKeypointCustomText("");
+                  }}
+                >
+                  <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.completeBtn,
+                    {
+                      flex: 1,
+                      marginTop: 0,
+                      backgroundColor: keypointSelectedType
+                        ? (KEYPOINT_CONFIGS.find(k => k.id === keypointSelectedType)?.color ?? colors.success)
+                        : colors.border,
+                      opacity: keypointSelectedType ? 1 : 0.5,
+                    },
+                  ]}
+                  onPress={addKeypoint}
+                  disabled={!keypointSelectedType}
+                >
+                  <Text style={[styles.completeBtnText, { color: "#fff" }]}>ADD TAG</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2370,4 +2564,46 @@ const styles = StyleSheet.create({
   },
   overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },
+  keypointMarker: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+  },
+  keypointTypeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  keypointTypeBtnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  tagKeypointBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  tagKeypointText: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
 });
