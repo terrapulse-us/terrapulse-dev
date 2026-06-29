@@ -3,17 +3,23 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Expo config plugin: wraps the CocoaPods hermes-engine hermesc binary so
- * it can handle private class field syntax (#field) that hermesc v0.12.0
- * (RN 0.81) rejects.
+ * Expo config plugin — works around hermesc v0.12.0 (RN 0.81) rejecting
+ * private class field syntax (#field) in main.jsbundle.
  *
- * Strategy: inject Ruby code INTO the existing post_install block rather
- * than appending a second block (CocoaPods only runs the last post_install).
- * The Ruby code reads scripts/hermesc-ios-wrapper.sh from the monorepo root
- * (avoiding all heredoc / escaping complexity) and copies it over the real
- * hermesc binary, backing up the original as hermesc.real.
+ * PREVIOUS APPROACH (broken): replace the Pods hermesc binary in post_install.
+ * PROBLEM: the "[CP-User] [Hermes] Replace Hermes for the right configuration"
+ * Xcode build phase runs AFTER pod install and overwrites any binary we place.
  *
- * Path from ios/Podfile up to monorepo root: ../../..
+ * CURRENT APPROACH: set HERMES_CLI_PATH in the Xcode project's build settings
+ * from the post_install hook. react-native-xcode.sh reads HERMES_CLI_PATH and
+ * invokes our wrapper script instead of the Pods binary directly. The wrapper
+ * pre-processes the .jsbundle file with perl (stripping #field syntax) then
+ * calls the real Pods hermesc. "Replace Hermes" can overwrite the binary freely —
+ * we never touch it.
+ *
+ * Path arithmetic:
+ *   $(SRCROOT) = {workspace}/artifacts/mobile/ios
+ *   $(SRCROOT)/../../../scripts = {workspace}/scripts  ✓
  */
 module.exports = function withHermescWrapper(config) {
   return withDangerousMod(config, [
@@ -30,34 +36,38 @@ module.exports = function withHermescWrapper(config) {
         return config;
       }
 
-      // Ruby lines to inject. Use short var names prefixed _hw_ to avoid
-      // collisions with other post_install code. No heredoc needed — the
-      // wrapper script is read from disk at pod-install time.
+      // Ruby injected into the existing post_install block.
+      // Sets HERMES_CLI_PATH in the .xcodeproj build settings so
+      // react-native-xcode.sh calls scripts/hermesc-ios-wrapper.sh.
+      // Also chmods the script so Xcode can execute it.
       const rubyLines = [
         `  ${marker}`,
-        "  require 'fileutils'",
-        "  _hw_src = File.expand_path('../../../scripts/hermesc-ios-wrapper.sh', __dir__)",
-        "  if File.exist?(_hw_src)",
-        "    Dir.glob(File.join(installer.sandbox.root.to_s, '**/destroot/bin/hermesc')).each do |_hw_dst|",
-        "      next if File.exist?(_hw_dst + '.real')",
-        "      next unless File.exist?(_hw_dst) && File.size(_hw_dst) > 1_000_000",
-        "      FileUtils.cp(_hw_dst, _hw_dst + '.real')",
-        "      FileUtils.cp(_hw_src, _hw_dst)",
-        "      File.chmod(0755, _hw_dst)",
-        "      puts \"hermesc wrapper installed: #{_hw_dst}\"",
+        "  # Point HERMES_CLI_PATH to our wrapper so react-native-xcode.sh",
+        "  # pre-processes .jsbundle with perl before calling the real hermesc.",
+        "  _hw_script = File.expand_path('../../../scripts/hermesc-ios-wrapper.sh', __dir__)",
+        "  if File.exist?(_hw_script)",
+        "    File.chmod(0755, _hw_script)",
+        "    _hw_xcode_path = '$(SRCROOT)/../../../scripts/hermesc-ios-wrapper.sh'",
+        "    installer.aggregate_targets.each do |_hw_agg|",
+        "      _hw_agg.user_project.targets.each do |_hw_t|",
+        "        _hw_t.build_configurations.each do |_hw_bc|",
+        "          _hw_bc.build_settings['HERMES_CLI_PATH'] = _hw_xcode_path",
+        "        end",
+        "      end",
+        "      _hw_agg.user_project.save",
         "    end",
+        "    puts \"hermesc wrapper: HERMES_CLI_PATH -> #{_hw_xcode_path}\"",
+        "  else",
+        "    puts \"hermesc wrapper: SKIPPED (script not found at #{_hw_script})\"",
         "  end",
       ].join("\n");
 
       if (podfile.includes("post_install do |installer|")) {
-        // Insert at the top of the existing post_install block so
-        // react_native_post_install still runs after our code.
         podfile = podfile.replace(
           "post_install do |installer|",
           "post_install do |installer|\n" + rubyLines
         );
       } else {
-        // Fallback: no existing post_install — add one.
         podfile +=
           "\npost_install do |installer|\n" + rubyLines + "\nend\n";
       }
