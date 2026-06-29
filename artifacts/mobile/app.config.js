@@ -89,13 +89,6 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          iosUrlScheme:
-            "com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101",
-        },
-      ],
       "./plugins/withModularHeaders",
       "./plugins/withHermescWrapper",
     ],
