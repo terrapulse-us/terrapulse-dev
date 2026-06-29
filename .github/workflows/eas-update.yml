@@ -36,10 +36,12 @@ jobs:
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
+          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
           eas update \
             --channel preview \
-            --message "${{ github.event.head_commit.message }}" \
+            --message "$SUBJECT" \
             --non-interactive
 
       - name: Publish OTA update → production channel
@@ -47,8 +49,10 @@ jobs:
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
+          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
           eas update \
             --channel production \
-            --message "${{ github.event.head_commit.message }}" \
+            --message "$SUBJECT" \
             --non-interactive
