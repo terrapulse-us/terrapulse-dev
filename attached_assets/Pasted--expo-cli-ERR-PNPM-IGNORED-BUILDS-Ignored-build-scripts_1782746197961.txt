@@ -1,0 +1,18 @@
+[expo-cli] [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @firebase/util@1.15.1, esbuild@0.27.3, protobufjs@7.6.4
+[expo-cli] 
+[expo-cli] Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[expo-cli] Error: pnpm add expo-updates@~29.0.18 exited with non-zero code: 1
+[expo-cli] Error: pnpm add expo-updates@~29.0.18 exited with non-zero code: 1
+[expo-cli]     at ChildProcess.completionListener (/workspaces/terrapulse-dev/node_modules/.pnpm/@expo+spawn-async@1.8.0/node_modules/@expo/spawn-async/build/spawnAsync.js:113:23)
+[expo-cli]     at Object.onceWrapper (node:events:623:26)
+[expo-cli]     at ChildProcess.emit (node:events:508:28)
+[expo-cli]     at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+[expo-cli]     ...
+[expo-cli]     at spawnAsync (/workspaces/terrapulse-dev/node_modules/.pnpm/@expo+spawn-async@1.8.0/node_modules/@expo/spawn-async/build/spawnAsync.js:9:23)
+[expo-cli]     at PnpmPackageManager.runAsync (/workspaces/terrapulse-dev/node_modules/.pnpm/@expo+package-manager@1.12.1/node_modules/@expo/package-manager/build/node/BasePackageManager.js:41:42)
+[expo-cli]     at PnpmPackageManager.addAsync (/workspaces/terrapulse-dev/node_modules/.pnpm/@expo+package-manager@1.12.1/node_modules/@expo/package-manager/build/node/PnpmPackageManager.js:36:21)
+[expo-cli]     at installPackagesAsync (/workspaces/terrapulse-dev/node_modules/.pnpm/@expo+cli@54.0.25_expo-router@6.0.24_expo@54.0.35_react-native@0.81.5_@babel+core@7.29._d2692a18a3c9d9eb24f2d1bd1f7e96db/node_modules/@expo/cli/build/src/install/installAsync.js:189:30)
+[expo-cli]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+/workspaces/terrapulse-dev/node_modules/.pnpm/expo@54.0.35_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_1c6fa8026af1b19ad2a5aacd4e91f6ed/node_modules/expo/bin/cli install expo-updates exited with non-zero code: 1
+    Error: update command failed.
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ 

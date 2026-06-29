@@ -1,0 +1,54 @@
+This specific error is a known compatibility bug in recent versions of **React Native** (specifically impacting React Native 0.81+ and Expo SDK 54+) tied to how the core framework polyfills global web APIs.
+
+---
+
+### What is Happening under the Hood?
+
+When you try to sign in with Google, your auth provider (like Clerk, Firebase, or a custom OAuth setup) initiates a network request via `fetch()`.
+
+1. Internally, `fetch` relies on a package called `abort-controller`, which in turn relies on `event-target-shim`.
+2. As `event-target-shim` boots up, it attempts to define several standard web event constants (like `NONE`, `CAPTURING_PHASE`, `AT_TARGET`, `BUBBLING_PHASE`) onto the global `Event` object.
+3. However, React Native's newer architecture strictly pre-defines `Event.NONE` as a **read-only/non-configurable** property. Because `event-target-shim` tries to overwrite or redefine it during your sign-in network request, JavaScript throws a hard crash: `TypeError: Cannot assign to read-only property 'NONE'`.
+
+---
+
+### How to Fix It
+
+Depending on your environment, you have a few ways to resolve this until a clean upstream patch lands in your core dependencies.
+
+#### Option 1: Update React Native / Expo
+
+Because this is a known bug in `src/private/webapis/dom/events/Event.js`, check if there is a minor or patch update available for your framework version. Run a quick update to see if it has been officially resolved in a newer patch release:
+
+```bash
+# For Expo projects
+npx expo install --fix
+
+# For bare React Native projects
+npm update react-native
+# or
+yarn upgrade react-native
+
+```
+
+#### Option 2: Use `patch-package` (The Direct Fix)
+
+If an official update isn't available for your specific version yet, you can use `patch-package` to make the property configurable.
+
+1. Open your node_modules and locate the React Native event file:
+`node_modules/react-native/src/private/webapis/dom/events/Event.js`
+2. Look for the `Object.defineProperty` calls near the top or bottom of the file where `NONE` is declared.
+3. Change the descriptor to include `writable: true` and `configurable: true`. For example:
+
+```javascript
+// Before
+Object.defineProperty(Event, 'NONE', { value: 0 });
+
+// After
+Object.defineProperty(Event, 'NONE', { value: 0, writable: true, configurable: true });
+
+```
+
+*(Do this for the other phase constants like `CAPTURING_PHASE`, `AT_TARGET`, and `BUBBLING_PHASE` if they throw errors next).*
+
+4. Run `npx patch-package react-native` to save your changes so they persist across future `npm install` runs.
