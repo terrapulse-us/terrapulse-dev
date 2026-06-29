@@ -13,11 +13,19 @@ config.resolver.nodeModulesPaths = [
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (platform === "web" && moduleName === "@maplibre/maplibre-react-native") {
-    return {
-      filePath: path.resolve(__dirname, "stubs/maplibre-react-native.web.js"),
-      type: "sourceFile",
-    };
+  if (platform === "web") {
+    if (moduleName === "@maplibre/maplibre-react-native") {
+      return {
+        filePath: path.resolve(__dirname, "stubs/maplibre-react-native.web.js"),
+        type: "sourceFile",
+      };
+    }
+    if (moduleName === "@api.video/react-native-livestream") {
+      return {
+        filePath: path.resolve(__dirname, "stubs/apivideo-livestream.web.js"),
+        type: "sourceFile",
+      };
+    }
   }
   return context.resolveRequest(context, moduleName, platform);
 };
