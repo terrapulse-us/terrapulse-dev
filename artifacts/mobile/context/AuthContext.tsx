@@ -67,10 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    let preflight = "not-run";
+    try {
+      const r = await fetch(
+        "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=__diag__",
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }
+      );
+      preflight = `reachable(${r.status})`;
+    } catch (e) {
+      preflight = `unreachable:${e instanceof Error ? e.message : String(e)}`;
+    }
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      throw new Error(firebaseAuthMessage(err));
+      throw new Error(`${firebaseAuthMessage(err)} | net:${preflight}`);
     }
   };
 
