@@ -89,6 +89,7 @@ module.exports = () => ({
       "@maplibre/maplibre-react-native",
       "@react-native-google-signin/google-signin",
       "./plugins/withModularHeaders",
+      "./plugins/withHermescWrapper",
     ],
     experiments: {
       typedRoutes: true,
