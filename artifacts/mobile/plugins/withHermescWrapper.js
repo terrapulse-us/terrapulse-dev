@@ -3,14 +3,17 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Expo config plugin: adds a CocoaPods post_install hook that wraps the
- * hermes-engine hermesc binary to strip private class field syntax.
+ * Expo config plugin: wraps the CocoaPods hermes-engine hermesc binary so
+ * it can handle private class field syntax (#field) that hermesc v0.12.0
+ * (RN 0.81) rejects.
  *
- * WHY: hermesc v0.12.0 (bundled with RN 0.81) rejects private class fields
- * (#field). For iOS, Xcode invokes hermesc from the CocoaPods hermes-engine
- * pod ($PODS_ROOT/hermes-engine/destroot/bin/hermesc), NOT from the pnpm
- * store — so the pnpm postinstall wrapper has no effect on iOS builds.
- * This plugin wraps the CocoaPods binary instead.
+ * Strategy: inject Ruby code INTO the existing post_install block rather
+ * than appending a second block (CocoaPods only runs the last post_install).
+ * The Ruby code reads scripts/hermesc-ios-wrapper.sh from the monorepo root
+ * (avoiding all heredoc / escaping complexity) and copies it over the real
+ * hermesc binary, backing up the original as hermesc.real.
+ *
+ * Path from ios/Podfile up to monorepo root: ../../..
  */
 module.exports = function withHermescWrapper(config) {
   return withDangerousMod(config, [
@@ -27,40 +30,38 @@ module.exports = function withHermescWrapper(config) {
         return config;
       }
 
-      // Ruby code injected as a separate post_install block.
-      // CocoaPods runs all post_install blocks in order.
-      // The <<~'WRAPPER_BASH' single-quoted heredoc passes content verbatim
-      // (no Ruby interpolation), so $1, \s, etc. reach the bash script intact.
-      const rubyBlock = `
-post_install do |installer|
-  ${marker}
-  # hermesc v0.12.0 (RN 0.81) cannot compile private class fields (#field).
-  # Wrap the CocoaPods hermesc binary with a perl-based preprocessor.
-  require 'fileutils'
-  Dir.glob(File.join(installer.sandbox.root.to_s, '**/destroot/bin/hermesc')).each do |hermesc_path|
-    real_path = hermesc_path + '.real'
-    next if File.exist?(real_path)
-    next unless File.exist?(hermesc_path) && File.size(hermesc_path) > 1_000_000
-    FileUtils.cp(hermesc_path, real_path)
-    wrapper = <<~'WRAPPER_BASH'
-      #!/bin/bash
-      REAL_HERMESC="$(dirname "$0")/hermesc.real"
-      INPUT_JS=""
-      for arg in "$@"; do case "$arg" in *.js) INPUT_JS="$arg" ;; esac; done
-      if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
-        perl -i -pe 's/this\\.#([a-zA-Z_][a-zA-Z0-9_]*)/this.___$1/g' "$INPUT_JS"
-        perl -i -ne 'print unless /^\\s+#[a-zA-Z_][a-zA-Z0-9_]*\\s*[;=]/ || /^\\s+___[a-zA-Z_][a-zA-Z0-9_]*\\s*[;=]/' "$INPUT_JS"
-      fi
-      exec "$REAL_HERMESC" "$@"
-    WRAPPER_BASH
-    File.write(hermesc_path, wrapper)
-    File.chmod(0755, hermesc_path)
-    puts "hermesc wrapper installed: #{hermesc_path}"
-  end
-end
-`;
+      // Ruby lines to inject. Use short var names prefixed _hw_ to avoid
+      // collisions with other post_install code. No heredoc needed — the
+      // wrapper script is read from disk at pod-install time.
+      const rubyLines = [
+        `  ${marker}`,
+        "  require 'fileutils'",
+        "  _hw_src = File.expand_path('../../../scripts/hermesc-ios-wrapper.sh', __dir__)",
+        "  if File.exist?(_hw_src)",
+        "    Dir.glob(File.join(installer.sandbox.root.to_s, '**/destroot/bin/hermesc')).each do |_hw_dst|",
+        "      next if File.exist?(_hw_dst + '.real')",
+        "      next unless File.exist?(_hw_dst) && File.size(_hw_dst) > 1_000_000",
+        "      FileUtils.cp(_hw_dst, _hw_dst + '.real')",
+        "      FileUtils.cp(_hw_src, _hw_dst)",
+        "      File.chmod(0755, _hw_dst)",
+        "      puts \"hermesc wrapper installed: #{_hw_dst}\"",
+        "    end",
+        "  end",
+      ].join("\n");
 
-      podfile += rubyBlock;
+      if (podfile.includes("post_install do |installer|")) {
+        // Insert at the top of the existing post_install block so
+        // react_native_post_install still runs after our code.
+        podfile = podfile.replace(
+          "post_install do |installer|",
+          "post_install do |installer|\n" + rubyLines
+        );
+      } else {
+        // Fallback: no existing post_install — add one.
+        podfile +=
+          "\npost_install do |installer|\n" + rubyLines + "\nend\n";
+      }
+
       fs.writeFileSync(podfilePath, podfile);
       return config;
     },

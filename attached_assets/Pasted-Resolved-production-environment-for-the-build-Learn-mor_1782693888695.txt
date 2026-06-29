@@ -1,0 +1,53 @@
+Resolved "production" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+Environment variables with visibility "Plain text" and "Sensitive" loaded from the "production" environment on EAS: EXPO_PUBLIC_FIREBASE_API_KEY, EXPO_PUBLIC_FIREBASE_APP_ID, EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN, EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, EXPO_PUBLIC_FIREBASE_PROJECT_ID, EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET, MAPBOX_PUBLIC_TOKEN.
+
+» ios: scheme: "ios.infoPlist.CFBundleURLTypes" is set in the config. Ignoring abstract property "scheme": terrapulse
+
+You've used 100% of your included build credits for this month.
+Additional usage beyond your limit will be charged at pay-as-you-go rates. See usage in billing.: https://expo.dev/accounts/mclaporteterrapulses-team/settings/billing
+
+✔ Using remote iOS credentials (Expo server)
+
+Distribution Certificate is not validated for non-interactive builds.
+Using App Store Connect API Key from EAS credentials service.
+- Fetching Apple provisioning profiles
+✔ Fetched Apple provisioning profiles
+
+Project Credentials Configuration
+
+Project                   @mclaporteterrapulses-team/mobile
+Bundle Identifier         com.terrapulse.app
+                          
+App Store Configuration   
+                          
+Distribution Certificate  
+Serial Number             5351C4E3B9B68D4732C9A1EB722183EC
+Expiration Date           Fri, 25 Jun 2027 09:05:12 UTC
+Updated                   3 days ago
+                          
+Provisioning Profile      
+Status                    active
+Expiration                Fri, 25 Jun 2027 09:05:12 UTC
+Apple Team                558KGQTC92 (Mario La Porte (Individual))
+Updated                   3 days ago
+                          
+All credentials are ready to build @mclaporteterrapulses-team/mobile (com.terrapulse.app)
+
+Bumping expo.ios.buildNumber from 1782693741 to 1782693742
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+- Compressing project files
+- Uploading to EAS Build (0 / 20.1 MB)
+✔ Uploaded to EAS 
+- Computing project fingerprint
+✔ Computed project fingerprint
+
+See logs: https://expo.dev/accounts/mclaporteterrapulses-team/projects/mobile/builds/d6702928-7b94-4d0c-96fd-72174ded4398
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+- Waiting for build to complete.
+✖ Build failed
+
+🍏 iOS build failed:
+Unknown error. See logs of the Install pods build phase for more information.
+Error: Process completed with exit code 1.
