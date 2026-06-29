@@ -13,9 +13,12 @@ description: How to make Babel plugins and Expo config plugins accessible during
 
 **How to apply:** Any time a babel plugin, preset, or expo config plugin is added to the mobile app and EAS builds start failing with "Cannot find module" or "Failed to resolve plugin", add the package to the **root `package.json`** `devDependencies` as well.
 
+**This applies to native modules too**, not just Babel plugins. If Metro can't find `@some/native-module` during `pnpm expo export:embed` on EAS cloud, add it to root `package.json` devDependencies. The native autolinking step also scans root `node_modules/`, so the native code still links correctly.
+
 ## Packages currently in root package.json for this reason
 - `@babel/core`
 - `@babel/plugin-transform-class-properties`
 - `@babel/plugin-transform-private-methods`
 - `@babel/plugin-transform-private-property-in-object`
+- `@react-native-google-signin/google-signin`
 - `babel-preset-expo`

@@ -1,0 +1,30 @@
+Starting Metro Bundler
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 21.8% ( 9/21)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 24.4% (218/441)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓░░░░░░░░░░░ 35.9% (415/693)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓░░░░░░░░ 51.4% (677/961)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 65.1% ( 937/1161)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 79.7% (1101/1233)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 88.9% (1340/1421)
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1480/1481)
+Android Bundling failed 26124ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1481 modules)
+Error: Unable to resolve module @react-native-google-signin/google-signin from /home/expo/workingdir/build/artifacts/mobile/app/login.tsx: @react-native-google-signin/google-signin could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+[0m [90m 21 |[39m   [33mGoogleSignin[39m[33m,[39m
+ [90m 22 |[39m   statusCodes[33m,[39m
+[31m[1m>[22m[39m[90m 23 |[39m } [36mfrom[39m [32m"@react-native-google-signin/google-signin"[39m[33m;[39m
+ [90m    |[39m         [31m[1m^[22m[39m
+ [90m 24 |[39m [36mimport[39m [33mConstants[39m [36mfrom[39m [32m"expo-constants"[39m[33m;[39m
+ [90m 25 |[39m
+ [90m 26 |[39m [36mconst[39m [33mAPP_VERSION[39m [33m=[39m [33mConstants[39m[33m.[39mexpoConfig[33m?[39m[33m.[39mversion [33m?[39m[33m?[39m [32m"?"[39m[33m;[39m[0m
+
+Import stack:
+
+ artifacts/mobile/app/login.tsx
+ | import "@react-native-google-signin/google-signin"
+
+ artifacts/mobile/app (require.context)
+pnpm expo export:embed --eager --platform android --dev false exited with non-zero code: 1
