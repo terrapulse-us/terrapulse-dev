@@ -188,7 +188,7 @@ const KEYPOINT_CONFIGS: KeypointConfig[] = [
 
 const MAPTILER_KEY: string =
   (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.maptilerApiKey ?? "";
+    ?.maptilerApiKey ?? (process.env.EXPO_PUBLIC_MAPTILER_KEY ?? "");
 
 function mtStyle(id: string): string {
   return `https://api.maptiler.com/maps/${id}/style.json?key=${MAPTILER_KEY}`;
