@@ -22,22 +22,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-// In pnpm workspaces, packages live at:
-//   <workspaceRoot>/node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/file.js
+// ROOT CAUSE of hermesc "private properties not supported" failures (RN 0.81 / hermesc v0.12.0):
 //
-// The default Metro transformIgnorePatterns regex matches BOTH:
-//   1. <workspaceRoot>/node_modules/.pnpm/   (first segment — .pnpm is in allowlist, OK)
-//   2. <pkg>/node_modules/<other-pkg>/        (second segment — other-pkg not in allowlist → WRONGLY excluded)
+// Metro resolves `require('react-native')` via the workspace-root top-level symlink:
+//   workspaceRoot/node_modules/react-native  →  .pnpm/react-native@.../node_modules/react-native
+// The SYMLINK path (before resolving) is workspaceRoot/node_modules/react-native.
+// The previous pattern `(?!\.pnpm)` matched that symlink path → react-native was flagged as
+// IGNORED (not transformed by Babel), so private class fields in Libraries/DOM/** passed
+// straight through to hermesc v0.12.0 which rejects them.
 //
-// Fix: anchor the pattern to the absolute workspace root path so it only fires once.
-// Anything inside node_modules/.pnpm/ is then transformed by Babel (including our
-// private-class-field plugins), making the bundle compatible with hermesc linux64 v0.12.0.
+// Fix: add react-native and @react-native to the exceptions alongside .pnpm.
+// The workspaceRoot prefix still anchors the match so the "second-segment" inside
+// .pnpm/<pkg>@ver/node_modules/<dep> paths is never inadvertently matched.
 config.transformIgnorePatterns = [
-  `${workspaceRoot}/node_modules/(?!\\.pnpm)`,
+  `${workspaceRoot}/node_modules/(?!(\\.pnpm|react-native|@react-native))`,
 ];
 
-// Bump this string whenever babel.config.js plugins change to force Metro to
-// discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v6';
+// Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
+// to force Metro to discard all cached module transforms and re-run Babel on every file.
+config.cacheVersion = 'hermesc-compat-v7';
 
 module.exports = config;
