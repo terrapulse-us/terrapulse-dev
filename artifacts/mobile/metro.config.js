@@ -34,12 +34,22 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // Fix: add react-native and @react-native to the exceptions alongside .pnpm.
 // The workspaceRoot prefix still anchors the match so the "second-segment" inside
 // .pnpm/<pkg>@ver/node_modules/<dep> paths is never inadvertently matched.
+//
+// SECONDARY FIX — Firebase auth "TypeError: Cannot assign to read-only property 'NONE'":
+// Firebase packages ARE in .pnpm (exception above), so they get Babel-transformed by the
+// hermes-v0 @babel/plugin-transform-classes spec-mode, which uses Object.defineProperty
+// for class members. This inadvertently makes some Firebase property (named 'NONE') non-
+// writable, causing auth/network-request-failed at runtime in Hermes strict mode.
+// Firebase's pre-built CJS dist/rn/ output uses standard ES2017+ class syntax that Hermes
+// v0.12.0 handles natively — no Babel transform needed. Adding a second pattern keeps
+// firebase/@firebase OUT of the transform pipeline even though they live in .pnpm.
 config.transformIgnorePatterns = [
   `${workspaceRoot}/node_modules/(?!(\\.pnpm|react-native|@react-native))`,
+  `${workspaceRoot}/node_modules/\\.pnpm\\/(@firebase|firebase)`,
 ];
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v9';
+config.cacheVersion = 'hermesc-compat-v10';
 
 module.exports = config;
