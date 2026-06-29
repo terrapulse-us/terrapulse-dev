@@ -58,8 +58,7 @@
     "@api.video/react-native-livestream": "^2.0.2",
     "@maplibre/maplibre-react-native": "^11.3.4",
     "@react-navigation/bottom-tabs": "^7.18.2",
-    "expo-dev-client": "^56.0.20",
-    "expo-updates": "~56.0.19",
+    "expo-updates": "~29.0.18",
     "firebase": "^12.15.0",
     "@babel/core": "^7.25.2"
   }
