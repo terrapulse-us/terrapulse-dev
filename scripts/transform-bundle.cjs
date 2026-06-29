@@ -1,0 +1,88 @@
+'use strict';
+/**
+ * transform-bundle.cjs  (CommonJS — the scripts/ package is "type":"module" so .cjs is required)
+ *
+ * Runs @babel/plugin-transform-class-properties (+ private-methods,
+ * private-property-in-object) on a Metro JS bundle so that hermesc v0.12.0
+ * can compile it.
+ *
+ * WHY THIS EXISTS:
+ *   hermesc v0.12.0 (shipped with react-native 0.81) rejects BOTH private class
+ *   field syntax (#x) and public class field declarations (x = 0; / bare "name;")
+ *   with "private properties not supported" / "invalid statement encountered".
+ *   Babel's plugin-transform-class-properties moves all field declarations into
+ *   constructor body assignments, which hermesc happily accepts.
+ *
+ * PATH NOTE:
+ *   @babel/* are devDependencies of @workspace/mobile, so they live at
+ *   <workspaceRoot>/artifacts/mobile/node_modules/@babel/.
+ *   This script lives at <workspaceRoot>/scripts/transform-bundle.cjs so the
+ *   mobile node_modules are at ../artifacts/mobile/node_modules relative to __dirname.
+ *
+ * USAGE: node transform-bundle.cjs <path-to-bundle.js>
+ */
+
+const path = require('path');
+const fs   = require('fs');
+
+const mobileNodeModules = path.resolve(__dirname, '..', 'artifacts', 'mobile', 'node_modules');
+
+function loadPkg(pkgName) {
+  const pkgPath = path.join(mobileNodeModules, pkgName);
+  try {
+    return require(pkgPath);
+  } catch (e) {
+    process.stderr.write('[transform-bundle] WARNING: cannot load ' + pkgName + ' from ' + pkgPath + ': ' + e.message + '\n');
+    return null;
+  }
+}
+
+const filePath = process.argv[2];
+if (!filePath) {
+  process.stderr.write('[transform-bundle] ERROR: no input file specified\n');
+  process.exit(1);
+}
+if (!fs.existsSync(filePath)) {
+  process.stderr.write('[transform-bundle] ERROR: file not found: ' + filePath + '\n');
+  process.exit(1);
+}
+
+process.stderr.write('[transform-bundle] Transforming class fields in: ' + filePath + '\n');
+const startMs = Date.now();
+
+const babel       = loadPkg('@babel/core');
+const classProps  = loadPkg('@babel/plugin-transform-class-properties');
+const privMethods = loadPkg('@babel/plugin-transform-private-methods');
+const privPropIn  = loadPkg('@babel/plugin-transform-private-property-in-object');
+
+if (!babel || !classProps) {
+  process.stderr.write('[transform-bundle] ERROR: required packages not found — skipping transform\n');
+  process.exit(0);
+}
+
+const plugins = [
+  [classProps, { loose: true }],
+];
+if (privMethods) plugins.push([privMethods, { loose: true }]);
+if (privPropIn)  plugins.push([privPropIn,  { loose: true }]);
+
+const code = fs.readFileSync(filePath, 'utf8');
+
+let result;
+try {
+  result = babel.transformSync(code, {
+    configFile:  false,
+    babelrc:     false,
+    filename:    'bundle.js',
+    sourceType:  'script',
+    compact:     false,
+    plugins,
+  });
+} catch (err) {
+  process.stderr.write('[transform-bundle] ERROR: Babel transform failed: ' + err.message + '\n');
+  process.stderr.write('[transform-bundle] Leaving bundle untouched — hermesc may fail below.\n');
+  process.exit(0);
+}
+
+fs.writeFileSync(filePath, result.code, 'utf8');
+process.stderr.write('[transform-bundle] Done in ' + (Date.now() - startMs) + 'ms\n');

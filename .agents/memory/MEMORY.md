@@ -1,3 +1,4 @@
+- [hermesc v0.12.0 class field rejection](hermesc-class-fields.md) — rejects BOTH private (#x) and public (x=0; / name;) class field declarations; must eliminate via Babel in wrapper
 - [Metro transformIgnorePatterns + pnpm symlinks](metro-transform-ignore-pnpm-symlinks.md) — top-level pnpm symlinks bypass (?!\.pnpm); must also exempt react-native and @react-native
 - [MapLibre v10→v11 migration](maplibre-v11-migration.md) — v10 crashes on RN 0.81 New Arch; v11 required, full API rename
 - [React Native arch deadlock](rn-arch-deadlock.md) — reanimated v4 needs newArch:true; MapLibre v10 crashes with it; solution is MapLibre v11
