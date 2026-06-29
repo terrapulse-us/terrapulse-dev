@@ -29,7 +29,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --force
 
       - name: Publish OTA update to preview channel
         working-directory: artifacts/mobile
@@ -39,6 +39,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.MAPTILER_API_KEY }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          NODE_PATH: ${{ github.workspace }}/node_modules
         run: |
           SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
           eas update --channel preview --message "$SUBJECT" --non-interactive
