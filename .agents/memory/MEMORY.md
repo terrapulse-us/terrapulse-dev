@@ -1,6 +1,6 @@
 - [hermesc v0.12.0 class field rejection](hermesc-class-fields.md) — rejects BOTH private (#x) and public (x=0; / name;) class field declarations; must eliminate via Babel in wrapper
 - [Metro transformIgnorePatterns + pnpm symlinks](metro-transform-ignore-pnpm-symlinks.md) — top-level pnpm symlinks bypass (?!\.pnpm); must also exempt react-native and @react-native
-- [Firebase + Babel hermes-v0 read-only NONE bug](firebase-babel-hermes-v0.md) — Babel hermes-v0 transform-classes makes Firebase class members non-writable; fix: second transformIgnorePatterns entry to skip firebase/@firebase in .pnpm
+- [RN 0.81 Event.NONE non-configurable crash](rn-event-none-crash.md) — RN 0.81+ declares Event phase constants without configurable/writable; event-target-shim (via fetch/abort-controller) crashes on login; fix: patch Event.js defineProperty calls
 - [MapLibre v10→v11 migration](maplibre-v11-migration.md) — v10 crashes on RN 0.81 New Arch; v11 required, full API rename
 - [React Native arch deadlock](rn-arch-deadlock.md) — reanimated v4 needs newArch:true; MapLibre v10 crashes with it; solution is MapLibre v11
 - [Expo SDK native module version pinning](expo-native-version-pinning.md) — wrong major version (e.g. expo-file-system 56 vs 19) causes hard crash on app open; always check bundledNativeModules.json

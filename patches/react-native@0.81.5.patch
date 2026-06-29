@@ -357,6 +357,70 @@
   */
  
  // flowlint unsafe-getters-setters:off
+@@ -185,47 +185,63 @@
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event, 'NONE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 0,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event.prototype, 'NONE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 0,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event, 'CAPTURING_PHASE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 1,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event.prototype, 'CAPTURING_PHASE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 1,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event, 'AT_TARGET', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 2,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event.prototype, 'AT_TARGET', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 2,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event, 'BUBBLING_PHASE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 3,
+ });
+ 
+ // $FlowExpectedError[cannot-write]
+ Object.defineProperty(Event.prototype, 'BUBBLING_PHASE', {
+   enumerable: true,
++  configurable: true,
++  writable: true,
+   value: 3,
+ });
 --- a/src/private/webapis/dom/events/EventTarget.js
 +++ b/src/private/webapis/dom/events/EventTarget.js
 @@ -10,7 +10,7 @@

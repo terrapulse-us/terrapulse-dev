@@ -58,6 +58,6 @@ config.transformIgnorePatterns = [
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v10';
+config.cacheVersion = 'hermesc-compat-v11';
 
 module.exports = config;
