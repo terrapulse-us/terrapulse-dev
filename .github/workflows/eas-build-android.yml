@@ -12,11 +12,29 @@ on:
           - preview
           - development
           - production
+      ota_only:
+        description: "Push OTA update only (skip full APK build)"
+        required: false
+        default: false
+        type: boolean
+      ota_channel:
+        description: "OTA update channel (used when ota_only is true)"
+        required: false
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+  push:
+    branches:
+      - main
+      - "release/**"
 
 jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || !inputs.ota_only }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,3 +86,34 @@ jobs:
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
         run: eas build --platform android --profile ${{ inputs.profile || 'preview' }} --non-interactive
+
+  ota-update:
+    name: Push OTA Update
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.ota_only }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Push OTA update
+        working-directory: artifacts/mobile
+        run: eas update --channel "${{ inputs.ota_channel }}" --message "OTA: manual update" --non-interactive

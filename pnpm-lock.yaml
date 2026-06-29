@@ -228,7 +228,7 @@ importers:
         version: 2.0.2(patch_hash=a7b985e6963113bbede9de4ed9a1160607dc83143fe584ea5d35a04c90c69352)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@maplibre/maplibre-react-native':
         specifier: ^11.3.4
-        version: 11.3.4(@types/geojson@7946.0.16)(@types/react@19.1.17)(expo@54.0.35)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        version: 11.3.6(@types/geojson@7946.0.16)(@types/react@19.1.17)(expo@54.0.35)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@react-native-google-signin/google-signin':
         specifier: ^16.1.2
         version: 16.1.2(expo@54.0.35)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1682,9 +1682,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@mapbox/jsonlint-lines-primitives@2.0.2':
-    resolution: {integrity: sha512-rY0o9A5ECsTQRVhv7tL/OyDpGAoUB4tTvLiW1DSzQGq4bvTPhNw1VpSNjDJc5GFZ2XuyOtSWSVN05qOtcD71qQ==}
-    engines: {node: '>= 0.6'}
+  '@mapbox/jsonlint-lines-primitives@2.0.3':
+    resolution: {integrity: sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg==}
+    engines: {node: '>= 22'}
 
   '@mapbox/unitbezier@0.0.1':
     resolution: {integrity: sha512-nMkuDXFv60aBr9soUG5q+GvZYL+2KZHVvsqFCzqnkGEf46U2fvmytHaEVc1/YZbiLn8X+eR3QzX1+dwDO1lxlw==}
@@ -1693,8 +1693,8 @@ packages:
     resolution: {integrity: sha512-EzEJmMt6thioRH7GI9LWS7ahXTcAhAPGWCe6oTP2Ps4YnsXOOAfeqx854lZaiDnwURfHmcCKV1mr6oo0i23x6w==}
     hasBin: true
 
-  '@maplibre/maplibre-react-native@11.3.4':
-    resolution: {integrity: sha512-SgGFf+CWWNeTRBnBKcOKF6c7CiRhm+YgPNktg7HAzRsWoKeGMZy6u52STaTh4iP/2pwJygJPyiJJMkwzwW2Svg==}
+  '@maplibre/maplibre-react-native@11.3.6':
+    resolution: {integrity: sha512-XLl8mR7ogThpJKHnxG7PGK2TB9CwJJa8xOM2emsTgVGBzQZ3cc5mfW+mSTwP3PbBDfJe/WSFOIfOU2oHMD5mZQ==}
     peerDependencies:
       '@types/geojson': ^7946.0.0
       '@types/react': '>=19.1.0'
@@ -7186,7 +7186,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.29.0
       '@babel/core': 7.29.0
-      '@babel/generator': 7.29.1
+      '@babel/generator': 7.29.7
       '@expo/config': 12.0.13
       '@expo/env': 2.0.11
       '@expo/json-file': 10.0.16
@@ -7297,7 +7297,7 @@ snapshots:
 
   '@expo/require-utils@55.0.5(typescript@5.9.3)':
     dependencies:
-      '@babel/code-frame': 7.29.0
+      '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.0
       '@babel/plugin-transform-modules-commonjs': 7.29.7(@babel/core@7.29.0)
     optionalDependencies:
@@ -7786,20 +7786,20 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mapbox/jsonlint-lines-primitives@2.0.2': {}
+  '@mapbox/jsonlint-lines-primitives@2.0.3': {}
 
   '@mapbox/unitbezier@0.0.1': {}
 
   '@maplibre/maplibre-gl-style-spec@24.8.5':
     dependencies:
-      '@mapbox/jsonlint-lines-primitives': 2.0.2
+      '@mapbox/jsonlint-lines-primitives': 2.0.3
       '@mapbox/unitbezier': 0.0.1
       json-stringify-pretty-compact: 4.0.0
       minimist: 1.2.8
       quickselect: 3.0.0
       tinyqueue: 3.0.0
 
-  '@maplibre/maplibre-react-native@11.3.4(@types/geojson@7946.0.16)(@types/react@19.1.17)(expo@54.0.35)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+  '@maplibre/maplibre-react-native@11.3.6(@types/geojson@7946.0.16)(@types/react@19.1.17)(expo@54.0.35)(react-native@0.81.5(patch_hash=6d0f8433a978a1e3321b29b41347a93511fe6bef408941ab5f34d3a73d183c05)(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@maplibre/maplibre-gl-style-spec': 24.8.5
       '@turf/distance': 7.3.5
@@ -8922,7 +8922,7 @@ snapshots:
       '@babel/plugin-transform-sticky-regex': 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-transform-unicode-regex': 7.29.7(@babel/core@7.29.0)
-      '@babel/template': 7.28.6
+      '@babel/template': 7.29.7
       '@react-native/babel-plugin-codegen': 0.81.5(@babel/core@7.29.0)
       babel-plugin-syntax-hermes-parser: 0.29.1
       babel-plugin-transform-flow-enums: 0.0.2(@babel/core@7.29.0)
@@ -9067,9 +9067,9 @@ snapshots:
 
   '@replit/vite-plugin-cartographer@0.5.21':
     dependencies:
-      '@babel/parser': 7.29.7
-      '@babel/traverse': 7.29.7
-      '@babel/types': 7.29.7
+      '@babel/parser': 7.29.3
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
       magic-string: 0.30.21
       modern-screenshot: 4.7.0
     transitivePeerDependencies:
@@ -9615,7 +9615,7 @@ snapshots:
 
   babel-preset-expo@54.0.11(@babel/core@7.29.0)(@babel/runtime@7.29.2)(expo@54.0.35)(react-refresh@0.14.2):
     dependencies:
-      '@babel/helper-module-imports': 7.28.6
+      '@babel/helper-module-imports': 7.29.7
       '@babel/plugin-proposal-decorators': 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-proposal-export-default-from': 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-syntax-export-default-from': 7.29.7(@babel/core@7.29.0)
@@ -11452,7 +11452,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.0
       '@babel/generator': 7.29.7
-      '@babel/template': 7.28.6
+      '@babel/template': 7.29.7
       '@babel/traverse': 7.29.7
       flow-enums-runtime: 0.0.6
       nullthrows: 1.1.1
@@ -11512,11 +11512,11 @@ snapshots:
 
   metro@0.83.3:
     dependencies:
-      '@babel/code-frame': 7.29.0
+      '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.0
       '@babel/generator': 7.29.7
       '@babel/parser': 7.29.7
-      '@babel/template': 7.28.6
+      '@babel/template': 7.29.7
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
       accepts: 1.3.8
@@ -11563,7 +11563,7 @@ snapshots:
       '@babel/core': 7.29.0
       '@babel/generator': 7.29.7
       '@babel/parser': 7.29.7
-      '@babel/template': 7.28.6
+      '@babel/template': 7.29.7
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
       accepts: 2.0.0

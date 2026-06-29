@@ -99,6 +99,13 @@ module.exports = () => ({
       "./plugins/withModularHeaders",
       "./plugins/withHermescWrapper",
     ],
+    updates: {
+      url: "https://u.expo.dev/5e42857a-9f58-4c15-8b0b-571dd97b3189",
+      checkAutomatically: "ON_LOAD",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     experiments: {
       typedRoutes: true,
     },
