@@ -1,0 +1,75 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ sed -n '1727,1800p' /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/map.tsx
+              style={[styles.overlayToggle, showRidbOverlay ? styles.overlayToggleRidbActive : styles.overlayToggleInactive, { borderColor: showRidbOverlay ? "#7B3F9E" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowRidbOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showRidbOverlay ? "#fff" : colors.foreground }]}>
+                  RECREATION.GOV TRAILHEADS{ridbFacilities.length > 0 ? `  (${ridbFacilities.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showRidbOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                  {ridbHasApiKey() ? "Official federal trailheads + OHV facilities (purple)" : "Add EXPO_PUBLIC_RIDB_API_KEY to enable"}
+                </Text>
+              </View>
+              <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* NAV HUD */}
+      {isNavigating && navTrail && (
+        <View style={[styles.navHud, { bottom: tabBarHeight + 76, backgroundColor: colors.card, borderColor: colors.accent }]}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <MaterialIcons name="navigation" size={13} color={colors.accent} />
+              <Text style={[styles.navTrailName, { color: colors.foreground }]} numberOfLines={1}>
+                {navTrail.title.toUpperCase()}
+              </Text>
+            </View>
+            <View style={[styles.navProgressBarBg, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.navProgressFill,
+                  {
+                    width: navDistTotal > 0 ? `${Math.min(100, Math.round((navDistCovered / navDistTotal) * 100))}%` : "0%",
+                    backgroundColor: colors.accent,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.navProgressText, { color: colors.mutedForeground }]}>
+              {navDistCovered.toFixed(1)} of {navDistTotal.toFixed(1)} MI
+              {navDistTotal > 0 ? `  ·  ${Math.round((navDistCovered / navDistTotal) * 100)}%` : ""}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
+            <Feather name="x" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <TrailDetailScreen
+        trail={selectedTrail}
+        visible={!!selectedTrail}
+        onClose={() => setSelectedTrail(null)}
+        photos={photos}
+        uploading={uploading}
+        onUploadPhoto={uploadPhoto}
+        downloading={downloading}
+        onDownload={downloadTrailArea}
+        completedTrails={completedTrails}
+        completing={completing}
+        onComplete={completeTrail}
+        onNavigate={startNavigation}
+      />
+
+      {/* ADD TRAIL SUBMISSION MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showAddTrailModal}
+        onRequestClose={() => setShowAddTrailModal(false)}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
