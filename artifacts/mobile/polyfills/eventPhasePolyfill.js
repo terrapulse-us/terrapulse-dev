@@ -1,25 +1,16 @@
 'use strict';
-// Polyfill: make Event phase constants configurable+writable before any module loads.
-// Prevents "TypeError: Cannot assign to read-only property 'NONE'" that crashes the
-// app at startup when event-target-shim tries to write Event.NONE in RN 0.81.x.
-// Runs in the Metro serializer polyfill layer — before any user/library module code.
+// Intercept Object.defineProperty BEFORE any modules run.
+// When react-native/Event.js defines NONE/CAPTURING_PHASE/AT_TARGET/BUBBLING_PHASE
+// as non-configurable, this intercept silently forces configurable+writable=true,
+// so event-target-shim (used by fetch -> abort-controller) can redefine them
+// without throwing "TypeError: Cannot assign to read-only property 'NONE'".
 (function () {
-  if (typeof Event === 'undefined') return;
-  var phases = { NONE: 0, CAPTURING_PHASE: 1, AT_TARGET: 2, BUBBLING_PHASE: 3 };
-  var targets = [Event, Event.prototype];
-  Object.keys(phases).forEach(function (key) {
-    targets.forEach(function (target) {
-      if (!target) return;
-      try {
-        var desc = Object.getOwnPropertyDescriptor(target, key);
-        if (desc && (!desc.configurable || !desc.writable)) {
-          Object.defineProperty(target, key, {
-            configurable: true,
-            writable: true,
-            value: phases[key],
-          });
-        }
-      } catch (_) {}
-    });
-  });
+  var _orig = Object.defineProperty.bind(Object);
+  var EVENT_PHASES = { NONE: true, CAPTURING_PHASE: true, AT_TARGET: true, BUBBLING_PHASE: true };
+  Object.defineProperty = function (target, prop, descriptor) {
+    if (EVENT_PHASES[prop]) {
+      descriptor = { configurable: true, writable: true, enumerable: !!descriptor.enumerable, value: descriptor.value };
+    }
+    return _orig(target, prop, descriptor);
+  };
 })();

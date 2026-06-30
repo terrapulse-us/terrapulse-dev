@@ -58,7 +58,7 @@ config.transformIgnorePatterns = [
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v12';
+config.cacheVersion = 'hermesc-compat-v13';
 
 // Inject Event.NONE polyfill before any module code runs.
 // Prevents the "Cannot assign to read-only property 'NONE'" crash that happens during
