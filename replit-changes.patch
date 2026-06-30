@@ -1,0 +1,158 @@
+diff --git a/artifacts/mobile/app/(tabs)/map.tsx b/artifacts/mobile/app/(tabs)/map.tsx
+index 4565a08..76ae062 100644
+--- a/artifacts/mobile/app/(tabs)/map.tsx
++++ b/artifacts/mobile/app/(tabs)/map.tsx
+@@ -103,6 +103,7 @@ import {
+ } from "@/lib/trail-guide";
+ import TrailGuideSheet from "@/components/TrailGuideSheet";
+ import TrailDetailScreen from "@/components/TrailDetailScreen";
++import * as Updates from "expo-updates";
+ 
+ interface TrailPhoto {
+   url: string;
+@@ -404,6 +405,12 @@ export default function MapScreen() {
+     latitude: number;
+     longitude: number;
+   } | null>(null);
++  const hasAutoFlownRef = useRef(false);
++  // OSM fetch center — starts at CA fallback, updates once when real GPS arrives
++  const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number }>({
++    lat: 36.7783,
++    lng: -119.4179,
++  });
+ 
+   const [isRecording, setIsRecording] = useState(false);
+   const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
+@@ -519,18 +526,19 @@ export default function MapScreen() {
+   }, [showNpsOverlay]);
+ 
+   // ── OSM overlay fetch ───────────────────────────────────────────────────────
++  // osmFetchCenter updates once when the first real GPS fix arrives, triggering a
++  // re-fetch for the user's actual location (not the CA-center fallback).
+   useEffect(() => {
+     if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
+     let cancelled = false;
+     setOsmLoading(true);
+-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+-    fetchOsmTrailsNear(center.latitude, center.longitude, 15)
++    fetchOsmTrailsNear(osmFetchCenter.lat, osmFetchCenter.lng, 15)
+       .then(data => { if (!cancelled) setOsmGeoJSON(data); })
+       .catch(() => {})
+       .finally(() => { if (!cancelled) setOsmLoading(false); });
+     return () => { cancelled = true; };
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [showOsmOverlay]);
++  }, [showOsmOverlay, osmFetchCenter]);
+ 
+   // ── BLM overlay fetch ───────────────────────────────────────────────────────
+   useEffect(() => {
+@@ -589,6 +597,19 @@ export default function MapScreen() {
+     })();
+   }, []);
+ 
++  // Auto-fly to user's location the first time GPS arrives, and update OSM fetch center
++  useEffect(() => {
++    if (!userLocation || hasAutoFlownRef.current) return;
++    hasAutoFlownRef.current = true;
++    cameraRef.current?.flyTo({
++      center: [userLocation.longitude, userLocation.latitude],
++      zoom: 12,
++      duration: 1500,
++    });
++    // Update OSM fetch center to real location so OSM re-fetches for user's area
++    setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
++  }, [userLocation]);
++
+   useEffect(() => {
+     if (!isNavigating) {
+       navWatchRef.current?.remove();
+@@ -1132,8 +1153,8 @@ export default function MapScreen() {
+       >
+         <Camera
+           ref={cameraRef}
+-          center={[-98.5795, 39.8283]}
+-          zoom={3}
++          center={[-119.4179, 36.7783]}
++          zoom={7}
+           pitch={mapLayer === "terrain3d" ? 60 : 0}
+           trackUserLocation={followUser ? "course" : undefined}
+         />
+@@ -2125,6 +2146,13 @@ export default function MapScreen() {
+           </View>
+         </TouchableOpacity>
+       </Modal>
++
++      {/* OTA update badge — confirms which bundle is running */}
++      <View style={styles.updateBadge} pointerEvents="none">
++        <Text style={styles.updateBadgeText}>
++          {Updates.isEmbeddedLaunch ? "APK build" : "OTA: CA-map-fix"}
++        </Text>
++      </View>
+     </View>
+   );
+ }
+@@ -2154,6 +2182,20 @@ const styles = StyleSheet.create({
+   navProgressFill: { height: 4, borderRadius: 2 },
+   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
+   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
++  updateBadge: {
++    position: "absolute",
++    bottom: 8,
++    left: 8,
++    backgroundColor: "rgba(0,0,0,0.55)",
++    borderRadius: 4,
++    paddingHorizontal: 6,
++    paddingVertical: 2,
++  },
++  updateBadgeText: {
++    color: "#fff",
++    fontSize: 10,
++    fontFamily: "Inter_400Regular",
++  },
+   osmMarker: {
+     width: 9,
+     height: 9,
+diff --git a/artifacts/mobile/lib/osm-api.ts b/artifacts/mobile/lib/osm-api.ts
+index f560e3b..1f59cd8 100644
+--- a/artifacts/mobile/lib/osm-api.ts
++++ b/artifacts/mobile/lib/osm-api.ts
+@@ -2,7 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
+ 
+ // ─── OpenStreetMap Overpass API ───────────────────────────────────────────────
+ // Free public API. Queries 4x4 tracks, OHV paths, and unpaved roads.
+-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
++// Two endpoints for redundancy — overpass-api.de is the primary.
++const OVERPASS_URLS = [
++  "https://overpass-api.de/api/interpreter",
++  "https://overpass.kumi.systems/api/interpreter",
++];
+ const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+ 
+ // ─── Types ────────────────────────────────────────────────────────────────────
+@@ -109,12 +113,20 @@ export async function fetchOsmTrailsNear(
+     "out geom;",
+   ].join("\n");
+ 
+-  const resp = await fetch(OVERPASS_URL, {
+-    method: "POST",
+-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+-    body: `data=${encodeURIComponent(query)}`,
+-  });
+-  if (!resp.ok) throw new Error(`Overpass API ${resp.status}`);
++  let resp: Response | null = null;
++  for (const url of OVERPASS_URLS) {
++    try {
++      resp = await fetch(url, {
++        method: "POST",
++        headers: { "Content-Type": "application/x-www-form-urlencoded" },
++        body: `data=${encodeURIComponent(query)}`,
++      });
++      if (resp.ok) break;
++    } catch {
++      resp = null;
++    }
++  }
++  if (!resp?.ok) throw new Error(`Overpass API unavailable`);
+ 
+   const json = (await resp.json()) as { elements: OsmOverpassNode[] };
+ 
