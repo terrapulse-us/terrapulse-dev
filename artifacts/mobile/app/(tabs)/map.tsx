@@ -404,6 +404,12 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const hasAutoFlownRef = useRef(false);
+  // OSM fetch center — starts at CA fallback, updates once when real GPS arrives
+  const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number }>({
+    lat: 36.7783,
+    lng: -119.4179,
+  });
 
   const [isRecording, setIsRecording] = useState(false);
   const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
@@ -519,18 +525,19 @@ export default function MapScreen() {
   }, [showNpsOverlay]);
 
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
+  // osmFetchCenter updates once when the first real GPS fix arrives, triggering a
+  // re-fetch for the user's actual location (not the CA-center fallback).
   useEffect(() => {
     if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
     let cancelled = false;
     setOsmLoading(true);
-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchOsmTrailsNear(center.latitude, center.longitude, 15)
+    fetchOsmTrailsNear(osmFetchCenter.lat, osmFetchCenter.lng, 15)
       .then(data => { if (!cancelled) setOsmGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setOsmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showOsmOverlay]);
+  }, [showOsmOverlay, osmFetchCenter]);
 
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -588,6 +595,19 @@ export default function MapScreen() {
       }
     })();
   }, []);
+
+  // Auto-fly to user's location the first time GPS arrives, and update OSM fetch center
+  useEffect(() => {
+    if (!userLocation || hasAutoFlownRef.current) return;
+    hasAutoFlownRef.current = true;
+    cameraRef.current?.flyTo({
+      center: [userLocation.longitude, userLocation.latitude],
+      zoom: 12,
+      duration: 1500,
+    });
+    // Update OSM fetch center to real location so OSM re-fetches for user's area
+    setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
+  }, [userLocation]);
 
   useEffect(() => {
     if (!isNavigating) {
