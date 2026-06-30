@@ -42,7 +42,12 @@ if (!bundlePath || !fs.existsSync(bundlePath)) {
   process.exit(0);
 }
 
-const STORE_DIR = '/home/runner/workspace/node_modules/.pnpm';
+const STORE_DIR = (() => {
+  const rp = '/home/runner/workspace/node_modules/.pnpm';
+  const cs = '/workspaces/terrapulse-dev/node_modules/.pnpm';
+  const fs2 = require('fs');
+  return fs2.existsSync(rp) ? rp : cs;
+})();
 
 function findInStore(pkgEncoded) {
   let entries;
@@ -74,6 +79,8 @@ const classStaticPath    = findInStore('@babel+plugin-transform-class-static-blo
 const classesPath        = findInStore('@babel+plugin-transform-classes');
 const asyncToGenPath     = findInStore('@babel+plugin-transform-async-to-generator');
 const asyncGenFnsPath    = findInStore('@babel+plugin-transform-async-generator-functions');
+const privMethodsPath    = findInStore('@babel+plugin-transform-private-methods');
+const privPropInObjPath  = findInStore('@babel+plugin-transform-private-property-in-object');
 
 if (!babelCorePath || !classPropPath || !classesPath || !asyncToGenPath) {
   process.stderr.write(
@@ -108,6 +115,7 @@ if (!classPropPlugin || !classesPlugin || !asyncToGenPlugin) {
 const plugins = [
   // --- Class transforms (class-properties MUST precede transform-classes) ---
   [classPropPlugin,  { loose: true }],
+  ...(privMethodsPath && loadPlugin(privMethodsPath) ? [[loadPlugin(privMethodsPath), { loose: true }]] : []),
   ...(classStaticPlugin ? [[classStaticPlugin]] : []),
   [classesPlugin,    { loose: true }],
   // --- Async transforms (hermesc 0.12 supports generators but not async/await) ---
