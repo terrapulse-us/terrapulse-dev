@@ -1,0 +1,43 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev (main) $ node -e "
+const fs = require('fs');                            node -e "
+const fs = require('fs');rrapulse-dev/artifacts/mobile/app/(tabs)/map.tsx';
+const f = '/workspaces/terrapulse-dev/artifacts/mobile/app/(tabs)/map.tsx';
+let c = fs.readFileSync(f, 'utf8');
+// Fix USFS toggle (line ~1655) — uses colors.accent instead of #5A9A5A
+// Fix USFS toggle (line ~1655) — uses colors.accent instead of #5A9A5A
+c = c.replace(ndColor: showUsfsOverlay \? colors\.accent : \"rgba\(255,255,255,0\.05\)\", borderColor: showUsfsOverlay \? colors\.accent
+  /\{ backgroundColor: showUsfsOverlay \? colors\.accent : \"rgba\(255,255,255,0\.05\)\", borderColor: showUsfsOverlay \? colors\.accent : colors\.border \}/,showUsfsOverlay ? \"#5A9A5A\" : undefined, borderColor: showUsfsOverlay ? \"#5A9A5A\" : \"#C8C2B8\" }'
+  '{ backgroundColor: showUsfsOverlay ? \"#5A9A5A\" : undefined, borderColor: showUsfsOverlay ? \"#5A9A5A\" : \"#C8C2B8\" }'
+);
+// Also insert overlayToggleInactive / overlayToggleActive for USFS if still not there
+// Also insert overlayToggleInactive / overlayToggleActive for USFS if still not there
+if (!c.includes('showUsfsOverlay ? styles.overlayToggleActive')) {
+  c = c.replace(rlayToggle, \{ backgroundColor: showUsfsOverlay \? \"#5A9A5A\" \? undefined.*?borderColor: showUsfsOverlay \? \"#5A9A5A\
+    /styles\.overlayToggle, \{ backgroundColor: showUsfsOverlay \? \"#5A9A5A\" \? undefined.*?borderColor: showUsfsOverlay \? \"#5A9A5A\" : \"#C8C2B8\" \}/s,ggle, showUsfsOverlay ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showUsfsOverlay ?
+    'styles.overlayToggle, showUsfsOverlay ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showUsfsOverlay ? \"#5A9A5A\" : \"#C8C2B8\" }'
+  );
+}
+// Fix icon/text colors on USFS row if still using colors.mutedForeground / colors.foreground
+// Fix icon/text colors on USFS row if still using colors.mutedForeground / colors.foreground
+c = c.replace(wUsfsOverlay \? \"#fff\" : colors\.mutedForeground\}(\s*\/>.*?USFS)/s,
+  /color=\{showUsfsOverlay \? \"#fff\" : colors\.mutedForeground\}(\s*\/>.*?USFS)/s,
+  (m) => m.replace('colors.mutedForeground', '\"#6B6B5A\"')
+);
+fs.writeFileSync(f, c);
+fs.writeFileSync(f, c);ify:');
+console.log('done — verify:');|rgba(255,255,255,0.05)" \
+" && grep -n "showUsfsOverlay\|rgba(255,255,255,0.05)" \\)/map.tsx | grep -v "1844"
+  /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/map.tsx | grep -v "1844"
+bash: !c.includes: event not found
+[eval]:17
+}
+^
+Expression expected
+
+SyntaxError: Unexpected token '}'
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.14.0
