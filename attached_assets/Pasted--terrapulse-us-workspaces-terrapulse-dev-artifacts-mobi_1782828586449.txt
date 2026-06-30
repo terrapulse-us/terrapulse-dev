@@ -1,0 +1,50 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ # Show current USFS toggle
+sed -n '1648,1680p' /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/map.tsx
+
+# Check which cream StyleSheet entries exist
+grep -n "overlayToggleActive\|overlayToggleInactive\|layerSheetLight\|layerCardActive\|layerCardInactive" \
+  /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/map.tsx | tail -20
+
+            <View style={styles.overlayDividerLight} />
+            <Text style={styles.overlaysSectionTitle}>
+              OVERLAYS
+            </Text>
+            {/* USFS toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, showUsfsOverlay ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showUsfsOverlay ? "#5A9A5A" : "#C8C2B8" }]}
+              onPress={() => setShowUsfsOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
+                  USFS TRAILS{usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  Official OHV / 4x4 gov. routes (blue)
+                </Text>
+              </View>
+              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#fff" : "#5A9A5A"} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : "#6B6B5A"} />}
+            </TouchableOpacity>
+
+            {/* OSM toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, showOsmOverlay ? styles.overlayToggleOsmActive : styles.overlayToggleInactive, { borderColor: showOsmOverlay ? "#3DAA5C" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowOsmOverlay((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="terrain" size={20} color={showOsmOverlay ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showOsmOverlay ? "#fff" : colors.foreground }]}>
+                  OSM TRAILS{osmLoading ? "  ⏳" : osmGeoJSON ? `  (${osmGeoJSON.features.length})` : ""}
+1599:            style={[styles.layerSheet, styles.layerSheetLight]}
+1655:              style={[styles.overlayToggle, showUsfsOverlay ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showUsfsOverlay ? "#5A9A5A" : "#C8C2B8" }]}
+1673:              style={[styles.overlayToggle, showOsmOverlay ? styles.overlayToggleOsmActive : styles.overlayToggleInactive, { borderColor: showOsmOverlay ? "#3DAA5C" : "#C8C2B8", marginTop: 8 }]}
+1691:              style={[styles.overlayToggle, showBlmOverlay ? styles.overlayToggleBlmActive : styles.overlayToggleInactive, { borderColor: showBlmOverlay ? "#D4860A" : "#C8C2B8", marginTop: 8 }]}
+1709:              style={[styles.overlayToggle, showNfsOverlay ? styles.overlayToggleNfsActive : styles.overlayToggleInactive, { borderColor: showNfsOverlay ? "#2D6A4F" : "#C8C2B8", marginTop: 8 }]}
+1727:              style={[styles.overlayToggle, showRidbOverlay ? styles.overlayToggleRidbActive : styles.overlayToggleInactive, { borderColor: showRidbOverlay ? "#7B3F9E" : "#C8C2B8", marginTop: 8 }]}
+2292:  overlayToggleInactive: { backgroundColor: '#F5F0E6' },
+2293:  overlayToggleActive:     { backgroundColor: '#5A9A5A' },
+2300:  layerSheetLight: { backgroundColor: '#F5F0E6', borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#D0C9BC' },
+2303:  layerCardActive: { backgroundColor: '#5A9A5A', borderColor: '#5A9A5A' },
+2304:  layerCardInactive: { backgroundColor: '#EDE7DC', borderColor: '#D0C9BC' },
