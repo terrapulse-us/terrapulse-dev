@@ -33,7 +33,7 @@ NODE_BIN="NODE_BIN_PLACEHOLDER"
 TRANSFORM_SCRIPT="TRANSFORM_SCRIPT_PLACEHOLDER"
 
 INPUT_JS=""
-for arg in "$@"; do case "$arg" in *.js) INPUT_JS="$arg" ;; esac; done
+for arg in "$@"; do case "$arg" in *.js|*.bundle) INPUT_JS="$arg" ;; esac; done
 
 if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
   # Step 1: strip private class field ACCESS: this.#field → this.___field

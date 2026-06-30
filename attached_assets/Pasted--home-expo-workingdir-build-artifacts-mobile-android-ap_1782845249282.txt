@@ -1,0 +1,77 @@
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3747:5: error: private properties are not supported
+    #x;
+    ^~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3748:5: error: private properties are not supported
+    #y;
+    ^~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3749:5: error: private properties are not supported
+    #width;
+^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3750:5: error: private properties are not supported
+    #height;
+    ^~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3758:19: error: private properties are not supported
+      return this.#x;
+                  ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3761:19: error: private properties are not supported
+      return this.#y;
+                  ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3764:19: error: private properties are not supported
+      return this.#width;
+                  ^~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3767:19: error: private properties are not supported
+      return this.#height;
+                  ^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3770:25: error: private properties are not supported
+      var height = this.#height;
+                        ^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3771:20: error: private properties are not supported
+      var y = this.#y;
+                   ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3778:24: error: private properties are not supported
+      var width = this.#width;
+                       ^~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3779:20: error: private properties are not supported
+      var x = this.#x;
+                   ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3786:25: error: private properties are not supported
+      var height = this.#height;
+                        ^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3787:20: error: private properties are not supported
+      var y = this.#y;
+                   ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3794:24: error: private properties are not supported
+      var width = this.#width;
+                       ^~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3795:20: error: private properties are not supported
+      var x = this.#x;
+                   ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3830:19: error: private properties are not supported
+      return this.#x;
+                  ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3833:19: error: private properties are not supported
+      return this.#y;
+                  ^~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3836:19: error: private properties are not supported
+      return this.#width;
+                  ^~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3839:19: error: private properties are not supported
+return this.#height;
+                  ^~~~~~~
+<unknown>:0: error: too many errors emitted
+> Task :app:createBundleReleaseJsAndAssets FAILED
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+801 actionable tasks: 801 executed
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:createBundleReleaseJsAndAssets'.
+> Process 'command '/home/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc'' finished with non-zero exit value 2
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 13m 7s
