@@ -13,3 +13,4 @@
 - [RN 0.81 hermesc linux64 private class fields](rn-hermesc-private-fields.md) — linux hermesc v0.12.0 rejects #field syntax; pnpm patch covers 39 files; also add babel-preset-expo explicitly to mobile package.json
 - [hermesc wrapper must cover osx-bin for EAS iOS builds](hermesc-osx-wrapper.md) — EAS iOS cloud builders are macOS; wrapper loop must include osx-bin AND use perl not sed (BSD sed -i requires '' suffix)
 - [EAS cloud pnpm isolated linker](eas-pnpm-isolated-linker.md) — EAS ignores .npmrc node-linker; babel plugins + expo config plugins must be in root package.json devDeps to be resolvable from artifacts/mobile
+- [EAS OTA update workflow](eas-ota-workflow.md) — Replit commits don't reach Codespace/GitHub; eas update must run from Codespace after git pull; MAPTILER_API_KEY must be set in shell explicitly; OTA needs two app opens to apply
