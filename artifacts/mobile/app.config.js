@@ -95,7 +95,7 @@ module.exports = () => ({
       typedRoutes: true,
     },
     extra: {
-      maptilerApiKey: process.env.MAPTILER_API_KEY ?? "",
+      maptilerApiKey: process.env.MAPTILER_API_KEY || "3EmaPZ2ftYudXivDYAER",
       // Firebase config — apiKey comes from GOOGLE_API_KEY secret (Replit) or
       // EXPO_PUBLIC_FIREBASE_API_KEY (EAS secret). Other values are public config
       // safe to embed directly.
