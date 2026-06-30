@@ -17,10 +17,19 @@
 WORKSPACE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TRANSFORM_SCRIPT="$WORKSPACE_ROOT/scripts/transform-bundle-classes.cjs"
 
+# Detect absolute path to node at install time so the wrapper works even when
+# Gradle forks hermesc with a stripped PATH (no `node` in PATH on EAS servers).
+NODE_BIN="$(command -v node 2>/dev/null || which node 2>/dev/null || echo 'node')"
+echo "hermesc wrapper: using node at $NODE_BIN"
+
+# Build wrapper template with resolved paths baked in.
+# NODE_BIN_PLACEHOLDER and TRANSFORM_SCRIPT_PLACEHOLDER are substituted below.
 HERMESC_WRAPPER='#!/bin/bash
 # Wrapper for hermesc v0.12.0 (RN 0.81) — cross-platform (Linux + macOS)
 # Strips private/public class field syntax and converts class declarations.
+# node and transform script paths are baked in at install time (not from PATH).
 REAL_HERMESC="$(dirname "$0")/hermesc.real"
+NODE_BIN="NODE_BIN_PLACEHOLDER"
 TRANSFORM_SCRIPT="TRANSFORM_SCRIPT_PLACEHOLDER"
 
 INPUT_JS=""
@@ -33,8 +42,11 @@ if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
   perl -i -ne '"'"'print unless /^\s+#[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/ || /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
   # Step 3: convert class declarations to ES5 functions via Babel
   # (bundle output has no class properties — they were moved to ctors by Metro)
-  if [ -f "$TRANSFORM_SCRIPT" ]; then
-    node --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] Node exit=$? file=$INPUT_JS" >>/tmp/hermesc-transform.log
+  if [ -f "$TRANSFORM_SCRIPT" ] && [ -f "$NODE_BIN" ]; then
+    "$NODE_BIN" --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] Node exit=$? file=$INPUT_JS" >>/tmp/hermesc-transform.log
+  elif [ -f "$TRANSFORM_SCRIPT" ]; then
+    # Fallback: try bare `node` in case the baked path is wrong
+    node --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] node-fallback exit=$? file=$INPUT_JS" >>/tmp/hermesc-transform.log
   fi
 fi
 
@@ -43,6 +55,14 @@ exec "$REAL_HERMESC" "$@"'
 PNPM_STORE="$(pwd)/node_modules/.pnpm"
 FORCE="${1:-}"
 count=0
+
+# Substitute both placeholders in one pass
+make_wrapper() {
+  local w="$HERMESC_WRAPPER"
+  w="${w/NODE_BIN_PLACEHOLDER/$NODE_BIN}"
+  w="${w/TRANSFORM_SCRIPT_PLACEHOLDER/$TRANSFORM_SCRIPT}"
+  printf '%s\n' "$w"
+}
 
 # Wrap hermesc for all platforms present in the pnpm store.
 # linux64-bin: Linux CI / dev / OTA builds
@@ -54,7 +74,7 @@ for platform in linux64-bin osx-bin; do
     if [ -f "${hermesc_bin}.real" ]; then
       if [ "$FORCE" = "--force" ]; then
         # Already wrapped — overwrite the wrapper script with updated content
-        printf '%s\n' "${HERMESC_WRAPPER/TRANSFORM_SCRIPT_PLACEHOLDER/$TRANSFORM_SCRIPT}" > "$hermesc_bin"
+        make_wrapper > "$hermesc_bin"
         chmod +x "$hermesc_bin"
         echo "hermesc wrapper updated: $hermesc_bin"
         count=$((count + 1))
@@ -68,7 +88,7 @@ for platform in linux64-bin osx-bin; do
     size=$(stat -c%s "$hermesc_bin" 2>/dev/null || stat -f%z "$hermesc_bin" 2>/dev/null)
     if [ "${size:-0}" -gt 1000000 ]; then
       cp "$hermesc_bin" "${hermesc_bin}.real"
-      printf '%s\n' "${HERMESC_WRAPPER/TRANSFORM_SCRIPT_PLACEHOLDER/$TRANSFORM_SCRIPT}" > "$hermesc_bin"
+      make_wrapper > "$hermesc_bin"
       chmod +x "$hermesc_bin"
       echo "hermesc wrapper installed: $hermesc_bin"
       count=$((count + 1))
