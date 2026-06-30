@@ -75,6 +75,7 @@ function loadPlugin(storePath) {
 const babelCorePath      = findInStore('@babel+core');
 const classPropPath      = findInStore('@babel+plugin-transform-class-properties');
 const privMethodsPath    = findInStore('@babel+plugin-transform-private-methods');
+const privPropInObjPath  = findInStore('@babel+plugin-transform-private-property-in-object');
 const classStaticPath    = findInStore('@babel+plugin-transform-class-static-block');
 const classesPath        = findInStore('@babel+plugin-transform-classes');
 const asyncToGenPath     = findInStore('@babel+plugin-transform-async-to-generator');
@@ -102,6 +103,7 @@ try {
 
 const classPropPlugin    = loadPlugin(classPropPath);
 const privMethodsPlugin  = loadPlugin(privMethodsPath);
+const privPropInObjPlugin = loadPlugin(privPropInObjPath);
 const classStaticPlugin  = loadPlugin(classStaticPath);
 const classesPlugin      = loadPlugin(classesPath);
 const asyncToGenPlugin   = loadPlugin(asyncToGenPath);
@@ -113,10 +115,14 @@ if (!classPropPlugin || !classesPlugin || !asyncToGenPlugin) {
 }
 
 const plugins = [
-  // --- Class transforms (class-properties MUST precede transform-classes) ---
+  // --- Class transforms ---
+  // All three loose-mode class plugins MUST be present with matching loose:true
+  // or @babel/plugin-transform-class-properties@7.24+ throws a consistency error,
+  // silently causing the transform to bail out and hermesc to get an untransformed bundle.
   [classPropPlugin,   { loose: true }],
-  ...(privMethodsPlugin  ? [[privMethodsPlugin,  { loose: true }]] : []),
-  ...(classStaticPlugin  ? [[classStaticPlugin]]                   : []),
+  ...(privMethodsPlugin   ? [[privMethodsPlugin,   { loose: true }]] : []),
+  ...(privPropInObjPlugin ? [[privPropInObjPlugin, { loose: true }]] : []),
+  ...(classStaticPlugin   ? [[classStaticPlugin]]                    : []),
   [classesPlugin,     { loose: true }],
   // --- Async transforms (hermesc 0.12 supports generators but not async/await) ---
   [asyncToGenPlugin],
