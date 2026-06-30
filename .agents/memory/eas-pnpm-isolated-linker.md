@@ -17,8 +17,15 @@ description: How to make Babel plugins and Expo config plugins accessible during
 
 ## Packages currently in root package.json for this reason
 - `@babel/core`
+- `@babel/plugin-transform-async-generator-functions`
+- `@babel/plugin-transform-async-to-generator`
 - `@babel/plugin-transform-class-properties`
+- `@babel/plugin-transform-class-static-block`
+- `@babel/plugin-transform-classes`
 - `@babel/plugin-transform-private-methods`
 - `@babel/plugin-transform-private-property-in-object`
 - `@react-native-google-signin/google-signin`
 - `babel-preset-expo`
+
+## hermesc bundle transform: use require(), not findInStore()
+`scripts/transform-bundle-classes.cjs` must use plain `require('@babel/core')` etc., NOT a custom `findInStore(STORE_DIR)` search. Node's module resolution walks up from `scripts/` → project root → finds root `node_modules/`. The store-search approach breaks whenever the `.pnpm` directory structure differs between environments.
