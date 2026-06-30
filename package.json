@@ -12,13 +12,17 @@
   "packageManager": "pnpm@10.26.1",
   "private": true,
   "devDependencies": {
-    "prettier": "^3.8.3",
-    "typescript": "~5.9.3",
     "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-async-generator-functions": "^7.29.7",
+    "@babel/plugin-transform-async-to-generator": "^7.29.7",
     "@babel/plugin-transform-class-properties": "^7.29.7",
+    "@babel/plugin-transform-class-static-block": "^7.29.7",
+    "@babel/plugin-transform-classes": "^7.29.7",
     "@babel/plugin-transform-private-methods": "^7.29.7",
     "@babel/plugin-transform-private-property-in-object": "^7.29.7",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "babel-preset-expo": "^56.0.15",
-    "@react-native-google-signin/google-signin": "^16.1.2"
+    "prettier": "^3.8.3",
+    "typescript": "~5.9.3"
   }
 }

@@ -168,7 +168,19 @@ importers:
       '@babel/core':
         specifier: ^7.25.2
         version: 7.29.0
+      '@babel/plugin-transform-async-generator-functions':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.0)
+      '@babel/plugin-transform-async-to-generator':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-transform-class-properties':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.0)
+      '@babel/plugin-transform-class-static-block':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.0)
+      '@babel/plugin-transform-classes':
         specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.0)
       '@babel/plugin-transform-private-methods':
