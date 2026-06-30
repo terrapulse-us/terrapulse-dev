@@ -36,10 +36,13 @@ INPUT_JS=""
 for arg in "$@"; do case "$arg" in *.js|*.bundle) INPUT_JS="$arg" ;; esac; done
 
 if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
-  # Step 1: strip private class field ACCESS: this.#field → this.___field
-  perl -i -pe '"'"'s/this\.#([a-zA-Z_][a-zA-Z0-9_]*)/this.___$1/g'"'"' "$INPUT_JS"
-  # Step 2: remove private field DECLARATIONS and their mangled counterparts
-  perl -i -ne '"'"'print unless /^\s+#[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/ || /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
+  # Step 1: rename ALL #identifier → ___identifier
+  # This covers both access (this.#field → this.___field) AND method/field declarations
+  # (#executeFetch(params) { → ___executeFetch(params) {, #field; → ___field;)
+  perl -i -pe '"'"'s/#([a-zA-Z_][a-zA-Z0-9_]*)/___$1/g'"'"' "$INPUT_JS"
+  # Step 2: remove private field DECLARATIONS (now renamed to ___field)
+  # Pattern: line is only a field declaration (ends with ; or =), not a method (has "(")
+  perl -i -ne '"'"'print unless /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
   # Step 3: convert class declarations to ES5 functions via Babel
   # (bundle output has no class properties — they were moved to ctors by Metro)
   if [ -f "$TRANSFORM_SCRIPT" ] && [ -f "$NODE_BIN" ]; then
