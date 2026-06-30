@@ -1,0 +1,76 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev (main) $ cd /workspaces/terrapulse-dev
+
+git checkout 7019c0a0645da78828c917232887238d69427326 -- artifacts/mobile/
+
+# Re-enable expo-updates (it may have been disabled in later commits)
+sed -i "s/enabled: false,/enabled: true,/" artifacts/mobile/app.config.js
+
+# Push OTA
+cd artifacts/mobile
+MAPTILER_API_KEY=3EmaPZ2ftYudXivDYAER EXPO_TOKEN=$EXPO_TOKEN \
+  npx eas-cli update --branch preview \
+  --message "Stable OTA — matches working build 1782527653" \
+  --non-interactive
+> npx expo install expo-updates
+[expo-cli] › Installing 1 SDK 54.0.0 compatible native module using pnpm
+[expo-cli] > pnpm add expo-updates@~29.0.18
+[expo-cli] ../..                                    | Progress: resolved 1, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 48, reused 0, downloaded 0, added 0
+[expo-cli] ../mockup-sandbox                        |  WARN  deprecated recharts@2.15.4
+[expo-cli] ../..                                    | Progress: resolved 110, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 129, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 131, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 132, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 133, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 261, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 306, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 307, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 311, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 314, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 317, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 326, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 363, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 368, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 372, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 392, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 403, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 452, reused 0, downloaded 0, added 0
+[expo-cli] WARN  Request took 12465ms: https://registry.npmjs.org/@firebase%2Ffirestore
+[expo-cli] ../..                                    | Progress: resolved 467, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 616, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 765, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 770, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 772, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 774, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 790, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 815, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 868, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 900, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 940, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 993, reused 0, downloaded 0, added 0
+[expo-cli] ../..                                    | Progress: resolved 1165, reused 0, downloaded 0, added 0
+[expo-cli] WARN  6 deprecated subdependencies found: glob@7.2.3, inflight@1.0.6, rimraf@3.0.2, tsconfck@3.1.6, uuid@3.4.0, uuid@7.0.3
+[expo-cli] ../..                                    | Progress: resolved 1165, reused 0, downloaded 0, added 0, done
+[expo-cli] dependencies:
+[expo-cli] + expo-updates ~29.0.18
+[expo-cli] ../..                                    |   +5 +
+[expo-cli] ../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+[expo-cli] ../.. preinstall: Done
+[expo-cli] ../.. postinstall$ bash scripts/install-hermesc-wrapper.sh
+[expo-cli] ../.. postinstall: hermesc wrapper already installed: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+[expo-cli] ../.. postinstall: hermesc wrapper already installed: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+[expo-cli] ../.. postinstall: hermesc wrapper already installed: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/osx-bin/hermesc
+[expo-cli] ../.. postinstall: hermesc wrapper already installed: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/osx-bin/hermesc
+[expo-cli] ../.. postinstall: Done. Installed 0 hermesc wrapper(s).
+[expo-cli] ../.. postinstall: Done
+[expo-cli] ╭ Warning ─────────────────────────────────────────────────────────────────────╮
+[expo-cli] │                                                                              │
+[expo-cli] │   Ignored build scripts: @firebase/util@1.15.1, protobufjs@7.6.4.            │
+[expo-cli] │   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+[expo-cli] │   to run scripts.                                                            │
+[expo-cli] │                                                                              │
+[expo-cli] ╰──────────────────────────────────────────────────────────────────────────────╯
+[expo-cli] Done in 44.8s using pnpm v10.26.1
+✔ Installed expo-updates
+Cannot read properties of undefined (reading 'policy')
+    Error: update command failed.
