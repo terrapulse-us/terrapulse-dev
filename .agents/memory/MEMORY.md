@@ -1,4 +1,6 @@
 - [hermesc v0.12.0 class field rejection](hermesc-class-fields.md) — rejects BOTH private (#x) and public (x=0; / name;) class field declarations; must eliminate via Babel in wrapper
+- [hermesc wrapper STORE_DIR must be __dirname-relative](hermesc-store-dir.md) — transform-bundle-classes.cjs hardcodes Replit path; use path.resolve(__dirname,'..','node_modules','.pnpm') to work in Codespace too
+- [Linux hermesc v0.12.0 rejects ALL class syntax](hermesc-linux-class-rejection.md) — class declarations, expressions, inside functions — all rejected; macOS hermesc works fine; Babel transform-classes plugin required for OTA from Linux
 - [Metro transformIgnorePatterns + pnpm symlinks](metro-transform-ignore-pnpm-symlinks.md) — top-level pnpm symlinks bypass (?!\.pnpm); must also exempt react-native and @react-native
 - [RN 0.81 Event.NONE non-configurable crash](rn-event-none-crash.md) — RN 0.81+ declares Event phase constants without configurable/writable; event-target-shim (via fetch/abort-controller) crashes on login; fix: patch Event.js defineProperty calls
 - [MapLibre v10→v11 migration](maplibre-v11-migration.md) — v10 crashes on RN 0.81 New Arch; v11 required, full API rename

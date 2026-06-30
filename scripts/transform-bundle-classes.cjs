@@ -3,8 +3,8 @@
  * transform-bundle-classes.cjs
  *
  * Called by the hermesc wrapper BEFORE passing the bundle to hermesc.real.
- * Converts class syntax, class properties, and async functions to ES5/ES6
- * constructs that hermesc linux64 v0.12.0 can compile.
+ * Converts class syntax, class properties, private methods, and async functions
+ * to ES5/ES6 constructs that hermesc linux64 v0.12.0 can compile.
  *
  * WHY here (not in babel.config.js):
  *   Metro runs Babel on INDIVIDUAL SOURCE FILES in separate Worker threads, each
@@ -19,16 +19,18 @@
  *
  * hermesc 0.12.0 limitations handled here:
  *   - class declarations / class expressions
- *   - static and instance class fields
+ *   - static and instance class fields (public + private)
+ *   - private methods (#method() {})
  *   - async / await functions
  *   - async generator functions
  *
  * Plugin order (important):
  *   1. @babel/plugin-transform-class-properties    — static/instance fields
- *   2. @babel/plugin-transform-class-static-block  — static { } blocks
- *   3. @babel/plugin-transform-classes             — class → function/prototype
- *   4. @babel/plugin-transform-async-to-generator  — async/await → generator
- *   5. @babel/plugin-transform-async-generator-functions — async function*
+ *   2. @babel/plugin-transform-private-methods     — private methods (#m(){})
+ *   3. @babel/plugin-transform-class-static-block  — static { } blocks
+ *   4. @babel/plugin-transform-classes             — class → function/prototype
+ *   5. @babel/plugin-transform-async-to-generator  — async/await → generator
+ *   6. @babel/plugin-transform-async-generator-functions — async function*
  *
  * Usage: node transform-bundle-classes.cjs <bundle.js>
  */
@@ -42,7 +44,9 @@ if (!bundlePath || !fs.existsSync(bundlePath)) {
   process.exit(0);
 }
 
-const STORE_DIR = '/home/runner/workspace/node_modules/.pnpm';
+// Resolve store dir relative to this script so it works in any environment
+// (Replit: /home/runner/workspace, Codespace: /workspaces/terrapulse-dev, etc.)
+const STORE_DIR = path.resolve(__dirname, '..', 'node_modules', '.pnpm');
 
 function findInStore(pkgEncoded) {
   let entries;
@@ -70,6 +74,7 @@ function loadPlugin(storePath) {
 
 const babelCorePath      = findInStore('@babel+core');
 const classPropPath      = findInStore('@babel+plugin-transform-class-properties');
+const privMethodsPath    = findInStore('@babel+plugin-transform-private-methods');
 const classStaticPath    = findInStore('@babel+plugin-transform-class-static-block');
 const classesPath        = findInStore('@babel+plugin-transform-classes');
 const asyncToGenPath     = findInStore('@babel+plugin-transform-async-to-generator');
@@ -81,7 +86,8 @@ if (!babelCorePath || !classPropPath || !classesPath || !asyncToGenPath) {
     '  core=' + babelCorePath + '\n' +
     '  props=' + classPropPath + '\n' +
     '  classes=' + classesPath + '\n' +
-    '  async=' + asyncToGenPath + '\n'
+    '  async=' + asyncToGenPath + '\n' +
+    '  STORE_DIR=' + STORE_DIR + '\n'
   );
   process.exit(0);
 }
@@ -94,11 +100,12 @@ try {
   process.exit(0);
 }
 
-const classPropPlugin   = loadPlugin(classPropPath);
-const classStaticPlugin = loadPlugin(classStaticPath);
-const classesPlugin     = loadPlugin(classesPath);
-const asyncToGenPlugin  = loadPlugin(asyncToGenPath);
-const asyncGenFnsPlugin = loadPlugin(asyncGenFnsPath);
+const classPropPlugin    = loadPlugin(classPropPath);
+const privMethodsPlugin  = loadPlugin(privMethodsPath);
+const classStaticPlugin  = loadPlugin(classStaticPath);
+const classesPlugin      = loadPlugin(classesPath);
+const asyncToGenPlugin   = loadPlugin(asyncToGenPath);
+const asyncGenFnsPlugin  = loadPlugin(asyncGenFnsPath);
 
 if (!classPropPlugin || !classesPlugin || !asyncToGenPlugin) {
   process.stderr.write('[hermesc-wrapper] One or more required plugins failed to load\n');
@@ -107,12 +114,13 @@ if (!classPropPlugin || !classesPlugin || !asyncToGenPlugin) {
 
 const plugins = [
   // --- Class transforms (class-properties MUST precede transform-classes) ---
-  [classPropPlugin,  { loose: true }],
-  ...(classStaticPlugin ? [[classStaticPlugin]] : []),
-  [classesPlugin,    { loose: true }],
+  [classPropPlugin,   { loose: true }],
+  ...(privMethodsPlugin  ? [[privMethodsPlugin,  { loose: true }]] : []),
+  ...(classStaticPlugin  ? [[classStaticPlugin]]                   : []),
+  [classesPlugin,     { loose: true }],
   // --- Async transforms (hermesc 0.12 supports generators but not async/await) ---
   [asyncToGenPlugin],
-  ...(asyncGenFnsPlugin ? [[asyncGenFnsPlugin]] : []),
+  ...(asyncGenFnsPlugin  ? [[asyncGenFnsPlugin]]                   : []),
 ];
 
 const code = fs.readFileSync(bundlePath, 'utf8');
