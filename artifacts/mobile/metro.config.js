@@ -58,6 +58,15 @@ config.transformIgnorePatterns = [
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v11';
+config.cacheVersion = 'hermesc-compat-v12';
+
+const originalGetPolyfills = config.serializer?.getPolyfills ?? (() => []);
+config.serializer = {
+  ...config.serializer,
+  getPolyfills: ({ platform }) => [
+    ...originalGetPolyfills({ platform }),
+    require.resolve('./polyfills/eventPhasePolyfill.js'),
+  ],
+};
 
 module.exports = config;
