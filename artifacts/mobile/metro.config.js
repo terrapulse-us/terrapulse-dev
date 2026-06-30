@@ -51,14 +51,26 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // Firebase's pre-built CJS dist/rn/ output uses standard ES2017+ class syntax that Hermes
 // v0.12.0 handles natively — no Babel transform needed. Adding a second pattern keeps
 // firebase/@firebase OUT of the transform pipeline even though they live in .pnpm.
+// Transform ALL packages by default — do NOT ignore anything — except firebase.
+// Firebase pre-built CJS (dist/rn/) must bypass Babel: the hermes-v0 transform-classes
+// plugin makes its 'NONE' property non-writable (Object.defineProperty), which causes
+// a runtime TypeError in Hermes strict mode.
+//
+// Previously we had a catch-all ignore pattern for node_modules. That caused packages
+// with ES2022+ syntax (e.g. @tanstack/react-query v5 private class methods) to slip
+// through untransformed when accessed via workspace-level pnpm symlinks whose paths
+// don't contain ".pnpm", so they never matched our exception list.
+// Removing the catch-all is safe: metro caches each transform by content hash.
 config.transformIgnorePatterns = [
-  `${workspaceRoot}/node_modules/(?!(\\.pnpm|react-native|@react-native))`,
+  // .pnpm real paths for firebase — do NOT transform
   `${workspaceRoot}/node_modules/\\.pnpm\\/(@firebase|firebase)`,
+  // workspace-level symlinks for firebase — do NOT transform
+  `${workspaceRoot}/node_modules/(@firebase|firebase)[/\\\\]`,
 ];
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v13';
+config.cacheVersion = 'hermesc-compat-v14';
 
 // Inject Event.NONE polyfill before any module code runs.
 // Prevents the "Cannot assign to read-only property 'NONE'" crash that happens during
