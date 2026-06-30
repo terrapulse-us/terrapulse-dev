@@ -13,7 +13,7 @@ REAL_HERMESC="$(dirname "$0")/hermesc.real"
 NODE_BIN="NODE_BIN_PLACEHOLDER"
 TRANSFORM_SCRIPT="TRANSFORM_SCRIPT_PLACEHOLDER"
 INPUT_JS=""
-for arg in "$@"; do case "$arg" in *.js) INPUT_JS="$arg" ;; esac; done
+for arg in "$@"; do case "$arg" in *.js|*.bundle) INPUT_JS="$arg" ;; esac; done
 if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
   perl -i -pe '"'"'s/this\.#([a-zA-Z_][a-zA-Z0-9_]*)/this.___$1/g'"'"' "$INPUT_JS"
   perl -i -ne '"'"'print unless /^\s+#[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/ || /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
