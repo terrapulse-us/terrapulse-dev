@@ -15,21 +15,41 @@ Replit checkpoint commits are pushed to Replit's own git remote. The Codespace t
 
 ```bash
 cd /workspaces/terrapulse-dev
-git pull origin main           # get latest code into Codespace
-pnpm install                   # ensure Babel plugins are available locally
+
+# 1. Reinstall hermesc wrappers (must be done once per Codespace, or after pnpm install)
+bash scripts/install-hermesc-wrapper.sh --force
+
+# 2. Clear the transform log so you can check it after
+> /tmp/hermesc-transform.log
+
+# 3. Run the update
 cd artifacts/mobile
 MAPTILER_API_KEY=<key> EXPO_TOKEN=$EXPO_TOKEN npx eas-cli update \
   --branch preview \
   --message "description" \
   --non-interactive
+
+# 4. Check the log — should be empty on success, errors appear if transform failed
+cat /tmp/hermesc-transform.log
 ```
 
 **Why MAPTILER_API_KEY must be set explicitly:** `app.config.js` reads `process.env.MAPTILER_API_KEY` at bundle time. EAS env vars/secrets are only substituted during `eas build` (native builds), not during `eas update` (JS-only bundles). Without it set in the shell, `extra.maptilerApiKey` is empty in the OTA bundle.
 
+## Hermesc wrapper — critical for Codespace OTA
+
+Linux hermesc v0.12.0 rejects ALL `class` syntax (declarations, expressions, inside functions). The wrapper installs a shell shim + Babel transform that converts class syntax to ES5 before hermesc sees it.
+
+**The wrapper is installed in `node_modules/.pnpm/` — NOT git-tracked.** After any `pnpm install` in the Codespace, re-run:
+```bash
+bash scripts/install-hermesc-wrapper.sh --force
+```
+
+If classes still fail, check `/tmp/hermesc-transform.log` for `[hermesc-wrapper] Missing required Babel deps` — this means `STORE_DIR` is wrong or Babel packages are missing. The script uses `path.resolve(__dirname, '..', 'node_modules', '.pnpm')` which works in any environment.
+
 ## OTA update application (two-open rule)
 
 1. First open after `eas update` publishes: app downloads the new bundle silently
-2. Kill app completely (swipe from Android recents)
+2. Kill app completely (swipe from app switcher)
 3. Second open: new bundle is applied
 
 ## Working APK vs new native builds
