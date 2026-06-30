@@ -1,0 +1,28 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ # Check if hermesc wrapper covers osx-bin
+cat /workspaces/terrapulse-dev/artifacts/mobile/scripts/hermesc-wrapper.sh 2>/dev/null || find /workspaces/terrapulse-dev -name "hermesc*" -not -path "*/node_modules/*" 2>/dev/null | head -10
+
+# Check Platform guard in stream.tsx
+grep -n "Platform\|ApiVideo\|rtmpAvailable\|require.*api.video" /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/stream.tsx | head -20
+/workspaces/terrapulse-dev/.agents/memory/hermesc-osx-wrapper.md
+/workspaces/terrapulse-dev/.agents/memory/hermesc-class-fields.md
+/workspaces/terrapulse-dev/scripts/hermesc-ios-wrapper.sh
+12:  Platform,
+34:let ApiVideoLiveStreamView: React.ComponentType<any> | null = null;
+35:if (!isExpoGo && Platform.OS === "android") {
+37:    ApiVideoLiveStreamView =
+38:      require("@api.video/react-native-livestream").ApiVideoLiveStreamView;
+41:const rtmpAvailable = ApiVideoLiveStreamView !== null;
+45:if (Platform.OS !== "web") {
+63:  if (Platform.OS === "web") {
+205:    if (rtmpAvailable) {
+233:  // Called by ApiVideoLiveStreamView when Twitch accepts the connection
+254:      if (rtmpAvailable && publisherRef.current) {
+277:      if (rtmpAvailable && publisherRef.current) {
+312:  // The camera component is ALWAYS mounted so ApiVideoLiveStreamView keeps
+321:        {/* Camera — ApiVideoLiveStreamView (dev client / builds) or CameraView (Expo Go) */}
+322:        {rtmpAvailable && ApiVideoLiveStreamView ? (
+324:            <ApiVideoLiveStreamView
+372:        {(cameraPermission?.granted || rtmpAvailable) && (
+422:              {rtmpAvailable ? (
+480:            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }}
+678:  elapsedText: { color: "#fff", fontFamily: Platform.OS === "ios" ? "Courier" : "monospace", fontSize: 13, fontWeight: "700", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
