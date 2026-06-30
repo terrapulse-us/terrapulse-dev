@@ -1,0 +1,36 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ # Run expo export manually (skip eas update wrapper) and keep the dist/ output
+cd /workspaces/terrapulse-dev/artifacts/mobile
+npx expo export --output-dir /tmp/ota-dist --platform ios 2>&1 | tail -30
+# Then look at the actual JS bundle
+ls /tmp/ota-dist/bundles/
+  ^~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:12939:24: warning: the variable "ReactNativeDocument" was not declared in function "createReactNativeDocument"
+    var document = new ReactNativeDocument(rootTag, instanceHandle);
+                       ^~~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:12894:3: error: invalid statement encountered.
+  class ReactNativeDocument extends ReadOnlyNode.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:12971:3: error: invalid statement encountered.
+  class ReactNativeElement extends ReadOnlyElement.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:13064:49: warning: the variable "ReactNativeElement" was not declared in anonymous function " 466#"
+  var _default = replaceConstructorWithoutSuper(ReactNativeElement);
+                                                ^~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:13253:92: warning: the variable "ReadOnlyElement" was not declared in anonymous arrow function " 469#"
+    return (0, _ReadOnlyNode.getChildNodes)(node).filter(childNode => childNode instanceof ReadOnlyElement);
+                                                                                           ^~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:13107:3: error: invalid statement encountered.
+  class ReadOnlyElement extends ReadOnlyNode.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:13420:14: warning: the variable "ReactFabricHostComponent" was not declared in function "get 233#"
+      return ReactFabricHostComponent;
+             ^~~~~~~~~~~~~~~~~~~~~~~~
+/tmp/expo-bundler-0.3415677199609859-1782797834510/index.js:13440:3: error: invalid statement encountered.
+  class ReactFabricHostComponent {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<unknown>:0: error: too many errors emitted
+Emitted 20 errors. exiting.
+
+iOS Bundling failed 2461ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1451 modules)
+Error: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc -emit-binary -out /tmp/expo-bundler-0.3415677199609859-1782797834510/index.hbc /tmp/expo-bundler-0.3415677199609859-1782797834510/index.js -O exited with non-zero code: 2
+ls: cannot access '/tmp/ota-dist/bundles/': No such file or directory
