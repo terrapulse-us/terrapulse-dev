@@ -44,8 +44,8 @@ export default function RootLayout() {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
         }
-      } catch {
-        // ignore — network unavailable or running dev build
+      } catch (e) {
+        console.error("[OTA] update check failed:", e);
       }
     }
     checkForUpdate();

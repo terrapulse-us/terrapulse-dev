@@ -1,0 +1,64 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ # 1. See what's actually published to the preview branch
+EXPO_TOKEN=$EXPO_TOKEN npx eas-cli update:list --branch preview --limit 5 --non-interactive
+
+# 2. Check if hermesc transform had errors during the last eas update
+cat /tmp/hermesc-transform.log
+★ eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: warm cream color palette" (3 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ee78c508-6c92-4831-8fad-6ba13db1a6e5
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: match Android cream color palette" (8 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  2793aa59-ab1d-49ac-b61d-be3e5d76f3f3
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: match Android cream color palette" (15 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  7d901ae5-030a-418d-813d-a2bef57b92ec
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Stable OTA — matches working build 1782527653" (25 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ec1d3954-9f47-4955-a9c0-3304f662ae84
+
+———
+
+Platforms                 ios
+Runtime Version           1.0.22
+Message                   "Fix Event.NONE crash on iOS auth" (5 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  092f7560-c0a7-4063-b5ab-ace359448534
