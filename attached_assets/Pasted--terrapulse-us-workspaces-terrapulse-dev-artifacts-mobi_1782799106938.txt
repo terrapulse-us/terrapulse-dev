@@ -1,0 +1,134 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ cd /workspaces/terrapulse-dev
+
+# See where hermesc actually lives in the Codespace pnpm store
+find node_modules/.pnpm -name 'hermesc' | grep linux64
+
+# Check if any are already wrapped (hermesc.real exists = wrapped)
+find node_modules/.pnpm -name 'hermesc.real' | grep linux64 || echo "none wrapped"
+
+# Install the wrapper for all hermesc instances in this store
+bash scripts/install-hermesc-wrapper.sh --force
+
+# Confirm wrappers installed
+find node_modules/.pnpm -name 'hermesc.real' | grep linux64
+
+# Clear transform log, then retry OTA
+> /tmp/hermesc-transform.log
+cd artifacts/mobile
+MAPTILER_API_KEY=3EmaPZ2ftYudXivDYAER EXPO_TOKEN=$EXPO_TOKEN \
+  npx eas-cli update --branch preview \
+  --message "Stable OTA — matches working build 1782527653" \
+  --non-interactive
+
+echo "=== Transform log ===" && cat /tmp/hermesc-transform.log
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc.real
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc.real
+hermesc wrapper updated: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+hermesc wrapper updated: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc
+hermesc wrapper updated: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/osx-bin/hermesc
+hermesc wrapper updated: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/osx-bin/hermesc
+Done. Installed 4 hermesc wrapper(s).
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_812a05ae98d5d042cc4340c722c01ff9/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc.real
+node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc.real
+[expo-cli] Starting Metro Bundler
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1451/1451)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1448/1448)
+[expo-cli] Android Bundled 26689ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1448 modules)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1451/1451)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1448/1448)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1451/1451)
+[expo-cli] iOS Bundled 49771ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1451 modules)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1451/1451)
+[expo-cli] Creating asset map
+[expo-cli] 
+[expo-cli] › Assets (74):
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/100Thin_Italic/Inter_100Thin_Italic.ttf (347 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/100Thin/Inter_100Thin.ttf (343 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/200ExtraLight_Italic/Inter_200ExtraLight_Italic.ttf (347 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/200ExtraLight/Inter_200ExtraLight.ttf (343 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/300Light_Italic/Inter_300Light_Italic.ttf (347 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/300Light/Inter_300Light.ttf (343 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/400Regular_Italic/Inter_400Regular_Italic.ttf (346 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf (342 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/500Medium_Italic/Inter_500Medium_Italic.ttf (346 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf (343 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/600SemiBold_Italic/Inter_600SemiBold_Italic.ttf (347 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf (344 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/700Bold_Italic/Inter_700Bold_Italic.ttf (348 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf (344 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/800ExtraBold_Italic/Inter_800ExtraBold_Italic.ttf (349 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/800ExtraBold/Inter_800ExtraBold.ttf (345 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/900Black_Italic/Inter_900Black_Italic.ttf (349 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo-google-fonts+inter@0.4.2/node_modules/@expo-google-fonts/inter/900Black/Inter_900Black.ttf (345 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/AntDesign.ttf (130 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Entypo.ttf (66.2 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/EvilIcons.ttf (13.5 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf (55.6 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome.ttf (166 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Brands.ttf (134 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf (33.7 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf (203 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome6_Brands.ttf (209 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome6_Regular.ttf (68 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome6_Solid.ttf (424 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Fontisto.ttf (314 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Foundation.ttf (57 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf (390 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf (1.31 MB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf (357 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Octicons.ttf (69.4 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/SimpleLineIcons.ttf (54.1 kB)
+[expo-cli] ../../node_modules/.pnpm/@expo+vector-icons@15.1.1_expo-font@14.0.12_expo@54.0.35_react-native@0.81.5_patch_hash_4b719be74edd50855473c73fd0128942/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Zocial.ttf (25.8 kB)
+[expo-cli] ../../node_modules/.pnpm/@maplibre+maplibre-react-native@11.3.4_@types+geojson@7946.0.16_@types+react@19.1.17_ex_2b3c18329f7b1e07837770fb29ca2308/node_modules/@maplibre/maplibre-react-native/lib/module/assets/heading.png (3 variations | 450 B)
+[expo-cli] ../../node_modules/.pnpm/@react-navigation+elements@2.9.25_@react-navigation+native@7.3.3_react-native@0.81.5_pa_0d84a6d00ff91abe1cc44e07a87060a6/node_modules/@react-navigation/elements/lib/module/assets/back-icon-mask.png (653 B)
+[expo-cli] ../../node_modules/.pnpm/@react-navigation+elements@2.9.25_@react-navigation+native@7.3.3_react-native@0.81.5_pa_0d84a6d00ff91abe1cc44e07a87060a6/node_modules/@react-navigation/elements/lib/module/assets/back-icon.png (8 variations | 359 B)
+[expo-cli] ../../node_modules/.pnpm/@react-navigation+elements@2.9.25_@react-navigation+native@7.3.3_react-native@0.81.5_pa_0d84a6d00ff91abe1cc44e07a87060a6/node_modules/@react-navigation/elements/lib/module/assets/clear-icon.png (4 variations | 425 B)
+[expo-cli] ../../node_modules/.pnpm/@react-navigation+elements@2.9.25_@react-navigation+native@7.3.3_react-native@0.81.5_pa_0d84a6d00ff91abe1cc44e07a87060a6/node_modules/@react-navigation/elements/lib/module/assets/close-icon.png (4 variations | 235 B)
+[expo-cli] ../../node_modules/.pnpm/@react-navigation+elements@2.9.25_@react-navigation+native@7.3.3_react-native@0.81.5_pa_0d84a6d00ff91abe1cc44e07a87060a6/node_modules/@react-navigation/elements/lib/module/assets/search-icon.png (7 variations | 592 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/arrow_down.png (9.46 kB)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/error.png (469 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/file.png (138 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/forward.png (188 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/pkg.png (364 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/sitemap.png (465 B)
+[expo-cli] ../../node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/assets/unmatched.png (4.75 kB)
+[expo-cli] assets/icons/broadcast.png (33.5 kB)
+[expo-cli] assets/icons/helmet.png (75.9 kB)
+[expo-cli] assets/icons/profile.png (184 kB)
+[expo-cli] 
+[expo-cli] › android bundles (2):
+[expo-cli] _expo/static/js/android/entry-110048cc36590572dacc65d672bf5456.hbc (3.57 MB)
+[expo-cli] _expo/static/js/android/entry-110048cc36590572dacc65d672bf5456.hbc.map (11.6 MB)
+[expo-cli] 
+[expo-cli] › ios bundles (2):
+[expo-cli] _expo/static/js/ios/entry-02afdaef4b7a6701b5accfc89180091e.hbc (3.57 MB)
+[expo-cli] _expo/static/js/ios/entry-02afdaef4b7a6701b5accfc89180091e.hbc.map (11.6 MB)
+[expo-cli] 
+[expo-cli] › Files (2):
+[expo-cli] assetmap.json (50.8 kB)
+[expo-cli] metadata.json (8.94 kB)
+[expo-cli] 
+[expo-cli] Exported: dist
+✔ Exported bundle(s)
+✔ Uploaded assetmap.json 
+✔ Uploaded 2 app bundles
+✔ Uploading assets skipped - no new assets found
+ℹ 70 iOS assets, 70 Android assets (maximum: 2000 total per update). Learn more about asset limits
+✔ Computed project fingerprints
+✔ Published!
+Branch             preview
+Runtime version    1.0.22
+Platform           android, ios
+Update group ID    ec1d3954-9f47-4955-a9c0-3304f662ae84
+Android update ID  019f171b-538b-71f1-8e7a-2008ce857ab7
+iOS update ID      019f171b-538b-7644-82bf-27ac79f25523
+Message            Stable OTA — matches working build 1782527653
+Commit             f8df90c246d0e061ad94b1ecfc0d64e43f0f13c6*
+EAS Dashboard      https://expo.dev/accounts/mclaporteterrapulses-team/projects/mobile/updates/ec1d3954-9f47-4955-a9c0-3304f662ae84
+
+=== Transform log ===
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) 
