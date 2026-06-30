@@ -1152,8 +1152,8 @@ export default function MapScreen() {
       >
         <Camera
           ref={cameraRef}
-          center={[-98.5795, 39.8283]}
-          zoom={3}
+          center={[-119.4179, 36.7783]}
+          zoom={7}
           pitch={mapLayer === "terrain3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />

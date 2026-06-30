@@ -2,7 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── OpenStreetMap Overpass API ───────────────────────────────────────────────
 // Free public API. Queries 4x4 tracks, OHV paths, and unpaved roads.
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+// Two endpoints for redundancy — overpass-api.de is the primary.
+const OVERPASS_URLS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,12 +113,20 @@ export async function fetchOsmTrailsNear(
     "out geom;",
   ].join("\n");
 
-  const resp = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  if (!resp.ok) throw new Error(`Overpass API ${resp.status}`);
+  let resp: Response | null = null;
+  for (const url of OVERPASS_URLS) {
+    try {
+      resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+      if (resp.ok) break;
+    } catch {
+      resp = null;
+    }
+  }
+  if (!resp?.ok) throw new Error(`Overpass API unavailable`);
 
   const json = (await resp.json()) as { elements: OsmOverpassNode[] };
 
