@@ -1,0 +1,49 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ sed -n '1598,1645p' /workspaces/terrapulse-dev/artifacts/mobile/app/\(tabs\)/map.tsx
+          <View
+            style={[styles.layerSheet, styles.layerSheetLight]}
+          >
+            <View style={styles.modalHandleLight} />
+            <Text style={styles.layerTitleLight}>MAP LAYERS</Text>
+            <View style={styles.layerGrid}>
+              {LAYER_OPTIONS.map((opt) => {
+                const active = mapLayer === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[
+                      styles.layerCard,
+                      {
+                        backgroundColor: active
+                          ? colors.accent
+                          : "rgba(255,255,255,0.05)",
+                        borderColor: active ? colors.accent : colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      setMapLayer(opt.id);
+                      setShowLayerPicker(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons
+                      name={opt.icon as never}
+                      size={24}
+                      color={active ? "#000" : colors.mutedForeground}
+                    />
+                    <Text
+                      style={[
+                        styles.layerCardLabel,
+                        { color: active ? "#000" : colors.foreground },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {mapLayer === "terrain3d" && (
+              <Text
+                style={styles.layerHintLight}
+              >
+                Tilt the map with two fingers to see 3D elevation
