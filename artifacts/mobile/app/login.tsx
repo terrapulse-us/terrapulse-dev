@@ -54,18 +54,11 @@ export default function LoginScreen() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({
-          showPlayServicesUpdateDialog: true,
-        });
-      }
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const response = await GoogleSignin.signIn();
-      const idToken = response?.data?.idToken;
+      const idToken = response.data?.idToken;
       if (!idToken) {
-        Alert.alert(
-          "App Update Required",
-          "Google Sign-In requires a newer version of the app. Please reinstall from the latest build.",
-        );
+        Alert.alert("Google Sign-In Failed", "No ID token returned. Try again.");
         return;
       }
       await loginWithGoogleCredential(idToken);

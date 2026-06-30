@@ -5,5 +5,10 @@ module.exports = {
         ios: null,
       },
     },
+    "react-native-nodemediaclient": {
+      platforms: {
+        android: null,
+      },
+    },
   },
 };

@@ -24,8 +24,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function firebaseAuthMessage(err: unknown): string {
   if (err && typeof err === "object" && "code" in err) {
     const code = (err as { code: string }).code;
-    const raw = (err as Record<string, unknown>);
-    const customMsg = (raw?.customData as Record<string, unknown> | undefined)?.message as string | undefined;
     switch (code) {
       case "auth/operation-not-allowed":
         return "This sign-in method is not enabled in Firebase Console.";
@@ -36,7 +34,7 @@ function firebaseAuthMessage(err: unknown): string {
       case "auth/account-exists-with-different-credential":
         return "An account already exists with a different sign-in method for that email.";
       case "auth/network-request-failed":
-        return `Network error [${customMsg ?? "no detail"}]`;
+        return "Network error — check your internet connection.";
       case "auth/too-many-requests":
         return "Too many attempts. Please wait a moment and try again.";
       case "auth/wrong-password":
@@ -48,7 +46,7 @@ function firebaseAuthMessage(err: unknown): string {
       case "auth/weak-password":
         return "Password must be at least 6 characters.";
       default:
-        return `Auth error (${code}): ${customMsg ?? String(err)}`;
+        return `Auth error (${code})`;
     }
   }
   return err instanceof Error ? err.message : "Unknown error";

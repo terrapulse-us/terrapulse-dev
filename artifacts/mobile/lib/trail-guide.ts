@@ -16,10 +16,6 @@ import {
   ridbFacilityCoord, ridbFacilityActivities, ridbCleanDescription,
   type RidbFacility,
 } from "./ridb-api";
-import {
-  npsParkCoord, npsParkActivities,
-  type NpsPark,
-} from "./nps-api";
 import type { BlmOhvFeature } from "./blm-api";
 
 // ─── Source config ─────────────────────────────────────────────────────────────
@@ -30,7 +26,6 @@ export type TrailSource =
   | "osm"
   | "blm"
   | "ridb"
-  | "nps"
   | "app";
 
 export interface SourceConfig {
@@ -45,7 +40,6 @@ export const SOURCE_CONFIG: Record<TrailSource, SourceConfig> = {
   "osm":       { label: "OpenStreetMap",        color: "#3DAA5C", textColor: "#fff" },
   "blm":       { label: "BLM",                 color: "#D4860A", textColor: "#fff" },
   "ridb":      { label: "Recreation.gov",       color: "#7B3F9E", textColor: "#fff" },
-  "nps":       { label: "Nat'l Park Service",  color: "#1B5E20", textColor: "#fff" },
   "app":       { label: "TerraPulse",           color: "#1E3A1E", textColor: "#EBE4D1" },
 };
 
@@ -135,20 +129,6 @@ export function fromRidbFacility(f: RidbFacility): TrailGuide {
     description: ridbCleanDescription(f),
     directions: f.FacilityDirections?.replace(/<[^>]*>/g, " ").trim() ?? undefined,
     managingOrg: "Recreation.gov / Federal Lands",
-    startCoord: coord ?? [0, 0],
-  };
-}
-
-export function fromNpsPark(p: NpsPark): TrailGuide {
-  const coord = npsParkCoord(p);
-  return {
-    id: `nps-${p.parkCode}`,
-    source: "nps",
-    name: p.fullName,
-    subtitle: npsParkActivities(p),
-    description: p.description?.replace(/<[^>]*>/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, 500),
-    directions: p.directionsInfo?.replace(/<[^>]*>/g, " ").trim() ?? undefined,
-    managingOrg: "National Park Service",
     startCoord: coord ?? [0, 0],
   };
 }

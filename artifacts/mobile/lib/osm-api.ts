@@ -81,30 +81,15 @@ export async function fetchOsmTrailsNear(
   // Overpass QL: comprehensive off-road query
   const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
   const query = [
-    "[out:json][timeout:45];",
+    "[out:json][timeout:30];",
     "(",
-    // Core 4WD / OHV ways
     `  way["highway"="track"]["access"!~"^(private|no)$"](${bbox});`,
     `  way["4wd_only"="yes"](${bbox});`,
     `  way["highway"="path"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Unpaved road surfaces on classified roads
-    `  way["highway"~"^(unclassified|tertiary|residential)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel|earth|mud)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Beach / desert driving
+    `  way["highway"~"^(unclassified|tertiary)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel|earth)$"](${bbox});`,
     `  way["natural"="beach"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Sandy / rocky tracks
-    `  way["highway"~"^(track|path)$"]["surface"~"^(sand|gravel|rock|mud|dirt|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Unpaved service roads (forest roads, fire roads)
-    `  way["highway"="service"]["surface"~"^(unpaved|gravel|dirt|ground|fine_gravel|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Explicitly tagged ATV / OHV / snowmobile ways
-    `  way["atv"~"^(yes|permissive|designated)$"](${bbox});`,
-    `  way["snowmobile"~"^(yes|permissive|designated)$"]["surface"!~"^(asphalt|concrete|paved)$"](${bbox});`,
-    `  way["route"~"^(atv|ohv|offroad|4wd)$"](${bbox});`,
-    // Tracks with explicit quality grades (worse = more likely off-road)
-    `  way["highway"="track"]["tracktype"~"^(grade[2-5])$"](${bbox});`,
-    // Bridleways and paths open to motor vehicles
-    `  way["highway"="bridleway"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Forest / logging roads — access tagged open
-    `  way["highway"~"^(track|unclassified|service)$"]["operator"~"^(USFS|USDA|Forest Service|BLM|Bureau of Land Management)$"]["access"!~"^(private|no)$"](${bbox});`,
+    `  way["highway"~"^(track|path)$"]["surface"~"^(sand|gravel|rock)$"]["access"!~"^(private|no)$"](${bbox});`,
+    `  way["highway"="service"]["surface"~"^(unpaved|gravel|dirt|ground)$"]["access"!~"^(private|no)$"](${bbox});`,
     ");",
     "out geom;",
   ].join("\n");

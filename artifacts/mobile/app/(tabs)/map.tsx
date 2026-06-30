@@ -88,17 +88,10 @@ import {
   type RidbFacility,
 } from "@/lib/ridb-api";
 import {
-  fetchNpsOhvParksNear,
-  npsParkCoord,
-  npsHasApiKey,
-  type NpsPark,
-} from "@/lib/nps-api";
-import {
   fromUsfsFeature,
   fromUsfsNfsFeature,
   fromOsmFeature,
   fromRidbFacility,
-  fromNpsPark,
   type TrailGuide,
 } from "@/lib/trail-guide";
 import TrailGuideSheet from "@/components/TrailGuideSheet";
@@ -108,14 +101,6 @@ interface TrailPhoto {
   url: string;
   uploadedBy: string;
   createdAt: unknown;
-}
-
-interface TrailKeypoint {
-  type: string;
-  label: string;
-  customText: string;
-  lat: number;
-  lng: number;
 }
 
 interface RidePoint {
@@ -177,18 +162,9 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
 ];
 
-interface KeypointConfig { id: string; label: string; icon: string; color: string; }
-const KEYPOINT_CONFIGS: KeypointConfig[] = [
-  { id: "closed",    label: "Closed",     icon: "block",       color: "#C0392B" },
-  { id: "flooded",   label: "Flooded",    icon: "water",       color: "#1565C0" },
-  { id: "rockslide", label: "Rock Slide", icon: "terrain",     color: "#795548" },
-  { id: "danger",    label: "Danger",     icon: "warning",     color: "#E65100" },
-  { id: "custom",    label: "Custom",     icon: "edit",        color: "#5A9A5A" },
-];
-
 const MAPTILER_KEY: string =
   (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.maptilerApiKey ?? (process.env.EXPO_PUBLIC_MAPTILER_KEY ?? "");
+    ?.maptilerApiKey ?? "";
 
 function mtStyle(id: string): string {
   return `https://api.maptiler.com/maps/${id}/style.json?key=${MAPTILER_KEY}`;
@@ -313,10 +289,9 @@ export default function MapScreen() {
   const { user, logout } = useAuth();
   const cameraRef = useRef<CameraRef>(null);
 
-  
   const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
-  const [showUsfsOverlay, setShowUsfsOverlay] = useState(true);
+  const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
   const [terrain3dStyleObj, setTerrain3dStyleObj] =
     useState<Record<string, unknown> | null>(null);
@@ -395,11 +370,6 @@ export default function MapScreen() {
   const [submittingTrail, setSubmittingTrail] = useState(false);
   const [userTrails, setUserTrails] = useState<UserTrail[]>([]);
 
-  const [trailKeypoints, setTrailKeypoints] = useState<TrailKeypoint[]>([]);
-  const [showKeypointModal, setShowKeypointModal] = useState(false);
-  const [keypointSelectedType, setKeypointSelectedType] = useState<string | null>(null);
-  const [keypointCustomText, setKeypointCustomText] = useState("");
-
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -430,7 +400,7 @@ export default function MapScreen() {
   const [nfsGeoJSON, setNfsGeoJSON] = useState<UsfsNfsCollection | null>(null);
   const [nfsLoading, setNfsLoading] = useState(false);
 
-  const [showOsmOverlay, setShowOsmOverlay] = useState(true);
+  const [showOsmOverlay, setShowOsmOverlay] = useState(false);
   const [osmGeoJSON, setOsmGeoJSON] = useState<OsmCollection | null>(null);
   const [osmLoading, setOsmLoading] = useState(false);
 
@@ -440,10 +410,6 @@ export default function MapScreen() {
 
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
   const [showRidbOverlay, setShowRidbOverlay] = useState(false);
-
-  const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
-  const [showNpsOverlay, setShowNpsOverlay] = useState(false);
-  const [npsLoading, setNpsLoading] = useState(false);
 
   // Core navigation: takes a trail explicitly so it works from any call site
   const navigateTrail = useCallback((trail: UserTrail) => {
@@ -484,7 +450,7 @@ export default function MapScreen() {
     let cancelled = false;
     setNfsLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchUsfsNfsNear(center.latitude, center.longitude, 25)
+    fetchUsfsNfsNear(center.latitude, center.longitude, 8)
       .then(data => { if (!cancelled) setNfsGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setNfsLoading(false); });
@@ -504,27 +470,13 @@ export default function MapScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showRidbOverlay]);
 
-  // ── NPS parks fetch ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!showNpsOverlay || !npsHasApiKey()) { setNpsParks([]); return; }
-    let cancelled = false;
-    setNpsLoading(true);
-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchNpsOhvParksNear(center.latitude, center.longitude, 150)
-      .then(data => { if (!cancelled) setNpsParks(data); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setNpsLoading(false); });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNpsOverlay]);
-
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
     let cancelled = false;
     setOsmLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchOsmTrailsNear(center.latitude, center.longitude, 15)
+    fetchOsmTrailsNear(center.latitude, center.longitude, 5)
       .then(data => { if (!cancelled) setOsmGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setOsmLoading(false); });
@@ -930,26 +882,6 @@ export default function MapScreen() {
     setFollowUser(true);
   }, [followUser, userLocation]);
 
-  const addKeypoint = useCallback(() => {
-    if (!keypointSelectedType) return;
-    const kpConfig = KEYPOINT_CONFIGS.find(k => k.id === keypointSelectedType);
-    const loc = userLocation;
-    if (!loc) {
-      Alert.alert("No Location", "Enable location to tag a keypoint.");
-      return;
-    }
-    setTrailKeypoints(prev => [...prev, {
-      type: keypointSelectedType,
-      label: kpConfig?.label ?? keypointSelectedType,
-      customText: keypointCustomText,
-      lat: loc.latitude,
-      lng: loc.longitude,
-    }]);
-    setShowKeypointModal(false);
-    setKeypointSelectedType(null);
-    setKeypointCustomText("");
-  }, [keypointSelectedType, keypointCustomText, userLocation]);
-
   const startTrailRecording = useCallback(async () => {
     if (isRecording) {
       Alert.alert("Already Recording", "Stop your ride recording first.");
@@ -964,7 +896,6 @@ export default function MapScreen() {
     trailDistRef.current = 0;
     setTrailPoints([]);
     setTrailDistanceMi(0);
-    setTrailKeypoints([]);
     setTrailElapsed(0);
     const start = Date.now();
     setTrailStartTime(start);
@@ -1040,7 +971,6 @@ export default function MapScreen() {
         createdAt: serverTimestamp(),
         routeCoordinates: pts.map((p) => ({ lat: p.latitude, lng: p.longitude })),
         isUserSubmitted: true,
-        keypoints: trailKeypoints,
       });
       Alert.alert(
         "Trail Added!",
@@ -1104,20 +1034,6 @@ export default function MapScreen() {
       properties: {},
     };
   }, [isNavigating, navTrail, selectedTrail]);
-
-  const allTrailRoutesGeoJSON = useMemo(() => ({
-    type: "FeatureCollection" as const,
-    features: ALL_TRAILS
-      .filter(t => TRAIL_ROUTES[t.id] != null && TRAIL_ROUTES[t.id].length >= 2)
-      .map(t => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "LineString" as const,
-          coordinates: TRAIL_ROUTES[t.id].map(p => [p.lng, p.lat]),
-        },
-        properties: { color: markerColor(t.difficultyRating) },
-      })),
-  }), []);
 
   const TOP_BAR_HEIGHT = insets.top + 64;
   const STATE_BAR_HEIGHT = 48;
@@ -1197,20 +1113,6 @@ export default function MapScreen() {
               id="selected-user-trail-line"
               type="line"
               paint={{ "line-color": "#FF9800", "line-width": 3, "line-opacity": 0.85 }}
-            />
-          </GeoJSONSource>
-        )}
-
-        {allTrailRoutesGeoJSON.features.length > 0 && (
-          <GeoJSONSource id="all-trail-routes" data={allTrailRoutesGeoJSON as never}>
-            <Layer
-              id="all-trail-routes-line"
-              type="line"
-              paint={{
-                "line-color": ["get", "color"] as never,
-                "line-width": 3.5,
-                "line-opacity": 0.78,
-              }}
             />
           </GeoJSONSource>
         )}
@@ -1308,17 +1210,6 @@ export default function MapScreen() {
           );
         })}
 
-        {/* ── NPS parks markers ─────────────────────────────────────────── */}
-        {npsParks.map((p, i) => {
-          const coord = npsParkCoord(p);
-          if (!coord) return null;
-          return (
-            <Marker key={`nps-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromNpsPark(p))}>
-              <View style={styles.npsMarker} />
-            </Marker>
-          );
-        })}
-
         {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
         {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
@@ -1361,17 +1252,6 @@ export default function MapScreen() {
               />
             </Marker>
           ))}
-
-        {isTrailRecording && trailKeypoints.map((kp, i) => {
-          const kpConfig = KEYPOINT_CONFIGS.find(k => k.id === kp.type);
-          return (
-            <Marker key={`keypoint-${i}`} lngLat={[kp.lng, kp.lat]}>
-              <View style={[styles.keypointMarker, { backgroundColor: kpConfig?.color ?? "#999" }]}>
-                <MaterialIcons name={(kpConfig?.icon ?? "place") as never} size={12} color="#fff" />
-              </View>
-            </Marker>
-          );
-        })}
       </MapLibreMap>
 
       {/* TOP BAR */}
@@ -1387,12 +1267,7 @@ export default function MapScreen() {
             <Text
               style={[styles.topSub, { color: colors.mutedForeground }]}
             >
-              {filteredTrails.length +
-                (usfsGeoJSON?.features.length ?? 0) +
-                (osmGeoJSON?.features.length ?? 0) +
-                (nfsGeoJSON?.features.length ?? 0) +
-                ridbFacilities.length +
-                npsParks.length} TRAILS ·{" "}
+              {filteredTrails.length} TRAILS ·{" "}
               {selectedState === "All States"
                 ? "NATIONWIDE"
                 : STATE_NAMES[selectedState] ?? selectedState}
@@ -1578,16 +1453,6 @@ export default function MapScreen() {
               <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>PTS</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={[styles.tagKeypointBtn, { borderColor: colors.success }]}
-            onPress={() => setShowKeypointModal(true)}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="add-location" size={13} color={colors.success} />
-            <Text style={[styles.tagKeypointText, { color: colors.success }]}>
-              TAG{trailKeypoints.length > 0 ? ` (${trailKeypoints.length})` : ""}
-            </Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -1619,8 +1484,8 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 136,
-            backgroundColor: mapLayer !== "standard" ? "#5A9A5A" : colors.card,
-            borderColor: mapLayer !== "standard" ? "#5A9A5A" : colors.border,
+            backgroundColor: mapLayer !== "standard" ? colors.accent : colors.card,
+            borderColor: mapLayer !== "standard" ? colors.accent : colors.border,
           },
         ]}
         onPress={() => setShowLayerPicker(true)}
@@ -1629,7 +1494,7 @@ export default function MapScreen() {
         <MaterialIcons
           name="layers"
           size={20}
-          color={mapLayer !== "standard" ? "#fff" : colors.mutedForeground}
+          color={mapLayer !== "standard" ? "#000" : colors.mutedForeground}
         />
       </TouchableOpacity>
 
@@ -1639,8 +1504,8 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 80,
-            backgroundColor: followUser ? "#5A9A5A" : colors.card,
-            borderColor: followUser ? "#5A9A5A" : colors.border,
+            backgroundColor: followUser ? colors.accent : colors.card,
+            borderColor: followUser ? colors.accent : colors.border,
           },
         ]}
         onPress={locateMe}
@@ -1649,7 +1514,7 @@ export default function MapScreen() {
         <MaterialIcons
           name={followUser ? "gps-fixed" : "my-location"}
           size={20}
-          color={followUser ? "#fff" : (userLocation ? colors.accent : colors.mutedForeground)}
+          color={followUser ? "#000" : (userLocation ? colors.accent : colors.mutedForeground)}
         />
       </TouchableOpacity>
 
@@ -1750,9 +1615,9 @@ export default function MapScreen() {
                       styles.layerCard,
                       {
                         backgroundColor: active
-                          ? "#5A9A5A"
-                          : colors.secondary,
-                        borderColor: active ? "#5A9A5A" : colors.border,
+                          ? colors.accent
+                          : "rgba(255,255,255,0.05)",
+                        borderColor: active ? colors.accent : colors.border,
                       },
                     ]}
                     onPress={() => {
@@ -1764,12 +1629,12 @@ export default function MapScreen() {
                     <MaterialIcons
                       name={opt.icon as never}
                       size={24}
-                      color={active ? "#fff" : colors.foreground}
+                      color={active ? "#000" : colors.mutedForeground}
                     />
                     <Text
                       style={[
                         styles.layerCardLabel,
-                        { color: active ? "#fff" : colors.foreground },
+                        { color: active ? "#000" : colors.foreground },
                       ]}
                     >
                       {opt.label}
@@ -1792,20 +1657,20 @@ export default function MapScreen() {
             </Text>
             {/* USFS toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? "#5A9A5A" : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? "#5A9A5A" : colors.border }]}
+              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? colors.accent : colors.border }]}
               onPress={() => setShowUsfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#fff" : colors.foreground }]}>
+                <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
                   USFS TRAILS{usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length})` : ""}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
                   Official OHV / 4x4 gov. routes (blue)
                 </Text>
               </View>
-              {usfsLoading ? <ActivityIndicator size="small" color="#fff" /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : colors.mutedForeground} />}
+              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />}
             </TouchableOpacity>
 
             {/* OSM toggle */}
@@ -1878,24 +1743,6 @@ export default function MapScreen() {
                 </Text>
               </View>
               <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
-            </TouchableOpacity>
-
-            {/* National Park Service toggle */}
-            <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showNpsOverlay ? "#1B5E20" : "rgba(255,255,255,0.05)", borderColor: showNpsOverlay ? "#1B5E20" : colors.border, marginTop: 8 }]}
-              onPress={() => setShowNpsOverlay((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <MaterialIcons name="account-balance" size={20} color={showNpsOverlay ? "#fff" : colors.mutedForeground} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: showNpsOverlay ? "#fff" : colors.foreground }]}>
-                  NAT'L PARK SERVICE{npsLoading ? "  ⏳" : npsParks.length > 0 ? `  (${npsParks.length} parks)` : ""}
-                </Text>
-                <Text style={[styles.overlaySubLabel, { color: showNpsOverlay ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
-                  {npsHasApiKey() ? "OHV/4WD national parks within 150 mi (forest green)" : "Add EXPO_PUBLIC_NPS_API_KEY to enable"}
-                </Text>
-              </View>
-              {npsLoading ? <ActivityIndicator size="small" color={showNpsOverlay ? "#fff" : "#1B5E20"} /> : <MaterialIcons name={showNpsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNpsOverlay ? "#fff" : colors.mutedForeground} />}
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -2025,7 +1872,6 @@ export default function MapScreen() {
                   trailPointsRef.current = [];
                   setTrailPoints([]);
                   setTrailDistanceMi(0);
-                  setTrailKeypoints([]);
                 }}
               >
                 <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>DISCARD</Text>
@@ -2042,106 +1888,6 @@ export default function MapScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-      {/* KEYPOINT TAGGING MODAL */}
-      <Modal
-        animationType="slide"
-        transparent
-        visible={showKeypointModal}
-        onRequestClose={() => {
-          setShowKeypointModal(false);
-          setKeypointSelectedType(null);
-          setKeypointCustomText("");
-        }}
-      >
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E65100", borderTopWidth: 2 }]}>
-            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-              <View style={styles.modalHandle} />
-              <Text style={[styles.layerTitle, { color: colors.foreground, marginBottom: 4 }]}>
-                TAG KEYPOINT
-              </Text>
-              <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 16 }]}>
-                Mark your current position with a hazard or note
-              </Text>
-
-              {KEYPOINT_CONFIGS.map((kp) => {
-                const isActive = keypointSelectedType === kp.id;
-                return (
-                  <TouchableOpacity
-                    key={kp.id}
-                    style={[
-                      styles.keypointTypeBtn,
-                      {
-                        backgroundColor: isActive ? kp.color : "rgba(0,0,0,0.04)",
-                        borderColor: isActive ? kp.color : colors.border,
-                        marginBottom: 8,
-                      },
-                    ]}
-                    onPress={() => {
-                      setKeypointSelectedType(kp.id);
-                      if (kp.id !== "custom") setKeypointCustomText("");
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <MaterialIcons
-                      name={kp.icon as never}
-                      size={20}
-                      color={isActive ? "#fff" : colors.mutedForeground}
-                    />
-                    <Text style={[styles.keypointTypeBtnText, { color: isActive ? "#fff" : colors.foreground }]}>
-                      {kp.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-
-              {keypointSelectedType === "custom" && (
-                <TextInput
-                  style={[
-                    styles.trailNameInput,
-                    { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background, marginBottom: 4 },
-                  ]}
-                  placeholder="Describe the condition..."
-                  placeholderTextColor={colors.mutedForeground}
-                  value={keypointCustomText}
-                  onChangeText={setKeypointCustomText}
-                  maxLength={120}
-                />
-              )}
-
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-                <TouchableOpacity
-                  style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
-                  onPress={() => {
-                    setShowKeypointModal(false);
-                    setKeypointSelectedType(null);
-                    setKeypointCustomText("");
-                  }}
-                >
-                  <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CANCEL</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.completeBtn,
-                    {
-                      flex: 1,
-                      marginTop: 0,
-                      backgroundColor: keypointSelectedType
-                        ? (KEYPOINT_CONFIGS.find(k => k.id === keypointSelectedType)?.color ?? colors.success)
-                        : colors.border,
-                      opacity: keypointSelectedType ? 1 : 0.5,
-                    },
-                  ]}
-                  onPress={addKeypoint}
-                  disabled={!keypointSelectedType}
-                >
-                  <Text style={[styles.completeBtnText, { color: "#fff" }]}>ADD TAG</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2527,14 +2273,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  npsMarker: {
-    width: 13,
-    height: 13,
-    borderRadius: 3,
-    backgroundColor: "#1B5E20",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
   trailNameInput: {
     borderWidth: 1,
     borderRadius: 4,
@@ -2565,46 +2303,4 @@ const styles = StyleSheet.create({
   },
   overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },
-  keypointMarker: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.4,
-    shadowRadius: 2,
-  },
-  keypointTypeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderRadius: 8,
-    borderWidth: 1.5,
-  },
-  keypointTypeBtnText: {
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  tagKeypointBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  tagKeypointText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
 });

@@ -14,43 +14,10 @@ export const VEHICLE_TYPE_CONFIG: Record<VehicleType, {
 
 export function deriveVehicleTypes(size: string): VehicleType[] {
   const s = size.toLowerCase();
-  const v = new Set<VehicleType>();
-
-  // Explicit 4x4 / truck / jeep keywords
-  if (
-    s.includes('jeep') || s.includes('full size') || s.includes('short wheelbase') ||
-    s.includes('high clearance') || s.includes('rock crawl') || s.includes('rock crawler')
-  ) {
-    v.add('4x4');
-  }
-
-  // Mid-size and larger → supports both 4x4 trucks and SxS/UTVs
-  if (s.includes('mid-size') || s.includes('mid size')) {
-    v.add('4x4');
-    v.add('sxs');
-  }
-
-  // SxS / UTV specific keywords
-  if (s.includes('side-by-side') || s.includes('utv') || s.includes('sxs')) v.add('sxs');
-
-  // ATV / quad specific keywords
-  if (s.includes('atv') || s.includes('quad') || s.includes('dune')) v.add('atv');
-
-  // Sand-specific (dunes, sand vehicles) → atv + dirtbike
-  if (s.includes('sand vehicle') || s.includes('sand')) { v.add('atv'); v.add('dirtbike'); }
-
-  // Dirt bike specific keywords
-  if (s.includes('dirt bike') || s.includes('moto')) v.add('dirtbike');
-
-  // Plain "All Sizes" (without a specific vehicle qualifier already matched)
-  // → trail is open to all vehicle types
-  if (s.includes('all sizes') && v.size === 0) {
-    v.add('4x4'); v.add('sxs'); v.add('atv'); v.add('dirtbike');
-  }
-
-  // Generic stock/clearance trails with no other qualifier → 4x4
-  if (v.size === 0) v.add('4x4');
-
+  const v = new Set<VehicleType>(['4x4']);
+  if (s.includes('all sizes') || s.includes('mid-size') || s.includes('side-by-side') || s.includes('utv')) v.add('sxs');
+  if (s.includes('all sizes') || s.includes('atv') || s.includes('sand') || s.includes('dune')) v.add('atv');
+  if (s.includes('all sizes') || s.includes('dirt bike') || s.includes('sand vehicle')) v.add('dirtbike');
   return Array.from(v);
 }
 

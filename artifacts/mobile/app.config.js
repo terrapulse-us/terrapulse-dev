@@ -4,15 +4,6 @@ module.exports = () => ({
     slug: "mobile",
     version: "1.0.22",
     orientation: "portrait",
-    updates: {
-      url: "https://u.expo.dev/5e42857a-9f58-4c15-8b0b-571dd97b3189",
-      enabled: true,
-      checkAutomatically: "ON_LOAD",
-      fallbackToCacheTimeout: 0,
-    },
-    runtimeVersion: {
-      policy: "appVersion",
-    },
     icon: "./assets/images/icon.png",
     scheme: "terrapulse",
     userInterfaceStyle: "light",
@@ -29,8 +20,6 @@ module.exports = () => ({
       appleTeamId: "TN4GRQ3Y6V",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        GIDClientID:
-          "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com",
         NSCameraUsageDescription:
           "TerraPulse uses your camera to broadcast live off-road streams.",
         NSMicrophoneUsageDescription:
@@ -60,6 +49,7 @@ module.exports = () => ({
       favicon: "./assets/images/icon.png",
     },
     plugins: [
+      "expo-dev-client",
       ["expo-router", { origin: "https://replit.com/" }],
       "expo-font",
       "expo-web-browser",
@@ -88,6 +78,7 @@ module.exports = () => ({
         },
       ],
       "@maplibre/maplibre-react-native",
+      "@react-native-google-signin/google-signin",
       "./plugins/withModularHeaders",
     ],
     experiments: {
@@ -108,8 +99,6 @@ module.exports = () => ({
       firebaseMessagingSenderId: "516913346465",
       firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
       googleWebClientId: "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
-      npsApiKey: process.env.EXPO_PUBLIC_NPS_API_KEY ?? "",
-      ridbApiKey: process.env.EXPO_PUBLIC_RIDB_API_KEY ?? "",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",
