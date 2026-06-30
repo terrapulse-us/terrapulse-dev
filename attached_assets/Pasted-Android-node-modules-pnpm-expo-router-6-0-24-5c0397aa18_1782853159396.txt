@@ -1,0 +1,79 @@
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 2368ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1448 modules)
+Writing bundle output to: /home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+Writing sourcemap output to: /home/expo/workingdir/build/artifacts/mobile/android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map
+Copying 69 asset files
+Done writing bundle output
+Done writing sourcemap output
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3682:3: error: invalid statement encountered.
+  class DOMRect extends DOMRectReadOnly.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3770:3: error: invalid statement encountered.
+  class DOMRectReadOnly {
+  ^~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3893:3: error: invalid statement encountered.
+  class DOMRectList {
+^~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:3964:3: error: invalid statement encountered.
+  class HTMLCollection {
+  ^~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:4013:3: error: invalid statement encountered.
+  class NodeList {
+  ^~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:4084:3: error: invalid statement encountered.
+  class ReadOnlyNode {
+  ^~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:4317:3: error: invalid statement encountered.
+  class ReactNativeDocumentElementInstanceHandleImpl {}
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:4537:3: error: invalid statement encountered.
+  class SyntheticError extends Error {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:5238:3: error: invalid statement encountered.
+  class MessageQueue {
+  ^~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9958:3: error: invalid statement encountered.
+  class AssetSourceResolver {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:10036:3: error: invalid statement encountered.
+  class PixelRatio {
+  ^~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:10082:3: error: invalid statement encountered.
+  class Dimensions {
+  ^~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:10157:3: error: invalid statement encountered.
+  class RCTDeviceEventEmitterImpl extends EventEmitter.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:10183:3: error: invalid statement encountered.
+  class EventEmitter {
+  ^~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:12169:3: error: invalid statement encountered.
+  class CustomEvent extends Event.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:12193:3: error: invalid statement encountered.
+  class Event {
+  ^~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:12835:3: error: invalid statement encountered.
+  class ReactNativeDocument extends ReadOnlyNode.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:12912:3: error: invalid statement encountered.
+  class ReactNativeElement extends ReadOnlyElement.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:13048:3: error: invalid statement encountered.
+  class ReadOnlyElement extends ReadOnlyNode.default {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:13381:3: error: invalid statement encountered.
+  class ReactFabricHostComponent {
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<unknown>:0: error: too many errors emitted
+Emitted 20 errors. exiting.
+> Task :app:createBundleReleaseJsAndAssets FAILED
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+915 actionable tasks: 915 executed
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:createBundleReleaseJsAndAssets'.
+> Process 'command '/home/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc'' finished with non-zero exit value 2
