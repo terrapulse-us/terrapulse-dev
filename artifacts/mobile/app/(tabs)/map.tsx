@@ -96,6 +96,7 @@ import {
 } from "@/lib/trail-guide";
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
+import * as Updates from "expo-updates";
 
 interface TrailPhoto {
   url: string;
@@ -374,6 +375,8 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const hasAutoFlownRef = useRef(false);
+  const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number }>({ lat: 36.7783, lng: -119.4179 });
 
   const [isRecording, setIsRecording] = useState(false);
   const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
@@ -482,7 +485,7 @@ export default function MapScreen() {
       .finally(() => { if (!cancelled) setOsmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showOsmOverlay]);
+  }, [showOsmOverlay, osmFetchCenter]);
 
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -540,6 +543,13 @@ export default function MapScreen() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!userLocation || hasAutoFlownRef.current) return;
+    hasAutoFlownRef.current = true;
+    cameraRef.current?.flyTo({ center: [userLocation.longitude, userLocation.latitude], zoom: 12, duration: 1500 });
+    setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
+  }, [userLocation]);
 
   useEffect(() => {
     if (!isNavigating) {
@@ -1048,8 +1058,8 @@ export default function MapScreen() {
       >
         <Camera
           ref={cameraRef}
-          center={[-98.5795, 39.8283]}
-          zoom={3}
+          center={[-119.4179, 36.7783]}
+          zoom={7}
           pitch={mapLayer === "terrain3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
@@ -1884,6 +1894,12 @@ export default function MapScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <View style={styles.updateBadge} pointerEvents="none">
+        <Text style={styles.updateBadgeText}>
+          {Updates.isEmbeddedLaunch ? "APK build" : "OTA: CA-map-fix"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -1913,6 +1929,8 @@ const styles = StyleSheet.create({
   navProgressFill: { height: 4, borderRadius: 2 },
   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  updateBadge: { position: "absolute", bottom: 8, left: 8, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  updateBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_400Regular" },
   osmMarker: {
     width: 9,
     height: 9,
