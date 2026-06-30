@@ -103,6 +103,7 @@ import {
 } from "@/lib/trail-guide";
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
+import * as Updates from "expo-updates";
 
 interface TrailPhoto {
   url: string;
@@ -2145,6 +2146,13 @@ export default function MapScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* OTA update badge — confirms which bundle is running */}
+      <View style={styles.updateBadge} pointerEvents="none">
+        <Text style={styles.updateBadgeText}>
+          {Updates.isEmbeddedLaunch ? "APK build" : "OTA: CA-map-fix"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -2174,6 +2182,20 @@ const styles = StyleSheet.create({
   navProgressFill: { height: 4, borderRadius: 2 },
   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  updateBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  updateBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+  },
   osmMarker: {
     width: 9,
     height: 9,
