@@ -7,7 +7,7 @@ module.exports = () => ({
     updates: {
       url: "https://u.expo.dev/5e42857a-9f58-4c15-8b0b-571dd97b3189",
       enabled: true,
-      checkAutomatically: "ON_LOAD",
+      checkAutomatically: "ON_ERROR_RECOVERY",
       fallbackToCacheTimeout: 0,
     },
     runtimeVersion: {
