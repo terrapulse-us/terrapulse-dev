@@ -58,6 +58,19 @@ config.transformIgnorePatterns = [
 
 // Bump this string whenever babel.config.js plugins or transformIgnorePatterns change
 // to force Metro to discard all cached module transforms and re-run Babel on every file.
-config.cacheVersion = 'hermesc-compat-v11';
+config.cacheVersion = 'hermesc-compat-v12';
+
+// Inject Event.NONE polyfill before any module code runs.
+// Prevents the "Cannot assign to read-only property 'NONE'" crash that happens during
+// module initialization in RN 0.81.x (hermesc builds) and triggers expo-updates error
+// recovery, which then crashes natively with SIGABRT.
+const originalGetPolyfills = config.serializer?.getPolyfills ?? (() => []);
+config.serializer = {
+  ...config.serializer,
+  getPolyfills: ({ platform }) => [
+    ...originalGetPolyfills({ platform }),
+    require.resolve('./polyfills/eventPhasePolyfill.js'),
+  ],
+};
 
 module.exports = config;
