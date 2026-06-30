@@ -1,0 +1,60 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ EXPO_TOKEN=$EXPO_TOKEN npx eas-cli update:list --branch preview --limit 5
+★ eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "fix: cream palette USFS toggle + keep Event.NONE polyfill" (6 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  43a13618-199c-44f6-a573-13b801b740f2
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: Object.defineProperty interceptor polyfill v13" (10 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  1a42978a-9ff9-4f1e-91bb-a4a36b6b0c41
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: Object.defineProperty interceptor + cache bust v13" (25 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  b48be31e-a050-4572-9102-edcfbbbe42d0
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: JS-level Event.NONE guard in native-guard.ts" (32 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  52bb4fa9-8298-4be6-af9b-e4e3410bc751
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: restore Event.NONE patch + map layer colors" (35 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  199216ed-3cb5-4ee6-bea4-9c00e89772e2
