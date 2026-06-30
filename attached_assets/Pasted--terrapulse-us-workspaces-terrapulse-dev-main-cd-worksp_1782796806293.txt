@@ -1,0 +1,77 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev (main) $ cd /workspaces/terrapulse-dev/artifacts/mobile
+MAPTILER_API_KEY=3EmaPZ2ftYudXivDYAER EXPO_TOKEN=$EXPO_TOKEN \
+  npx eas-cli update --branch preview \
+  --message "Stable OTA — matches working build 1782527653" \
+  --non-interactive
+[expo-cli] Starting Metro Bundler
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[expo-cli] iOS node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 93.4% (1400/1449)
+[expo-cli] Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1448/1448)
+[expo-cli] Failed to generate Hermes bytecode for: /workspaces/terrapulse-dev/node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:218983:5: error: private properties are not supported
+[expo-cli]     #executeFetch(fetchOptions) {
+[expo-cli]     ^~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:218991:5: error: private properties are not supported
+[expo-cli]     #updateStaleTimeout() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219005:5: error: private properties are not supported
+[expo-cli]     #computeRefetchInterval() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219008:5: error: private properties are not supported
+[expo-cli]     #updateRefetchInterval(nextInterval) {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219020:5: error: private properties are not supported
+[expo-cli]     #updateTimers() {
+[expo-cli]     ^~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219024:5: error: private properties are not supported
+[expo-cli]     #clearStaleTimeout() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219030:5: error: private properties are not supported
+[expo-cli]     #clearRefetchInterval() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219214:5: error: private properties are not supported
+[expo-cli]     #updateQuery() {
+[expo-cli]     ^~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219233:5: error: private properties are not supported
+[expo-cli]     #notify(notifyOptions) {
+[expo-cli]     ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219570:5: error: private properties are not supported
+[expo-cli]     #isInitialPausedFetch() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:219719:5: error: private properties are not supported
+[expo-cli]     #dispatch(action) {
+[expo-cli]     ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220548:5: error: private properties are not supported
+[expo-cli]     #dispatch(action) {
+[expo-cli]     ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220700:5: error: private properties are not supported
+[expo-cli]     #updateResult() {
+[expo-cli]     ^~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220712:5: error: private properties are not supported
+[expo-cli]     #notify(action) {
+[expo-cli]     ^~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220865:5: error: private properties are not supported
+[expo-cli]     #trackResult(result, matches) {
+[expo-cli]     ^~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220875:5: error: private properties are not supported
+[expo-cli]     #combineResult(input, combine, queryHashes) {
+[expo-cli]     ^~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220891:5: error: private properties are not supported
+[expo-cli]     #shouldSkipCombine() {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220896:5: error: private properties are not supported
+[expo-cli]     #findMatchingObservers(queries) {
+[expo-cli]     ^~~~~~~~~~~~~~~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220920:5: error: private properties are not supported
+[expo-cli]     #onUpdate(observer, result) {
+[expo-cli]     ^~~~~~~~~
+[expo-cli] /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js:220927:5: error: private properties are not supported
+[expo-cli]     #notify() {
+[expo-cli]     ^~~~~~~
+[expo-cli] <unknown>:0: error: too many errors emitted
+[expo-cli] Error: /workspaces/terrapulse-dev/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc -emit-binary -out /tmp/expo-bundler-0.37425555472354954-1782796794912/index.hbc /tmp/expo-bundler-0.37425555472354954-1782796794912/index.js -O -output-source-map exited with non-zero code: 2
+[expo-cli] iOS Bundling failed 4430ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1449 modules)
+✖ Export failed
+/workspaces/terrapulse-dev/node_modules/.pnpm/expo@54.0.35_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_35192a3f486821b3a5f4e81662b21ae0/node_modules/expo/bin/cli export --output-dir dist --source-maps --dump-assetmap --platform ios --platform android exited with non-zero code: 1
+    Error: update command failed.
