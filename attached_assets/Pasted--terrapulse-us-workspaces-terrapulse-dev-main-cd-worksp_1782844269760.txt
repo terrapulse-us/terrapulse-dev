@@ -1,0 +1,39 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev (main) $ cd /workspaces/terrapulse-dev
+
+# 1. Rewrite install-hermesc-wrapper.sh (bakes absolute node path at install time)
+cat > scripts/install-hermesc-wrapper.sh << 'SHEOF'
+#!/bin/bash
+# Installs a hermesc wrapper in every patched react-native directory.
+WORKSPACE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TRANSFORM_SCRIPT="$WORKSPACE_ROOT/scripts/transform-bundle-classes.cjs"
+
+# Detect absolute path to node at install time so the wrapper works even when
+# Gradle forks hermesc with a stripped PATH (no `node` in PATH on EAS servers).
+NODE_BIN="$(command -v node 2>/dev/null || which node 2>/dev/null || echo 'node')"
+echo "hermesc wrapper: using node at $NODE_BIN"
+
+HERMESC_WRAPPER='#!/bin/bash
+REAL_HERMESC="$(dirname "$0")/hermesc.real"
+NODE_BIN="NODE_BIN_PLACEHOLDER"
+TRANSFORM_SCRIPT="TRANSFORM_SCRIPT_PLACEHOLDER"
+INPUT_JS=""
+for arg in "$@"; do case "$arg" in *.js) INPUT_JS="$arg" ;; esac; done
+if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
+  perl -i -pe '"'"'s/this\.#([a-zA-Z_][a-zA-Z0-9_]*)/this.___$1/g'"'"' "$INPUT_JS"
+  perl -i -ne '"'"'print unless /^\s+#[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/ || /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
+  if [ -f "$TRANSFORM_SCRIPT" ] && [ -f "$NODE_BIN" ]; then
+    "$NODE_BIN" --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] Node exit=$? file=$INPUT_JS" >>/tmp/hermesc-transform.log
+  elif [ -f "$TRANSFORM_SCRIPT" ]; then
+    node --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] node-fallbacgit push origin mainbake absolute node path into hermesc wrapper (Gradle stripped PATH)",', = loadPlugin(privPropInObjPath);"nStore('@ba
+already patched, skipping
+[main d54aa55] fix: bake absolute node path into hermesc wrapper (Gradle stripped PATH)
+ 1 file changed, 21 insertions(+), 41 deletions(-)
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 861 bytes | 287.00 KiB/s, done.
+Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To https://github.com/terrapulse-us/terrapulse-dev
+   dcd095e..d54aa55  main -> main
