@@ -1,0 +1,54 @@
+Based on the crash log provided, your app (**TerraPulse**) crashed due to an **unhandled Objective-C/Swift exception (`NSException`)** that triggered a native abort (`SIGABRT`).
+
+Here is the step-by-step breakdown of what caused it:
+
+### 1. The Root Cause: Uncaught `NSException`
+
+The log explicitly records a `lastExceptionBacktrace`. This means an explicit exception was thrown in the native code but wasn't caught in a `try-catch` block:
+
+* **Exception Type:** `EXC_CRASH (SIGABRT)`
+* **The Culprit Stack:** ```text
+"lastExceptionBacktrace" : [
+{"imageOffset":37900,"symbol":"__exceptionPreprocess", ...},
+{"imageOffset":89128,"symbol":"objc_exception_throw", ...},
+{"imageOffset":1453708,"symbol":"-[NSException init]", ...},
+{"imageOffset":304784,"imageIndex":0}, // <--- Inside TerraPulse binary
+{"imageOffset":300168,"imageIndex":0}, // <--- Inside TerraPulse binary
+...
+]
+```
+`imageIndex: 0` corresponds to your main application binary (`TerraPulse`). The exception was generated directly inside your custom native code or a statically linked dependency.
+
+
+```
+
+
+
+### 2. Thread and Queue Context
+
+* **Faulting Thread:** Thread 7
+* **Queue Name:** `expo.controller.errorRecoveryQueue`
+* **What this means:** Because this is an Expo-built application, Expo's internal error recovery system caught an unhandled exception or failed during an error recovery attempt. When a background Grand Central Dispatch (GCD) queue encounters an unhandled native exception, iOS safely terminates the app via `std::terminate()` and `abort()`.
+
+### 3. Potential Trigger (PencilKit / User Defaults)
+
+Looking closely at **Thread 2** (`com.apple.root.background-qos`), there is a heavy interaction involving **PencilKit** (Apple's drawing framework) and **NSUserDefaults**:
+
+```text
+-[UIApplication _handleUserDefaultsDidChange:]
+-[NSUserDefaults(NSUserDefaults) registerDefaults:]
++[PKTiledCanvasView initialize]
++[PKTextInputCanvasController prewarmFutureCanvasesIfNecessarySecureRendering:]
+
+```
+
+If your application uses drawing features, Apple Pencil inputs, or text inputs that trigger Apple's `PencilKit` (like `PKTextInputInteraction`), it attempted to initialize canvas prewarming on a background thread. If your code is listening to `NSUserDefaultsDidChangeNotification` and attempting to update UI elements or execute non-thread-safe code from a background thread inside your application block, it will throw an `NSException`.
+
+---
+
+### How to Fix It
+
+1. **Symbolicate the Crash Log:** The exact reason for the `NSException` (e.g., `InvalidArgumentException`, `index out of bounds`, or `UIKit threading violation`) is hidden behind the memory offsets in `imageIndex:0`. You need to match this log against your app's **dSYM** file for build version `1782786826` to see the actual function names and line numbers for lines like `{"imageOffset":304784,"imageIndex":0}`.
+2. **Check Background Thread UI Violations:** Ensure that any observer reacting to system notifications or `UserDefaults` changes shifts back to the **Main Thread** (`DispatchQueue.main.async`) before interacting with any UI component.
+3. **Audit Expo Error Recovery:**
+Review any custom error boundaries or native plugins dealing with persistent storage/state recovery at boot, as the crash routes directly through Expo's error recovery pipeline.
