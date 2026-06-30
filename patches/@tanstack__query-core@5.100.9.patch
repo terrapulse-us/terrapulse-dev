@@ -1,0 +1,4020 @@
+diff --git a/build/modern/focusManager.cjs b/build/modern/focusManager.cjs
+index 81266d5c73f17553d21b1b0e513ce80e246d6358..87328757afcbc0daff6a5f1e728e806c78cc2366 100644
+--- a/build/modern/focusManager.cjs
++++ b/build/modern/focusManager.cjs
+@@ -26,12 +26,9 @@ __export(focusManager_exports, {
+ module.exports = __toCommonJS(focusManager_exports);
+ var import_subscribable = require("./subscribable.cjs");
+ var FocusManager = class extends import_subscribable.Subscribable {
+-  #focused;
+-  #cleanup;
+-  #setup;
+   constructor() {
+     super();
+-    this.#setup = (onFocus) => {
++    this.___setup = (onFocus) => {
+       if (typeof window !== "undefined" && window.addEventListener) {
+         const listener = () => onFocus();
+         window.addEventListener("visibilitychange", listener, false);
+@@ -43,20 +40,20 @@ var FocusManager = class extends import_subscribable.Subscribable {
+     };
+   }
+   onSubscribe() {
+-    if (!this.#cleanup) {
+-      this.setEventListener(this.#setup);
++    if (!this.___cleanup) {
++      this.setEventListener(this.___setup);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#cleanup?.();
+-      this.#cleanup = void 0;
++      this.___cleanup?.();
++      this.___cleanup = void 0;
+     }
+   }
+   setEventListener(setup) {
+-    this.#setup = setup;
+-    this.#cleanup?.();
+-    this.#cleanup = setup((focused) => {
++    this.___setup = setup;
++    this.___cleanup?.();
++    this.___cleanup = setup((focused) => {
+       if (typeof focused === "boolean") {
+         this.setFocused(focused);
+       } else {
+@@ -65,9 +62,9 @@ var FocusManager = class extends import_subscribable.Subscribable {
+     });
+   }
+   setFocused(focused) {
+-    const changed = this.#focused !== focused;
++    const changed = this.___focused !== focused;
+     if (changed) {
+-      this.#focused = focused;
++      this.___focused = focused;
+       this.onFocus();
+     }
+   }
+@@ -78,8 +75,8 @@ var FocusManager = class extends import_subscribable.Subscribable {
+     });
+   }
+   isFocused() {
+-    if (typeof this.#focused === "boolean") {
+-      return this.#focused;
++    if (typeof this.___focused === "boolean") {
++      return this.___focused;
+     }
+     return globalThis.document?.visibilityState !== "hidden";
+   }
+diff --git a/build/modern/focusManager.js b/build/modern/focusManager.js
+index 0aa494a5126c22dd32b491a7d049139dff4212a5..f2c324bfa93680b3d0f8b8d8e3ee946be7028bcc 100644
+--- a/build/modern/focusManager.js
++++ b/build/modern/focusManager.js
+@@ -1,12 +1,9 @@
+ // src/focusManager.ts
+ import { Subscribable } from "./subscribable.js";
+ var FocusManager = class extends Subscribable {
+-  #focused;
+-  #cleanup;
+-  #setup;
+   constructor() {
+     super();
+-    this.#setup = (onFocus) => {
++    this.___setup = (onFocus) => {
+       if (typeof window !== "undefined" && window.addEventListener) {
+         const listener = () => onFocus();
+         window.addEventListener("visibilitychange", listener, false);
+@@ -18,20 +15,20 @@ var FocusManager = class extends Subscribable {
+     };
+   }
+   onSubscribe() {
+-    if (!this.#cleanup) {
+-      this.setEventListener(this.#setup);
++    if (!this.___cleanup) {
++      this.setEventListener(this.___setup);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#cleanup?.();
+-      this.#cleanup = void 0;
++      this.___cleanup?.();
++      this.___cleanup = void 0;
+     }
+   }
+   setEventListener(setup) {
+-    this.#setup = setup;
+-    this.#cleanup?.();
+-    this.#cleanup = setup((focused) => {
++    this.___setup = setup;
++    this.___cleanup?.();
++    this.___cleanup = setup((focused) => {
+       if (typeof focused === "boolean") {
+         this.setFocused(focused);
+       } else {
+@@ -40,9 +37,9 @@ var FocusManager = class extends Subscribable {
+     });
+   }
+   setFocused(focused) {
+-    const changed = this.#focused !== focused;
++    const changed = this.___focused !== focused;
+     if (changed) {
+-      this.#focused = focused;
++      this.___focused = focused;
+       this.onFocus();
+     }
+   }
+@@ -53,8 +50,8 @@ var FocusManager = class extends Subscribable {
+     });
+   }
+   isFocused() {
+-    if (typeof this.#focused === "boolean") {
+-      return this.#focused;
++    if (typeof this.___focused === "boolean") {
++      return this.___focused;
+     }
+     return globalThis.document?.visibilityState !== "hidden";
+   }
+diff --git a/build/modern/mutation.cjs b/build/modern/mutation.cjs
+index 36b96e6bcf6303f923ce4dfd904b3b3c9d2f9134..873cd0fd1a24d68046d008cd7a0b32094cae81ef 100644
+--- a/build/modern/mutation.cjs
++++ b/build/modern/mutation.cjs
+@@ -28,16 +28,12 @@ var import_notifyManager = require("./notifyManager.cjs");
+ var import_removable = require("./removable.cjs");
+ var import_retryer = require("./retryer.cjs");
+ var Mutation = class extends import_removable.Removable {
+-  #client;
+-  #observers;
+-  #mutationCache;
+-  #retryer;
+   constructor(config) {
+     super();
+-    this.#client = config.client;
++    this.___client = config.client;
+     this.mutationId = config.mutationId;
+-    this.#mutationCache = config.mutationCache;
+-    this.#observers = [];
++    this.___mutationCache = config.mutationCache;
++    this.___observers = [];
+     this.state = config.state || getDefaultState();
+     this.setOptions(config.options);
+     this.scheduleGc();
+@@ -50,10 +46,10 @@ var Mutation = class extends import_removable.Removable {
+     return this.options.meta;
+   }
+   addObserver(observer) {
+-    if (!this.#observers.includes(observer)) {
+-      this.#observers.push(observer);
++    if (!this.___observers.includes(observer)) {
++      this.___observers.push(observer);
+       this.clearGcTimeout();
+-      this.#mutationCache.notify({
++      this.___mutationCache.notify({
+         type: "observerAdded",
+         mutation: this,
+         observer
+@@ -61,37 +57,37 @@ var Mutation = class extends import_removable.Removable {
+     }
+   }
+   removeObserver(observer) {
+-    this.#observers = this.#observers.filter((x) => x !== observer);
++    this.___observers = this.___observers.filter((x) => x !== observer);
+     this.scheduleGc();
+-    this.#mutationCache.notify({
++    this.___mutationCache.notify({
+       type: "observerRemoved",
+       mutation: this,
+       observer
+     });
+   }
+   optionalRemove() {
+-    if (!this.#observers.length) {
++    if (!this.___observers.length) {
+       if (this.state.status === "pending") {
+         this.scheduleGc();
+       } else {
+-        this.#mutationCache.remove(this);
++        this.___mutationCache.remove(this);
+       }
+     }
+   }
+   continue() {
+-    return this.#retryer?.continue() ?? // continuing a mutation assumes that variables are set, mutation must have been dehydrated before
++    return this.___retryer?.continue() ?? // continuing a mutation assumes that variables are set, mutation must have been dehydrated before
+     this.execute(this.state.variables);
+   }
+   async execute(variables) {
+     const onContinue = () => {
+-      this.#dispatch({ type: "continue" });
++      this.___dispatch({ type: "continue" });
+     };
+     const mutationFnContext = {
+-      client: this.#client,
++      client: this.___client,
+       meta: this.options.meta,
+       mutationKey: this.options.mutationKey
+     };
+-    this.#retryer = (0, import_retryer.createRetryer)({
++    this.___retryer = (0, import_retryer.createRetryer)({
+       fn: () => {
+         if (!this.options.mutationFn) {
+           return Promise.reject(new Error("No mutationFn found"));
+@@ -99,26 +95,26 @@ var Mutation = class extends import_removable.Removable {
+         return this.options.mutationFn(variables, mutationFnContext);
+       },
+       onFail: (failureCount, error) => {
+-        this.#dispatch({ type: "failed", failureCount, error });
++        this.___dispatch({ type: "failed", failureCount, error });
+       },
+       onPause: () => {
+-        this.#dispatch({ type: "pause" });
++        this.___dispatch({ type: "pause" });
+       },
+       onContinue,
+       retry: this.options.retry ?? 0,
+       retryDelay: this.options.retryDelay,
+       networkMode: this.options.networkMode,
+-      canRun: () => this.#mutationCache.canRun(this)
++      canRun: () => this.___mutationCache.canRun(this)
+     });
+     const restored = this.state.status === "pending";
+-    const isPaused = !this.#retryer.canStart();
++    const isPaused = !this.___retryer.canStart();
+     try {
+       if (restored) {
+         onContinue();
+       } else {
+-        this.#dispatch({ type: "pending", variables, isPaused });
+-        if (this.#mutationCache.config.onMutate) {
+-          await this.#mutationCache.config.onMutate(
++        this.___dispatch({ type: "pending", variables, isPaused });
++        if (this.___mutationCache.config.onMutate) {
++          await this.___mutationCache.config.onMutate(
+             variables,
+             this,
+             mutationFnContext
+@@ -129,7 +125,7 @@ var Mutation = class extends import_removable.Removable {
+           mutationFnContext
+         );
+         if (context !== this.state.context) {
+-          this.#dispatch({
++          this.___dispatch({
+             type: "pending",
+             context,
+             variables,
+@@ -137,8 +133,8 @@ var Mutation = class extends import_removable.Removable {
+           });
+         }
+       }
+-      const data = await this.#retryer.start();
+-      await this.#mutationCache.config.onSuccess?.(
++      const data = await this.___retryer.start();
++      await this.___mutationCache.config.onSuccess?.(
+         data,
+         variables,
+         this.state.context,
+@@ -151,7 +147,7 @@ var Mutation = class extends import_removable.Removable {
+         this.state.context,
+         mutationFnContext
+       );
+-      await this.#mutationCache.config.onSettled?.(
++      await this.___mutationCache.config.onSettled?.(
+         data,
+         null,
+         this.state.variables,
+@@ -166,11 +162,11 @@ var Mutation = class extends import_removable.Removable {
+         this.state.context,
+         mutationFnContext
+       );
+-      this.#dispatch({ type: "success", data });
++      this.___dispatch({ type: "success", data });
+       return data;
+     } catch (error) {
+       try {
+-        await this.#mutationCache.config.onError?.(
++        await this.___mutationCache.config.onError?.(
+           error,
+           variables,
+           this.state.context,
+@@ -191,7 +187,7 @@ var Mutation = class extends import_removable.Removable {
+         void Promise.reject(e);
+       }
+       try {
+-        await this.#mutationCache.config.onSettled?.(
++        await this.___mutationCache.config.onSettled?.(
+           void 0,
+           error,
+           this.state.variables,
+@@ -213,13 +209,13 @@ var Mutation = class extends import_removable.Removable {
+       } catch (e) {
+         void Promise.reject(e);
+       }
+-      this.#dispatch({ type: "error", error });
++      this.___dispatch({ type: "error", error });
+       throw error;
+     } finally {
+-      this.#mutationCache.runNext(this);
++      this.___mutationCache.runNext(this);
+     }
+   }
+-  #dispatch(action) {
++  ___dispatch(action) {
+     const reducer = (state) => {
+       switch (action.type) {
+         case "failed":
+@@ -275,10 +271,10 @@ var Mutation = class extends import_removable.Removable {
+     };
+     this.state = reducer(this.state);
+     import_notifyManager.notifyManager.batch(() => {
+-      this.#observers.forEach((observer) => {
++      this.___observers.forEach((observer) => {
+         observer.onMutationUpdate(action);
+       });
+-      this.#mutationCache.notify({
++      this.___mutationCache.notify({
+         mutation: this,
+         type: "updated",
+         action
+diff --git a/build/modern/mutation.js b/build/modern/mutation.js
+index c710461e0ce6b940672e927d66982d57cdbd0b3c..61f2cad910cd2673266d3c0d0b02281c53490a96 100644
+--- a/build/modern/mutation.js
++++ b/build/modern/mutation.js
+@@ -3,16 +3,12 @@ import { notifyManager } from "./notifyManager.js";
+ import { Removable } from "./removable.js";
+ import { createRetryer } from "./retryer.js";
+ var Mutation = class extends Removable {
+-  #client;
+-  #observers;
+-  #mutationCache;
+-  #retryer;
+   constructor(config) {
+     super();
+-    this.#client = config.client;
++    this.___client = config.client;
+     this.mutationId = config.mutationId;
+-    this.#mutationCache = config.mutationCache;
+-    this.#observers = [];
++    this.___mutationCache = config.mutationCache;
++    this.___observers = [];
+     this.state = config.state || getDefaultState();
+     this.setOptions(config.options);
+     this.scheduleGc();
+@@ -25,10 +21,10 @@ var Mutation = class extends Removable {
+     return this.options.meta;
+   }
+   addObserver(observer) {
+-    if (!this.#observers.includes(observer)) {
+-      this.#observers.push(observer);
++    if (!this.___observers.includes(observer)) {
++      this.___observers.push(observer);
+       this.clearGcTimeout();
+-      this.#mutationCache.notify({
++      this.___mutationCache.notify({
+         type: "observerAdded",
+         mutation: this,
+         observer
+@@ -36,37 +32,37 @@ var Mutation = class extends Removable {
+     }
+   }
+   removeObserver(observer) {
+-    this.#observers = this.#observers.filter((x) => x !== observer);
++    this.___observers = this.___observers.filter((x) => x !== observer);
+     this.scheduleGc();
+-    this.#mutationCache.notify({
++    this.___mutationCache.notify({
+       type: "observerRemoved",
+       mutation: this,
+       observer
+     });
+   }
+   optionalRemove() {
+-    if (!this.#observers.length) {
++    if (!this.___observers.length) {
+       if (this.state.status === "pending") {
+         this.scheduleGc();
+       } else {
+-        this.#mutationCache.remove(this);
++        this.___mutationCache.remove(this);
+       }
+     }
+   }
+   continue() {
+-    return this.#retryer?.continue() ?? // continuing a mutation assumes that variables are set, mutation must have been dehydrated before
++    return this.___retryer?.continue() ?? // continuing a mutation assumes that variables are set, mutation must have been dehydrated before
+     this.execute(this.state.variables);
+   }
+   async execute(variables) {
+     const onContinue = () => {
+-      this.#dispatch({ type: "continue" });
++      this.___dispatch({ type: "continue" });
+     };
+     const mutationFnContext = {
+-      client: this.#client,
++      client: this.___client,
+       meta: this.options.meta,
+       mutationKey: this.options.mutationKey
+     };
+-    this.#retryer = createRetryer({
++    this.___retryer = createRetryer({
+       fn: () => {
+         if (!this.options.mutationFn) {
+           return Promise.reject(new Error("No mutationFn found"));
+@@ -74,26 +70,26 @@ var Mutation = class extends Removable {
+         return this.options.mutationFn(variables, mutationFnContext);
+       },
+       onFail: (failureCount, error) => {
+-        this.#dispatch({ type: "failed", failureCount, error });
++        this.___dispatch({ type: "failed", failureCount, error });
+       },
+       onPause: () => {
+-        this.#dispatch({ type: "pause" });
++        this.___dispatch({ type: "pause" });
+       },
+       onContinue,
+       retry: this.options.retry ?? 0,
+       retryDelay: this.options.retryDelay,
+       networkMode: this.options.networkMode,
+-      canRun: () => this.#mutationCache.canRun(this)
++      canRun: () => this.___mutationCache.canRun(this)
+     });
+     const restored = this.state.status === "pending";
+-    const isPaused = !this.#retryer.canStart();
++    const isPaused = !this.___retryer.canStart();
+     try {
+       if (restored) {
+         onContinue();
+       } else {
+-        this.#dispatch({ type: "pending", variables, isPaused });
+-        if (this.#mutationCache.config.onMutate) {
+-          await this.#mutationCache.config.onMutate(
++        this.___dispatch({ type: "pending", variables, isPaused });
++        if (this.___mutationCache.config.onMutate) {
++          await this.___mutationCache.config.onMutate(
+             variables,
+             this,
+             mutationFnContext
+@@ -104,7 +100,7 @@ var Mutation = class extends Removable {
+           mutationFnContext
+         );
+         if (context !== this.state.context) {
+-          this.#dispatch({
++          this.___dispatch({
+             type: "pending",
+             context,
+             variables,
+@@ -112,8 +108,8 @@ var Mutation = class extends Removable {
+           });
+         }
+       }
+-      const data = await this.#retryer.start();
+-      await this.#mutationCache.config.onSuccess?.(
++      const data = await this.___retryer.start();
++      await this.___mutationCache.config.onSuccess?.(
+         data,
+         variables,
+         this.state.context,
+@@ -126,7 +122,7 @@ var Mutation = class extends Removable {
+         this.state.context,
+         mutationFnContext
+       );
+-      await this.#mutationCache.config.onSettled?.(
++      await this.___mutationCache.config.onSettled?.(
+         data,
+         null,
+         this.state.variables,
+@@ -141,11 +137,11 @@ var Mutation = class extends Removable {
+         this.state.context,
+         mutationFnContext
+       );
+-      this.#dispatch({ type: "success", data });
++      this.___dispatch({ type: "success", data });
+       return data;
+     } catch (error) {
+       try {
+-        await this.#mutationCache.config.onError?.(
++        await this.___mutationCache.config.onError?.(
+           error,
+           variables,
+           this.state.context,
+@@ -166,7 +162,7 @@ var Mutation = class extends Removable {
+         void Promise.reject(e);
+       }
+       try {
+-        await this.#mutationCache.config.onSettled?.(
++        await this.___mutationCache.config.onSettled?.(
+           void 0,
+           error,
+           this.state.variables,
+@@ -188,13 +184,13 @@ var Mutation = class extends Removable {
+       } catch (e) {
+         void Promise.reject(e);
+       }
+-      this.#dispatch({ type: "error", error });
++      this.___dispatch({ type: "error", error });
+       throw error;
+     } finally {
+-      this.#mutationCache.runNext(this);
++      this.___mutationCache.runNext(this);
+     }
+   }
+-  #dispatch(action) {
++  ___dispatch(action) {
+     const reducer = (state) => {
+       switch (action.type) {
+         case "failed":
+@@ -250,10 +246,10 @@ var Mutation = class extends Removable {
+     };
+     this.state = reducer(this.state);
+     notifyManager.batch(() => {
+-      this.#observers.forEach((observer) => {
++      this.___observers.forEach((observer) => {
+         observer.onMutationUpdate(action);
+       });
+-      this.#mutationCache.notify({
++      this.___mutationCache.notify({
+         mutation: this,
+         type: "updated",
+         action
+diff --git a/build/modern/mutationCache.cjs b/build/modern/mutationCache.cjs
+index f939c1203758578b7a043bc4e38b3fdf631f8612..37e15474ae11d8a330b36be0ca9a6fcabdde1d29 100644
+--- a/build/modern/mutationCache.cjs
++++ b/build/modern/mutationCache.cjs
+@@ -31,18 +31,15 @@ var MutationCache = class extends import_subscribable.Subscribable {
+   constructor(config = {}) {
+     super();
+     this.config = config;
+-    this.#mutations = /* @__PURE__ */ new Set();
+-    this.#scopes = /* @__PURE__ */ new Map();
+-    this.#mutationId = 0;
++    this.___mutations = /* @__PURE__ */ new Set();
++    this.___scopes = /* @__PURE__ */ new Map();
++    this.___mutationId = 0;
+   }
+-  #mutations;
+-  #scopes;
+-  #mutationId;
+   build(client, options, state) {
+     const mutation = new import_mutation.Mutation({
+       client,
+       mutationCache: this,
+-      mutationId: ++this.#mutationId,
++      mutationId: ++this.___mutationId,
+       options: client.defaultMutationOptions(options),
+       state
+     });
+@@ -50,23 +47,23 @@ var MutationCache = class extends import_subscribable.Subscribable {
+     return mutation;
+   }
+   add(mutation) {
+-    this.#mutations.add(mutation);
++    this.___mutations.add(mutation);
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const scopedMutations = this.#scopes.get(scope);
++      const scopedMutations = this.___scopes.get(scope);
+       if (scopedMutations) {
+         scopedMutations.push(mutation);
+       } else {
+-        this.#scopes.set(scope, [mutation]);
++        this.___scopes.set(scope, [mutation]);
+       }
+     }
+     this.notify({ type: "added", mutation });
+   }
+   remove(mutation) {
+-    if (this.#mutations.delete(mutation)) {
++    if (this.___mutations.delete(mutation)) {
+       const scope = scopeFor(mutation);
+       if (typeof scope === "string") {
+-        const scopedMutations = this.#scopes.get(scope);
++        const scopedMutations = this.___scopes.get(scope);
+         if (scopedMutations) {
+           if (scopedMutations.length > 1) {
+             const index = scopedMutations.indexOf(mutation);
+@@ -74,7 +71,7 @@ var MutationCache = class extends import_subscribable.Subscribable {
+               scopedMutations.splice(index, 1);
+             }
+           } else if (scopedMutations[0] === mutation) {
+-            this.#scopes.delete(scope);
++            this.___scopes.delete(scope);
+           }
+         }
+       }
+@@ -84,7 +81,7 @@ var MutationCache = class extends import_subscribable.Subscribable {
+   canRun(mutation) {
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const mutationsWithSameScope = this.#scopes.get(scope);
++      const mutationsWithSameScope = this.___scopes.get(scope);
+       const firstPendingMutation = mutationsWithSameScope?.find(
+         (m) => m.state.status === "pending"
+       );
+@@ -96,7 +93,7 @@ var MutationCache = class extends import_subscribable.Subscribable {
+   runNext(mutation) {
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const foundMutation = this.#scopes.get(scope)?.find((m) => m !== mutation && m.state.isPaused);
++      const foundMutation = this.___scopes.get(scope)?.find((m) => m !== mutation && m.state.isPaused);
+       return foundMutation?.continue() ?? Promise.resolve();
+     } else {
+       return Promise.resolve();
+@@ -104,15 +101,15 @@ var MutationCache = class extends import_subscribable.Subscribable {
+   }
+   clear() {
+     import_notifyManager.notifyManager.batch(() => {
+-      this.#mutations.forEach((mutation) => {
++      this.___mutations.forEach((mutation) => {
+         this.notify({ type: "removed", mutation });
+       });
+-      this.#mutations.clear();
+-      this.#scopes.clear();
++      this.___mutations.clear();
++      this.___scopes.clear();
+     });
+   }
+   getAll() {
+-    return Array.from(this.#mutations);
++    return Array.from(this.___mutations);
+   }
+   find(filters) {
+     const defaultedFilters = { exact: true, ...filters };
+diff --git a/build/modern/mutationCache.js b/build/modern/mutationCache.js
+index 7067b76ad93c99c41ee21c5bb91d32faeb7c12c8..05c6ccc7e934e0c9f6c29c820504fc26c2e44340 100644
+--- a/build/modern/mutationCache.js
++++ b/build/modern/mutationCache.js
+@@ -7,18 +7,15 @@ var MutationCache = class extends Subscribable {
+   constructor(config = {}) {
+     super();
+     this.config = config;
+-    this.#mutations = /* @__PURE__ */ new Set();
+-    this.#scopes = /* @__PURE__ */ new Map();
+-    this.#mutationId = 0;
++    this.___mutations = /* @__PURE__ */ new Set();
++    this.___scopes = /* @__PURE__ */ new Map();
++    this.___mutationId = 0;
+   }
+-  #mutations;
+-  #scopes;
+-  #mutationId;
+   build(client, options, state) {
+     const mutation = new Mutation({
+       client,
+       mutationCache: this,
+-      mutationId: ++this.#mutationId,
++      mutationId: ++this.___mutationId,
+       options: client.defaultMutationOptions(options),
+       state
+     });
+@@ -26,23 +23,23 @@ var MutationCache = class extends Subscribable {
+     return mutation;
+   }
+   add(mutation) {
+-    this.#mutations.add(mutation);
++    this.___mutations.add(mutation);
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const scopedMutations = this.#scopes.get(scope);
++      const scopedMutations = this.___scopes.get(scope);
+       if (scopedMutations) {
+         scopedMutations.push(mutation);
+       } else {
+-        this.#scopes.set(scope, [mutation]);
++        this.___scopes.set(scope, [mutation]);
+       }
+     }
+     this.notify({ type: "added", mutation });
+   }
+   remove(mutation) {
+-    if (this.#mutations.delete(mutation)) {
++    if (this.___mutations.delete(mutation)) {
+       const scope = scopeFor(mutation);
+       if (typeof scope === "string") {
+-        const scopedMutations = this.#scopes.get(scope);
++        const scopedMutations = this.___scopes.get(scope);
+         if (scopedMutations) {
+           if (scopedMutations.length > 1) {
+             const index = scopedMutations.indexOf(mutation);
+@@ -50,7 +47,7 @@ var MutationCache = class extends Subscribable {
+               scopedMutations.splice(index, 1);
+             }
+           } else if (scopedMutations[0] === mutation) {
+-            this.#scopes.delete(scope);
++            this.___scopes.delete(scope);
+           }
+         }
+       }
+@@ -60,7 +57,7 @@ var MutationCache = class extends Subscribable {
+   canRun(mutation) {
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const mutationsWithSameScope = this.#scopes.get(scope);
++      const mutationsWithSameScope = this.___scopes.get(scope);
+       const firstPendingMutation = mutationsWithSameScope?.find(
+         (m) => m.state.status === "pending"
+       );
+@@ -72,7 +69,7 @@ var MutationCache = class extends Subscribable {
+   runNext(mutation) {
+     const scope = scopeFor(mutation);
+     if (typeof scope === "string") {
+-      const foundMutation = this.#scopes.get(scope)?.find((m) => m !== mutation && m.state.isPaused);
++      const foundMutation = this.___scopes.get(scope)?.find((m) => m !== mutation && m.state.isPaused);
+       return foundMutation?.continue() ?? Promise.resolve();
+     } else {
+       return Promise.resolve();
+@@ -80,15 +77,15 @@ var MutationCache = class extends Subscribable {
+   }
+   clear() {
+     notifyManager.batch(() => {
+-      this.#mutations.forEach((mutation) => {
++      this.___mutations.forEach((mutation) => {
+         this.notify({ type: "removed", mutation });
+       });
+-      this.#mutations.clear();
+-      this.#scopes.clear();
++      this.___mutations.clear();
++      this.___scopes.clear();
+     });
+   }
+   getAll() {
+-    return Array.from(this.#mutations);
++    return Array.from(this.___mutations);
+   }
+   find(filters) {
+     const defaultedFilters = { exact: true, ...filters };
+diff --git a/build/modern/mutationObserver.cjs b/build/modern/mutationObserver.cjs
+index b7dc73db382d099b197a99127b8656c9e8f1aef7..e0a3a583a4b67c9e389dbf569c5f8193c357db24 100644
+--- a/build/modern/mutationObserver.cjs
++++ b/build/modern/mutationObserver.cjs
+@@ -28,16 +28,12 @@ var import_notifyManager = require("./notifyManager.cjs");
+ var import_subscribable = require("./subscribable.cjs");
+ var import_utils = require("./utils.cjs");
+ var MutationObserver = class extends import_subscribable.Subscribable {
+-  #client;
+-  #currentResult = void 0;
+-  #currentMutation;
+-  #mutateOptions;
+   constructor(client, options) {
+     super();
+-    this.#client = client;
++    this.___client = client;
+     this.setOptions(options);
+     this.bindMethods();
+-    this.#updateResult();
++    this.___updateResult();
+   }
+   bindMethods() {
+     this.mutate = this.mutate.bind(this);
+@@ -45,48 +41,48 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+   }
+   setOptions(options) {
+     const prevOptions = this.options;
+-    this.options = this.#client.defaultMutationOptions(options);
++    this.options = this.___client.defaultMutationOptions(options);
+     if (!(0, import_utils.shallowEqualObjects)(this.options, prevOptions)) {
+-      this.#client.getMutationCache().notify({
++      this.___client.getMutationCache().notify({
+         type: "observerOptionsUpdated",
+-        mutation: this.#currentMutation,
++        mutation: this.___currentMutation,
+         observer: this
+       });
+     }
+     if (prevOptions?.mutationKey && this.options.mutationKey && (0, import_utils.hashKey)(prevOptions.mutationKey) !== (0, import_utils.hashKey)(this.options.mutationKey)) {
+       this.reset();
+-    } else if (this.#currentMutation?.state.status === "pending") {
+-      this.#currentMutation.setOptions(this.options);
++    } else if (this.___currentMutation?.state.status === "pending") {
++      this.___currentMutation.setOptions(this.options);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#currentMutation?.removeObserver(this);
++      this.___currentMutation?.removeObserver(this);
+     }
+   }
+   onMutationUpdate(action) {
+-    this.#updateResult();
+-    this.#notify(action);
++    this.___updateResult();
++    this.___notify(action);
+   }
+   getCurrentResult() {
+-    return this.#currentResult;
++    return this.___currentResult;
+   }
+   reset() {
+-    this.#currentMutation?.removeObserver(this);
+-    this.#currentMutation = void 0;
+-    this.#updateResult();
+-    this.#notify();
++    this.___currentMutation?.removeObserver(this);
++    this.___currentMutation = void 0;
++    this.___updateResult();
++    this.___notify();
+   }
+   mutate(variables, options) {
+-    this.#mutateOptions = options;
+-    this.#currentMutation?.removeObserver(this);
+-    this.#currentMutation = this.#client.getMutationCache().build(this.#client, this.options);
+-    this.#currentMutation.addObserver(this);
+-    return this.#currentMutation.execute(variables);
++    this.___mutateOptions = options;
++    this.___currentMutation?.removeObserver(this);
++    this.___currentMutation = this.___client.getMutationCache().build(this.___client, this.options);
++    this.___currentMutation.addObserver(this);
++    return this.___currentMutation.execute(variables);
+   }
+-  #updateResult() {
+-    const state = this.#currentMutation?.state ?? (0, import_mutation.getDefaultState)();
+-    this.#currentResult = {
++  ___updateResult() {
++    const state = this.___currentMutation?.state ?? (0, import_mutation.getDefaultState)();
++    this.___currentResult = {
+       ...state,
+       isPending: state.status === "pending",
+       isSuccess: state.status === "success",
+@@ -96,19 +92,19 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+       reset: this.reset
+     };
+   }
+-  #notify(action) {
++  ___notify(action) {
+     import_notifyManager.notifyManager.batch(() => {
+-      if (this.#mutateOptions && this.hasListeners()) {
+-        const variables = this.#currentResult.variables;
+-        const onMutateResult = this.#currentResult.context;
++      if (this.___mutateOptions && this.hasListeners()) {
++        const variables = this.___currentResult.variables;
++        const onMutateResult = this.___currentResult.context;
+         const context = {
+-          client: this.#client,
++          client: this.___client,
+           meta: this.options.meta,
+           mutationKey: this.options.mutationKey
+         };
+         if (action?.type === "success") {
+           try {
+-            this.#mutateOptions.onSuccess?.(
++            this.___mutateOptions.onSuccess?.(
+               action.data,
+               variables,
+               onMutateResult,
+@@ -118,7 +114,7 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+             void Promise.reject(e);
+           }
+           try {
+-            this.#mutateOptions.onSettled?.(
++            this.___mutateOptions.onSettled?.(
+               action.data,
+               null,
+               variables,
+@@ -130,7 +126,7 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+           }
+         } else if (action?.type === "error") {
+           try {
+-            this.#mutateOptions.onError?.(
++            this.___mutateOptions.onError?.(
+               action.error,
+               variables,
+               onMutateResult,
+@@ -140,7 +136,7 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+             void Promise.reject(e);
+           }
+           try {
+-            this.#mutateOptions.onSettled?.(
++            this.___mutateOptions.onSettled?.(
+               void 0,
+               action.error,
+               variables,
+@@ -153,7 +149,7 @@ var MutationObserver = class extends import_subscribable.Subscribable {
+         }
+       }
+       this.listeners.forEach((listener) => {
+-        listener(this.#currentResult);
++        listener(this.___currentResult);
+       });
+     });
+   }
+diff --git a/build/modern/mutationObserver.js b/build/modern/mutationObserver.js
+index dd2b2de9113eb4837fe2cfcc8a050b15a1c8db45..ece16d559d3fcfd3b5226606b2c2ab0a4b10834b 100644
+--- a/build/modern/mutationObserver.js
++++ b/build/modern/mutationObserver.js
+@@ -4,16 +4,12 @@ import { notifyManager } from "./notifyManager.js";
+ import { Subscribable } from "./subscribable.js";
+ import { hashKey, shallowEqualObjects } from "./utils.js";
+ var MutationObserver = class extends Subscribable {
+-  #client;
+-  #currentResult = void 0;
+-  #currentMutation;
+-  #mutateOptions;
+   constructor(client, options) {
+     super();
+-    this.#client = client;
++    this.___client = client;
+     this.setOptions(options);
+     this.bindMethods();
+-    this.#updateResult();
++    this.___updateResult();
+   }
+   bindMethods() {
+     this.mutate = this.mutate.bind(this);
+@@ -21,48 +17,48 @@ var MutationObserver = class extends Subscribable {
+   }
+   setOptions(options) {
+     const prevOptions = this.options;
+-    this.options = this.#client.defaultMutationOptions(options);
++    this.options = this.___client.defaultMutationOptions(options);
+     if (!shallowEqualObjects(this.options, prevOptions)) {
+-      this.#client.getMutationCache().notify({
++      this.___client.getMutationCache().notify({
+         type: "observerOptionsUpdated",
+-        mutation: this.#currentMutation,
++        mutation: this.___currentMutation,
+         observer: this
+       });
+     }
+     if (prevOptions?.mutationKey && this.options.mutationKey && hashKey(prevOptions.mutationKey) !== hashKey(this.options.mutationKey)) {
+       this.reset();
+-    } else if (this.#currentMutation?.state.status === "pending") {
+-      this.#currentMutation.setOptions(this.options);
++    } else if (this.___currentMutation?.state.status === "pending") {
++      this.___currentMutation.setOptions(this.options);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#currentMutation?.removeObserver(this);
++      this.___currentMutation?.removeObserver(this);
+     }
+   }
+   onMutationUpdate(action) {
+-    this.#updateResult();
+-    this.#notify(action);
++    this.___updateResult();
++    this.___notify(action);
+   }
+   getCurrentResult() {
+-    return this.#currentResult;
++    return this.___currentResult;
+   }
+   reset() {
+-    this.#currentMutation?.removeObserver(this);
+-    this.#currentMutation = void 0;
+-    this.#updateResult();
+-    this.#notify();
++    this.___currentMutation?.removeObserver(this);
++    this.___currentMutation = void 0;
++    this.___updateResult();
++    this.___notify();
+   }
+   mutate(variables, options) {
+-    this.#mutateOptions = options;
+-    this.#currentMutation?.removeObserver(this);
+-    this.#currentMutation = this.#client.getMutationCache().build(this.#client, this.options);
+-    this.#currentMutation.addObserver(this);
+-    return this.#currentMutation.execute(variables);
++    this.___mutateOptions = options;
++    this.___currentMutation?.removeObserver(this);
++    this.___currentMutation = this.___client.getMutationCache().build(this.___client, this.options);
++    this.___currentMutation.addObserver(this);
++    return this.___currentMutation.execute(variables);
+   }
+-  #updateResult() {
+-    const state = this.#currentMutation?.state ?? getDefaultState();
+-    this.#currentResult = {
++  ___updateResult() {
++    const state = this.___currentMutation?.state ?? getDefaultState();
++    this.___currentResult = {
+       ...state,
+       isPending: state.status === "pending",
+       isSuccess: state.status === "success",
+@@ -72,19 +68,19 @@ var MutationObserver = class extends Subscribable {
+       reset: this.reset
+     };
+   }
+-  #notify(action) {
++  ___notify(action) {
+     notifyManager.batch(() => {
+-      if (this.#mutateOptions && this.hasListeners()) {
+-        const variables = this.#currentResult.variables;
+-        const onMutateResult = this.#currentResult.context;
++      if (this.___mutateOptions && this.hasListeners()) {
++        const variables = this.___currentResult.variables;
++        const onMutateResult = this.___currentResult.context;
+         const context = {
+-          client: this.#client,
++          client: this.___client,
+           meta: this.options.meta,
+           mutationKey: this.options.mutationKey
+         };
+         if (action?.type === "success") {
+           try {
+-            this.#mutateOptions.onSuccess?.(
++            this.___mutateOptions.onSuccess?.(
+               action.data,
+               variables,
+               onMutateResult,
+@@ -94,7 +90,7 @@ var MutationObserver = class extends Subscribable {
+             void Promise.reject(e);
+           }
+           try {
+-            this.#mutateOptions.onSettled?.(
++            this.___mutateOptions.onSettled?.(
+               action.data,
+               null,
+               variables,
+@@ -106,7 +102,7 @@ var MutationObserver = class extends Subscribable {
+           }
+         } else if (action?.type === "error") {
+           try {
+-            this.#mutateOptions.onError?.(
++            this.___mutateOptions.onError?.(
+               action.error,
+               variables,
+               onMutateResult,
+@@ -116,7 +112,7 @@ var MutationObserver = class extends Subscribable {
+             void Promise.reject(e);
+           }
+           try {
+-            this.#mutateOptions.onSettled?.(
++            this.___mutateOptions.onSettled?.(
+               void 0,
+               action.error,
+               variables,
+@@ -129,7 +125,7 @@ var MutationObserver = class extends Subscribable {
+         }
+       }
+       this.listeners.forEach((listener) => {
+-        listener(this.#currentResult);
++        listener(this.___currentResult);
+       });
+     });
+   }
+diff --git a/build/modern/onlineManager.cjs b/build/modern/onlineManager.cjs
+index fed9fa546409a20cf7384ccab4a9642b957168a2..f5e84ef618c7e867b175ac28a4ec928014ca1170 100644
+--- a/build/modern/onlineManager.cjs
++++ b/build/modern/onlineManager.cjs
+@@ -26,12 +26,9 @@ __export(onlineManager_exports, {
+ module.exports = __toCommonJS(onlineManager_exports);
+ var import_subscribable = require("./subscribable.cjs");
+ var OnlineManager = class extends import_subscribable.Subscribable {
+-  #online = true;
+-  #cleanup;
+-  #setup;
+   constructor() {
+     super();
+-    this.#setup = (onOnline) => {
++    this.___setup = (onOnline) => {
+       if (typeof window !== "undefined" && window.addEventListener) {
+         const onlineListener = () => onOnline(true);
+         const offlineListener = () => onOnline(false);
+@@ -46,32 +43,32 @@ var OnlineManager = class extends import_subscribable.Subscribable {
+     };
+   }
+   onSubscribe() {
+-    if (!this.#cleanup) {
+-      this.setEventListener(this.#setup);
++    if (!this.___cleanup) {
++      this.setEventListener(this.___setup);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#cleanup?.();
+-      this.#cleanup = void 0;
++      this.___cleanup?.();
++      this.___cleanup = void 0;
+     }
+   }
+   setEventListener(setup) {
+-    this.#setup = setup;
+-    this.#cleanup?.();
+-    this.#cleanup = setup(this.setOnline.bind(this));
++    this.___setup = setup;
++    this.___cleanup?.();
++    this.___cleanup = setup(this.setOnline.bind(this));
+   }
+   setOnline(online) {
+-    const changed = this.#online !== online;
++    const changed = this.___online !== online;
+     if (changed) {
+-      this.#online = online;
++      this.___online = online;
+       this.listeners.forEach((listener) => {
+         listener(online);
+       });
+     }
+   }
+   isOnline() {
+-    return this.#online;
++    return this.___online;
+   }
+ };
+ var onlineManager = new OnlineManager();
+diff --git a/build/modern/onlineManager.js b/build/modern/onlineManager.js
+index c0def5d33cb6ec59d18ab77b023154c72feacd6f..403326e8f164b08c9b0ee6abddbb31ff2be80a5e 100644
+--- a/build/modern/onlineManager.js
++++ b/build/modern/onlineManager.js
+@@ -1,12 +1,9 @@
+ // src/onlineManager.ts
+ import { Subscribable } from "./subscribable.js";
+ var OnlineManager = class extends Subscribable {
+-  #online = true;
+-  #cleanup;
+-  #setup;
+   constructor() {
+     super();
+-    this.#setup = (onOnline) => {
++    this.___setup = (onOnline) => {
+       if (typeof window !== "undefined" && window.addEventListener) {
+         const onlineListener = () => onOnline(true);
+         const offlineListener = () => onOnline(false);
+@@ -21,32 +18,32 @@ var OnlineManager = class extends Subscribable {
+     };
+   }
+   onSubscribe() {
+-    if (!this.#cleanup) {
+-      this.setEventListener(this.#setup);
++    if (!this.___cleanup) {
++      this.setEventListener(this.___setup);
+     }
+   }
+   onUnsubscribe() {
+     if (!this.hasListeners()) {
+-      this.#cleanup?.();
+-      this.#cleanup = void 0;
++      this.___cleanup?.();
++      this.___cleanup = void 0;
+     }
+   }
+   setEventListener(setup) {
+-    this.#setup = setup;
+-    this.#cleanup?.();
+-    this.#cleanup = setup(this.setOnline.bind(this));
++    this.___setup = setup;
++    this.___cleanup?.();
++    this.___cleanup = setup(this.setOnline.bind(this));
+   }
+   setOnline(online) {
+-    const changed = this.#online !== online;
++    const changed = this.___online !== online;
+     if (changed) {
+-      this.#online = online;
++      this.___online = online;
+       this.listeners.forEach((listener) => {
+         listener(online);
+       });
+     }
+   }
+   isOnline() {
+-    return this.#online;
++    return this.___online;
+   }
+ };
+ var onlineManager = new OnlineManager();
+diff --git a/build/modern/queriesObserver.cjs b/build/modern/queriesObserver.cjs
+index ca62ddb70ff8c3627fd1f3dc2dfd73dfeb5b64c0..30f043a7841de7bf1b28297eb094c0bf101ec0f4 100644
+--- a/build/modern/queriesObserver.cjs
++++ b/build/modern/queriesObserver.cjs
+@@ -37,30 +37,20 @@ function replaceAt(array, index, value) {
+   return copy;
+ }
+ var QueriesObserver = class extends import_subscribable.Subscribable {
+-  #client;
+-  #result;
+-  #queries;
+-  #options;
+-  #observers;
+-  #combinedResult;
+-  #lastCombine;
+-  #lastResult;
+-  #lastQueryHashes;
+-  #observerMatches = [];
+   constructor(client, queries, options) {
+     super();
+-    this.#client = client;
+-    this.#options = options;
+-    this.#queries = [];
+-    this.#observers = [];
+-    this.#result = [];
++    this.___client = client;
++    this.___options = options;
++    this.___queries = [];
++    this.___observers = [];
++    this.___result = [];
+     this.setQueries(queries);
+   }
+   onSubscribe() {
+     if (this.listeners.size === 1) {
+-      this.#observers.forEach((observer) => {
++      this.___observers.forEach((observer) => {
+         observer.subscribe((result) => {
+-          this.#onUpdate(observer, result);
++          this.___onUpdate(observer, result);
+         });
+       });
+     }
+@@ -72,16 +62,16 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+   }
+   destroy() {
+     this.listeners = /* @__PURE__ */ new Set();
+-    this.#observers.forEach((observer) => {
++    this.___observers.forEach((observer) => {
+       observer.destroy();
+     });
+   }
+   setQueries(queries, options) {
+-    this.#queries = queries;
+-    this.#options = options;
++    this.___queries = queries;
++    this.___options = options;
+     if (process.env.NODE_ENV !== "production") {
+       const queryHashes = queries.map(
+-        (query) => this.#client.defaultQueryOptions(query).queryHash
++        (query) => this.___client.defaultQueryOptions(query).queryHash
+       );
+       if (new Set(queryHashes).size !== queryHashes.length) {
+         console.warn(
+@@ -90,8 +80,8 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+       }
+     }
+     import_notifyManager.notifyManager.batch(() => {
+-      const prevObservers = this.#observers;
+-      const newObserverMatches = this.#findMatchingObservers(this.#queries);
++      const prevObservers = this.___observers;
++      const newObserverMatches = this.___findMatchingObservers(this.___queries);
+       newObserverMatches.forEach(
+         (match) => match.observer.setOptions(match.defaultedQueryOptions)
+       );
+@@ -105,15 +95,15 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+       );
+       const hasStructuralChange = hasLengthChange || hasIndexChange;
+       const hasResultChange = hasStructuralChange ? true : newResult.some((result, index) => {
+-        const prev = this.#result[index];
++        const prev = this.___result[index];
+         return !prev || !(0, import_utils.shallowEqualObjects)(result, prev);
+       });
+       if (!hasStructuralChange && !hasResultChange) return;
+       if (hasStructuralChange) {
+-        this.#observerMatches = newObserverMatches;
+-        this.#observers = newObservers;
++        this.___observerMatches = newObserverMatches;
++        this.___observers = newObservers;
+       }
+-      this.#result = newResult;
++      this.___result = newResult;
+       if (!this.hasListeners()) return;
+       if (hasStructuralChange) {
+         difference(prevObservers, newObservers).forEach((observer) => {
+@@ -121,24 +111,24 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+         });
+         difference(newObservers, prevObservers).forEach((observer) => {
+           observer.subscribe((result) => {
+-            this.#onUpdate(observer, result);
++            this.___onUpdate(observer, result);
+           });
+         });
+       }
+-      this.#notify();
++      this.___notify();
+     });
+   }
+   getCurrentResult() {
+-    return this.#result;
++    return this.___result;
+   }
+   getQueries() {
+-    return this.#observers.map((observer) => observer.getCurrentQuery());
++    return this.___observers.map((observer) => observer.getCurrentQuery());
+   }
+   getObservers() {
+-    return this.#observers;
++    return this.___observers;
+   }
+   getOptimisticResult(queries, combine) {
+-    const matches = this.#findMatchingObservers(queries);
++    const matches = this.___findMatchingObservers(queries);
+     const result = matches.map(
+       (match) => match.observer.getOptimisticResult(match.defaultedQueryOptions)
+     );
+@@ -148,14 +138,14 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+     return [
+       result,
+       (r) => {
+-        return this.#combineResult(r ?? result, combine, queryHashes);
++        return this.___combineResult(r ?? result, combine, queryHashes);
+       },
+       () => {
+-        return this.#trackResult(result, matches);
++        return this.___trackResult(result, matches);
+       }
+     ];
+   }
+-  #trackResult(result, matches) {
++  ___trackResult(result, matches) {
+     return matches.map((match, index) => {
+       const observerResult = result[index];
+       return !match.defaultedQueryOptions.notifyOnChangeProps ? match.observer.trackResult(observerResult, (accessedProp) => {
+@@ -165,33 +155,33 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+       }) : observerResult;
+     });
+   }
+-  #combineResult(input, combine, queryHashes) {
++  ___combineResult(input, combine, queryHashes) {
+     if (combine) {
+-      const lastHashes = this.#lastQueryHashes;
++      const lastHashes = this.___lastQueryHashes;
+       const queryHashesChanged = queryHashes !== void 0 && lastHashes !== void 0 && (lastHashes.length !== queryHashes.length || queryHashes.some((hash, i) => hash !== lastHashes[i]));
+-      if (!this.#combinedResult || this.#result !== this.#lastResult || queryHashesChanged || combine !== this.#lastCombine) {
+-        this.#lastCombine = combine;
+-        this.#lastResult = this.#result;
++      if (!this.___combinedResult || this.___result !== this.___lastResult || queryHashesChanged || combine !== this.___lastCombine) {
++        this.___lastCombine = combine;
++        this.___lastResult = this.___result;
+         if (queryHashes !== void 0) {
+-          this.#lastQueryHashes = queryHashes;
++          this.___lastQueryHashes = queryHashes;
+         }
+-        this.#combinedResult = (0, import_utils.replaceEqualDeep)(
+-          this.#combinedResult,
++        this.___combinedResult = (0, import_utils.replaceEqualDeep)(
++          this.___combinedResult,
+           combine(input)
+         );
+       }
+-      return this.#combinedResult;
++      return this.___combinedResult;
+     }
+     return input;
+   }
+-  #shouldSkipCombine() {
+-    return this.#options?.combine !== void 0 && this.#observers.some((observer, index) => {
+-      return observer.options.suspense && this.#result[index]?.data === void 0;
++  ___shouldSkipCombine() {
++    return this.___options?.combine !== void 0 && this.___observers.some((observer, index) => {
++      return observer.options.suspense && this.___result[index]?.data === void 0;
+     });
+   }
+-  #findMatchingObservers(queries) {
++  ___findMatchingObservers(queries) {
+     const prevObserversMap = /* @__PURE__ */ new Map();
+-    this.#observers.forEach((observer) => {
++    this.___observers.forEach((observer) => {
+       const key = observer.options.queryHash;
+       if (!key) return;
+       const previousObservers = prevObserversMap.get(key);
+@@ -203,9 +193,9 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+     });
+     const observers = [];
+     queries.forEach((options) => {
+-      const defaultedOptions = this.#client.defaultQueryOptions(options);
++      const defaultedOptions = this.___client.defaultQueryOptions(options);
+       const match = prevObserversMap.get(defaultedOptions.queryHash)?.shift();
+-      const observer = match ?? new import_queryObserver.QueryObserver(this.#client, defaultedOptions);
++      const observer = match ?? new import_queryObserver.QueryObserver(this.___client, defaultedOptions);
+       observers.push({
+         defaultedQueryOptions: defaultedOptions,
+         observer
+@@ -213,23 +203,23 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
+     });
+     return observers;
+   }
+-  #onUpdate(observer, result) {
+-    const index = this.#observers.indexOf(observer);
++  ___onUpdate(observer, result) {
++    const index = this.___observers.indexOf(observer);
+     if (index !== -1) {
+-      this.#result = replaceAt(this.#result, index, result);
+-      this.#notify();
++      this.___result = replaceAt(this.___result, index, result);
++      this.___notify();
+     }
+   }
+-  #notify() {
++  ___notify() {
+     if (this.hasListeners()) {
+-      const newTracked = this.#trackResult(this.#result, this.#observerMatches);
+-      const shouldSkipCombine = this.#shouldSkipCombine();
+-      const previousResult = this.#combinedResult;
+-      const newResult = shouldSkipCombine ? previousResult : this.#combineResult(newTracked, this.#options?.combine);
++      const newTracked = this.___trackResult(this.___result, this.___observerMatches);
++      const shouldSkipCombine = this.___shouldSkipCombine();
++      const previousResult = this.___combinedResult;
++      const newResult = shouldSkipCombine ? previousResult : this.___combineResult(newTracked, this.___options?.combine);
+       if (shouldSkipCombine || previousResult !== newResult) {
+         import_notifyManager.notifyManager.batch(() => {
+           this.listeners.forEach((listener) => {
+-            listener(this.#result);
++            listener(this.___result);
+           });
+         });
+       }
+diff --git a/build/modern/queriesObserver.js b/build/modern/queriesObserver.js
+index e44cbb693bd6aaa232c01bdfee4af50ad474e706..a1f432c662f5351261e1266ec175b8fd8a4a6bcf 100644
+--- a/build/modern/queriesObserver.js
++++ b/build/modern/queriesObserver.js
+@@ -13,30 +13,20 @@ function replaceAt(array, index, value) {
+   return copy;
+ }
+ var QueriesObserver = class extends Subscribable {
+-  #client;
+-  #result;
+-  #queries;
+-  #options;
+-  #observers;
+-  #combinedResult;
+-  #lastCombine;
+-  #lastResult;
+-  #lastQueryHashes;
+-  #observerMatches = [];
+   constructor(client, queries, options) {
+     super();
+-    this.#client = client;
+-    this.#options = options;
+-    this.#queries = [];
+-    this.#observers = [];
+-    this.#result = [];
++    this.___client = client;
++    this.___options = options;
++    this.___queries = [];
++    this.___observers = [];
++    this.___result = [];
+     this.setQueries(queries);
+   }
+   onSubscribe() {
+     if (this.listeners.size === 1) {
+-      this.#observers.forEach((observer) => {
++      this.___observers.forEach((observer) => {
+         observer.subscribe((result) => {
+-          this.#onUpdate(observer, result);
++          this.___onUpdate(observer, result);
+         });
+       });
+     }
+@@ -48,16 +38,16 @@ var QueriesObserver = class extends Subscribable {
+   }
+   destroy() {
+     this.listeners = /* @__PURE__ */ new Set();
+-    this.#observers.forEach((observer) => {
++    this.___observers.forEach((observer) => {
+       observer.destroy();
+     });
+   }
+   setQueries(queries, options) {
+-    this.#queries = queries;
+-    this.#options = options;
++    this.___queries = queries;
++    this.___options = options;
+     if (process.env.NODE_ENV !== "production") {
+       const queryHashes = queries.map(
+-        (query) => this.#client.defaultQueryOptions(query).queryHash
++        (query) => this.___client.defaultQueryOptions(query).queryHash
+       );
+       if (new Set(queryHashes).size !== queryHashes.length) {
+         console.warn(
+@@ -66,8 +56,8 @@ var QueriesObserver = class extends Subscribable {
+       }
+     }
+     notifyManager.batch(() => {
+-      const prevObservers = this.#observers;
+-      const newObserverMatches = this.#findMatchingObservers(this.#queries);
++      const prevObservers = this.___observers;
++      const newObserverMatches = this.___findMatchingObservers(this.___queries);
+       newObserverMatches.forEach(
+         (match) => match.observer.setOptions(match.defaultedQueryOptions)
+       );
+@@ -81,15 +71,15 @@ var QueriesObserver = class extends Subscribable {
+       );
+       const hasStructuralChange = hasLengthChange || hasIndexChange;
+       const hasResultChange = hasStructuralChange ? true : newResult.some((result, index) => {
+-        const prev = this.#result[index];
++        const prev = this.___result[index];
+         return !prev || !shallowEqualObjects(result, prev);
+       });
+       if (!hasStructuralChange && !hasResultChange) return;
+       if (hasStructuralChange) {
+-        this.#observerMatches = newObserverMatches;
+-        this.#observers = newObservers;
++        this.___observerMatches = newObserverMatches;
++        this.___observers = newObservers;
+       }
+-      this.#result = newResult;
++      this.___result = newResult;
+       if (!this.hasListeners()) return;
+       if (hasStructuralChange) {
+         difference(prevObservers, newObservers).forEach((observer) => {
+@@ -97,24 +87,24 @@ var QueriesObserver = class extends Subscribable {
+         });
+         difference(newObservers, prevObservers).forEach((observer) => {
+           observer.subscribe((result) => {
+-            this.#onUpdate(observer, result);
++            this.___onUpdate(observer, result);
+           });
+         });
+       }
+-      this.#notify();
++      this.___notify();
+     });
+   }
+   getCurrentResult() {
+-    return this.#result;
++    return this.___result;
+   }
+   getQueries() {
+-    return this.#observers.map((observer) => observer.getCurrentQuery());
++    return this.___observers.map((observer) => observer.getCurrentQuery());
+   }
+   getObservers() {
+-    return this.#observers;
++    return this.___observers;
+   }
+   getOptimisticResult(queries, combine) {
+-    const matches = this.#findMatchingObservers(queries);
++    const matches = this.___findMatchingObservers(queries);
+     const result = matches.map(
+       (match) => match.observer.getOptimisticResult(match.defaultedQueryOptions)
+     );
+@@ -124,14 +114,14 @@ var QueriesObserver = class extends Subscribable {
+     return [
+       result,
+       (r) => {
+-        return this.#combineResult(r ?? result, combine, queryHashes);
++        return this.___combineResult(r ?? result, combine, queryHashes);
+       },
+       () => {
+-        return this.#trackResult(result, matches);
++        return this.___trackResult(result, matches);
+       }
+     ];
+   }
+-  #trackResult(result, matches) {
++  ___trackResult(result, matches) {
+     return matches.map((match, index) => {
+       const observerResult = result[index];
+       return !match.defaultedQueryOptions.notifyOnChangeProps ? match.observer.trackResult(observerResult, (accessedProp) => {
+@@ -141,33 +131,33 @@ var QueriesObserver = class extends Subscribable {
+       }) : observerResult;
+     });
+   }
+-  #combineResult(input, combine, queryHashes) {
++  ___combineResult(input, combine, queryHashes) {
+     if (combine) {
+-      const lastHashes = this.#lastQueryHashes;
++      const lastHashes = this.___lastQueryHashes;
+       const queryHashesChanged = queryHashes !== void 0 && lastHashes !== void 0 && (lastHashes.length !== queryHashes.length || queryHashes.some((hash, i) => hash !== lastHashes[i]));
+-      if (!this.#combinedResult || this.#result !== this.#lastResult || queryHashesChanged || combine !== this.#lastCombine) {
+-        this.#lastCombine = combine;
+-        this.#lastResult = this.#result;
++      if (!this.___combinedResult || this.___result !== this.___lastResult || queryHashesChanged || combine !== this.___lastCombine) {
++        this.___lastCombine = combine;
++        this.___lastResult = this.___result;
+         if (queryHashes !== void 0) {
+-          this.#lastQueryHashes = queryHashes;
++          this.___lastQueryHashes = queryHashes;
+         }
+-        this.#combinedResult = replaceEqualDeep(
+-          this.#combinedResult,
++        this.___combinedResult = replaceEqualDeep(
++          this.___combinedResult,
+           combine(input)
+         );
+       }
+-      return this.#combinedResult;
++      return this.___combinedResult;
+     }
+     return input;
+   }
+-  #shouldSkipCombine() {
+-    return this.#options?.combine !== void 0 && this.#observers.some((observer, index) => {
+-      return observer.options.suspense && this.#result[index]?.data === void 0;
++  ___shouldSkipCombine() {
++    return this.___options?.combine !== void 0 && this.___observers.some((observer, index) => {
++      return observer.options.suspense && this.___result[index]?.data === void 0;
+     });
+   }
+-  #findMatchingObservers(queries) {
++  ___findMatchingObservers(queries) {
+     const prevObserversMap = /* @__PURE__ */ new Map();
+-    this.#observers.forEach((observer) => {
++    this.___observers.forEach((observer) => {
+       const key = observer.options.queryHash;
+       if (!key) return;
+       const previousObservers = prevObserversMap.get(key);
+@@ -179,9 +169,9 @@ var QueriesObserver = class extends Subscribable {
+     });
+     const observers = [];
+     queries.forEach((options) => {
+-      const defaultedOptions = this.#client.defaultQueryOptions(options);
++      const defaultedOptions = this.___client.defaultQueryOptions(options);
+       const match = prevObserversMap.get(defaultedOptions.queryHash)?.shift();
+-      const observer = match ?? new QueryObserver(this.#client, defaultedOptions);
++      const observer = match ?? new QueryObserver(this.___client, defaultedOptions);
+       observers.push({
+         defaultedQueryOptions: defaultedOptions,
+         observer
+@@ -189,23 +179,23 @@ var QueriesObserver = class extends Subscribable {
+     });
+     return observers;
+   }
+-  #onUpdate(observer, result) {
+-    const index = this.#observers.indexOf(observer);
++  ___onUpdate(observer, result) {
++    const index = this.___observers.indexOf(observer);
+     if (index !== -1) {
+-      this.#result = replaceAt(this.#result, index, result);
+-      this.#notify();
++      this.___result = replaceAt(this.___result, index, result);
++      this.___notify();
+     }
+   }
+-  #notify() {
++  ___notify() {
+     if (this.hasListeners()) {
+-      const newTracked = this.#trackResult(this.#result, this.#observerMatches);
+-      const shouldSkipCombine = this.#shouldSkipCombine();
+-      const previousResult = this.#combinedResult;
+-      const newResult = shouldSkipCombine ? previousResult : this.#combineResult(newTracked, this.#options?.combine);
++      const newTracked = this.___trackResult(this.___result, this.___observerMatches);
++      const shouldSkipCombine = this.___shouldSkipCombine();
++      const previousResult = this.___combinedResult;
++      const newResult = shouldSkipCombine ? previousResult : this.___combineResult(newTracked, this.___options?.combine);
+       if (shouldSkipCombine || previousResult !== newResult) {
+         notifyManager.batch(() => {
+           this.listeners.forEach((listener) => {
+-            listener(this.#result);
++            listener(this.___result);
+           });
+         });
+       }
+diff --git a/build/modern/query.cjs b/build/modern/query.cjs
+index ccf640f810e08e4edd41c22154f2d8c6e5554aac..b34da8b6b9100c5e34a995907aff190ddf3f7b09 100644
+--- a/build/modern/query.cjs
++++ b/build/modern/query.cjs
+@@ -30,41 +30,33 @@ var import_retryer = require("./retryer.cjs");
+ var import_removable = require("./removable.cjs");
+ var import_infiniteQueryBehavior = require("./infiniteQueryBehavior.cjs");
+ var Query = class extends import_removable.Removable {
+-  #queryType;
+-  #initialState;
+-  #revertState;
+-  #cache;
+-  #client;
+-  #retryer;
+-  #defaultOptions;
+-  #abortSignalConsumed;
+   constructor(config) {
+     super();
+-    this.#abortSignalConsumed = false;
+-    this.#defaultOptions = config.defaultOptions;
++    this.___abortSignalConsumed = false;
++    this.___defaultOptions = config.defaultOptions;
+     this.setOptions(config.options);
+     this.observers = [];
+-    this.#client = config.client;
+-    this.#cache = this.#client.getQueryCache();
++    this.___client = config.client;
++    this.___cache = this.___client.getQueryCache();
+     this.queryKey = config.queryKey;
+     this.queryHash = config.queryHash;
+-    this.#initialState = getDefaultState(this.options);
+-    this.state = config.state ?? this.#initialState;
++    this.___initialState = getDefaultState(this.options);
++    this.state = config.state ?? this.___initialState;
+     this.scheduleGc();
+   }
+   get meta() {
+     return this.options.meta;
+   }
+   get queryType() {
+-    return this.#queryType;
++    return this.___queryType;
+   }
+   get promise() {
+-    return this.#retryer?.promise;
++    return this.___retryer?.promise;
+   }
+   setOptions(options) {
+-    this.options = { ...this.#defaultOptions, ...options };
++    this.options = { ...this.___defaultOptions, ...options };
+     if (options?._type) {
+-      this.#queryType = options._type;
++      this.___queryType = options._type;
+     }
+     this.updateGcTime(this.options.gcTime);
+     if (this.state && this.state.data === void 0) {
+@@ -73,18 +65,18 @@ var Query = class extends import_removable.Removable {
+         this.setState(
+           successState(defaultState.data, defaultState.dataUpdatedAt)
+         );
+-        this.#initialState = defaultState;
++        this.___initialState = defaultState;
+       }
+     }
+   }
+   optionalRemove() {
+     if (!this.observers.length && this.state.fetchStatus === "idle") {
+-      this.#cache.remove(this);
++      this.___cache.remove(this);
+     }
+   }
+   setData(newData, options) {
+     const data = (0, import_utils.replaceData)(this.state.data, newData, this.options);
+-    this.#dispatch({
++    this.___dispatch({
+       data,
+       type: "success",
+       dataUpdatedAt: options?.updatedAt,
+@@ -93,11 +85,11 @@ var Query = class extends import_removable.Removable {
+     return data;
+   }
+   setState(state) {
+-    this.#dispatch({ type: "setState", state });
++    this.___dispatch({ type: "setState", state });
+   }
+   cancel(options) {
+-    const promise = this.#retryer?.promise;
+-    this.#retryer?.cancel(options);
++    const promise = this.___retryer?.promise;
++    this.___retryer?.cancel(options);
+     return promise ? promise.then(import_utils.noop).catch(import_utils.noop) : Promise.resolve();
+   }
+   destroy() {
+@@ -105,7 +97,7 @@ var Query = class extends import_removable.Removable {
+     this.cancel({ silent: true });
+   }
+   get resetState() {
+-    return this.#initialState;
++    return this.___initialState;
+   }
+   reset() {
+     this.destroy();
+@@ -156,57 +148,57 @@ var Query = class extends import_removable.Removable {
+   onFocus() {
+     const observer = this.observers.find((x) => x.shouldFetchOnWindowFocus());
+     observer?.refetch({ cancelRefetch: false });
+-    this.#retryer?.continue();
++    this.___retryer?.continue();
+   }
+   onOnline() {
+     const observer = this.observers.find((x) => x.shouldFetchOnReconnect());
+     observer?.refetch({ cancelRefetch: false });
+-    this.#retryer?.continue();
++    this.___retryer?.continue();
+   }
+   addObserver(observer) {
+     if (!this.observers.includes(observer)) {
+       this.observers.push(observer);
+       this.clearGcTimeout();
+-      this.#cache.notify({ type: "observerAdded", query: this, observer });
++      this.___cache.notify({ type: "observerAdded", query: this, observer });
+     }
+   }
+   removeObserver(observer) {
+     if (this.observers.includes(observer)) {
+       this.observers = this.observers.filter((x) => x !== observer);
+       if (!this.observers.length) {
+-        if (this.#retryer) {
+-          if (this.#abortSignalConsumed || this.#isInitialPausedFetch()) {
+-            this.#retryer.cancel({ revert: true });
++        if (this.___retryer) {
++          if (this.___abortSignalConsumed || this.___isInitialPausedFetch()) {
++            this.___retryer.cancel({ revert: true });
+           } else {
+-            this.#retryer.cancelRetry();
++            this.___retryer.cancelRetry();
+           }
+         }
+         this.scheduleGc();
+       }
+-      this.#cache.notify({ type: "observerRemoved", query: this, observer });
++      this.___cache.notify({ type: "observerRemoved", query: this, observer });
+     }
+   }
+   getObserversCount() {
+     return this.observers.length;
+   }
+-  #isInitialPausedFetch() {
++  ___isInitialPausedFetch() {
+     return this.state.fetchStatus === "paused" && this.state.status === "pending";
+   }
+   invalidate() {
+     if (!this.state.isInvalidated) {
+-      this.#dispatch({ type: "invalidate" });
++      this.___dispatch({ type: "invalidate" });
+     }
+   }
+   async fetch(options, fetchOptions) {
+     if (this.state.fetchStatus !== "idle" && // If the promise in the retryer is already rejected, we have to definitely
+     // re-start the fetch; there is a chance that the query is still in a
+     // pending state when that happens
+-    this.#retryer?.status() !== "rejected") {
++    this.___retryer?.status() !== "rejected") {
+       if (this.state.data !== void 0 && fetchOptions?.cancelRefetch) {
+         this.cancel({ silent: true });
+-      } else if (this.#retryer) {
+-        this.#retryer.continueRetry();
+-        return this.#retryer.promise;
++      } else if (this.___retryer) {
++        this.___retryer.continueRetry();
++        return this.___retryer.promise;
+       }
+     }
+     if (options) {
+@@ -230,7 +222,7 @@ var Query = class extends import_removable.Removable {
+       Object.defineProperty(object, "signal", {
+         enumerable: true,
+         get: () => {
+-          this.#abortSignalConsumed = true;
++          this.___abortSignalConsumed = true;
+           return abortController.signal;
+         }
+       });
+@@ -239,7 +231,7 @@ var Query = class extends import_removable.Removable {
+       const queryFn = (0, import_utils.ensureQueryFn)(this.options, fetchOptions);
+       const createQueryFnContext = () => {
+         const queryFnContext2 = {
+-          client: this.#client,
++          client: this.___client,
+           queryKey: this.queryKey,
+           meta: this.meta
+         };
+@@ -247,7 +239,7 @@ var Query = class extends import_removable.Removable {
+         return queryFnContext2;
+       };
+       const queryFnContext = createQueryFnContext();
+-      this.#abortSignalConsumed = false;
++      this.___abortSignalConsumed = false;
+       if (this.options.persister) {
+         return this.options.persister(
+           queryFn,
+@@ -262,7 +254,7 @@ var Query = class extends import_removable.Removable {
+         fetchOptions,
+         options: this.options,
+         queryKey: this.queryKey,
+-        client: this.#client,
++        client: this.___client,
+         state: this.state,
+         fetchFn
+       };
+@@ -270,34 +262,34 @@ var Query = class extends import_removable.Removable {
+       return context2;
+     };
+     const context = createFetchContext();
+-    const behavior = this.#queryType === "infinite" ? (0, import_infiniteQueryBehavior.infiniteQueryBehavior)(
++    const behavior = this.___queryType === "infinite" ? (0, import_infiniteQueryBehavior.infiniteQueryBehavior)(
+       this.options.pages
+     ) : this.options.behavior;
+     behavior?.onFetch(context, this);
+-    this.#revertState = this.state;
++    this.___revertState = this.state;
+     if (this.state.fetchStatus === "idle" || this.state.fetchMeta !== context.fetchOptions?.meta) {
+-      this.#dispatch({ type: "fetch", meta: context.fetchOptions?.meta });
++      this.___dispatch({ type: "fetch", meta: context.fetchOptions?.meta });
+     }
+-    this.#retryer = (0, import_retryer.createRetryer)({
++    this.___retryer = (0, import_retryer.createRetryer)({
+       initialPromise: fetchOptions?.initialPromise,
+       fn: context.fetchFn,
+       onCancel: (error) => {
+         if (error instanceof import_retryer.CancelledError && error.revert) {
+           this.setState({
+-            ...this.#revertState,
++            ...this.___revertState,
+             fetchStatus: "idle"
+           });
+         }
+         abortController.abort();
+       },
+       onFail: (failureCount, error) => {
+-        this.#dispatch({ type: "failed", failureCount, error });
++        this.___dispatch({ type: "failed", failureCount, error });
+       },
+       onPause: () => {
+-        this.#dispatch({ type: "pause" });
++        this.___dispatch({ type: "pause" });
+       },
+       onContinue: () => {
+-        this.#dispatch({ type: "continue" });
++        this.___dispatch({ type: "continue" });
+       },
+       retry: context.options.retry,
+       retryDelay: context.options.retryDelay,
+@@ -305,7 +297,7 @@ var Query = class extends import_removable.Removable {
+       canRun: () => true
+     });
+     try {
+-      const data = await this.#retryer.start();
++      const data = await this.___retryer.start();
+       if (data === void 0) {
+         if (process.env.NODE_ENV !== "production") {
+           console.error(
+@@ -315,8 +307,8 @@ var Query = class extends import_removable.Removable {
+         throw new Error(`${this.queryHash} data is undefined`);
+       }
+       this.setData(data);
+-      this.#cache.config.onSuccess?.(data, this);
+-      this.#cache.config.onSettled?.(
++      this.___cache.config.onSuccess?.(data, this);
++      this.___cache.config.onSettled?.(
+         data,
+         this.state.error,
+         this
+@@ -325,7 +317,7 @@ var Query = class extends import_removable.Removable {
+     } catch (error) {
+       if (error instanceof import_retryer.CancelledError) {
+         if (error.silent) {
+-          return this.#retryer.promise;
++          return this.___retryer.promise;
+         } else if (error.revert) {
+           if (this.state.data === void 0) {
+             throw error;
+@@ -333,15 +325,15 @@ var Query = class extends import_removable.Removable {
+           return this.state.data;
+         }
+       }
+-      this.#dispatch({
++      this.___dispatch({
+         type: "error",
+         error
+       });
+-      this.#cache.config.onError?.(
++      this.___cache.config.onError?.(
+         error,
+         this
+       );
+-      this.#cache.config.onSettled?.(
++      this.___cache.config.onSettled?.(
+         this.state.data,
+         error,
+         this
+@@ -351,7 +343,7 @@ var Query = class extends import_removable.Removable {
+       this.scheduleGc();
+     }
+   }
+-  #dispatch(action) {
++  ___dispatch(action) {
+     const reducer = (state) => {
+       switch (action.type) {
+         case "failed":
+@@ -387,7 +379,7 @@ var Query = class extends import_removable.Removable {
+               fetchFailureReason: null
+             }
+           };
+-          this.#revertState = action.manual ? newState : void 0;
++          this.___revertState = action.manual ? newState : void 0;
+           return newState;
+         case "error":
+           const error = action.error;
+@@ -421,7 +413,7 @@ var Query = class extends import_removable.Removable {
+       this.observers.forEach((observer) => {
+         observer.onQueryUpdate();
+       });
+-      this.#cache.notify({ query: this, type: "updated", action });
++      this.___cache.notify({ query: this, type: "updated", action });
+     });
+   }
+ };
+diff --git a/build/modern/query.js b/build/modern/query.js
+index b9a27843b30603839e65dd8b02454239444065df..bea7b3a8a08c95bfec6248cabb7f7f4d4258ee0a 100644
+--- a/build/modern/query.js
++++ b/build/modern/query.js
+@@ -13,41 +13,33 @@ import { CancelledError, canFetch, createRetryer } from "./retryer.js";
+ import { Removable } from "./removable.js";
+ import { infiniteQueryBehavior } from "./infiniteQueryBehavior.js";
+ var Query = class extends Removable {
+-  #queryType;
+-  #initialState;
+-  #revertState;
+-  #cache;
+-  #client;
+-  #retryer;
+-  #defaultOptions;
+-  #abortSignalConsumed;
+   constructor(config) {
+     super();
+-    this.#abortSignalConsumed = false;
+-    this.#defaultOptions = config.defaultOptions;
++    this.___abortSignalConsumed = false;
++    this.___defaultOptions = config.defaultOptions;
+     this.setOptions(config.options);
+     this.observers = [];
+-    this.#client = config.client;
+-    this.#cache = this.#client.getQueryCache();
++    this.___client = config.client;
++    this.___cache = this.___client.getQueryCache();
+     this.queryKey = config.queryKey;
+     this.queryHash = config.queryHash;
+-    this.#initialState = getDefaultState(this.options);
+-    this.state = config.state ?? this.#initialState;
++    this.___initialState = getDefaultState(this.options);
++    this.state = config.state ?? this.___initialState;
+     this.scheduleGc();
+   }
+   get meta() {
+     return this.options.meta;
+   }
+   get queryType() {
+-    return this.#queryType;
++    return this.___queryType;
+   }
+   get promise() {
+-    return this.#retryer?.promise;
++    return this.___retryer?.promise;
+   }
+   setOptions(options) {
+-    this.options = { ...this.#defaultOptions, ...options };
++    this.options = { ...this.___defaultOptions, ...options };
+     if (options?._type) {
+-      this.#queryType = options._type;
++      this.___queryType = options._type;
+     }
+     this.updateGcTime(this.options.gcTime);
+     if (this.state && this.state.data === void 0) {
+@@ -56,18 +48,18 @@ var Query = class extends Removable {
+         this.setState(
+           successState(defaultState.data, defaultState.dataUpdatedAt)
+         );
+-        this.#initialState = defaultState;
++        this.___initialState = defaultState;
+       }
+     }
+   }
+   optionalRemove() {
+     if (!this.observers.length && this.state.fetchStatus === "idle") {
+-      this.#cache.remove(this);
++      this.___cache.remove(this);
+     }
+   }
+   setData(newData, options) {
+     const data = replaceData(this.state.data, newData, this.options);
+-    this.#dispatch({
++    this.___dispatch({
+       data,
+       type: "success",
+       dataUpdatedAt: options?.updatedAt,
+@@ -76,11 +68,11 @@ var Query = class extends Removable {
+     return data;
+   }
+   setState(state) {
+-    this.#dispatch({ type: "setState", state });
++    this.___dispatch({ type: "setState", state });
+   }
+   cancel(options) {
+-    const promise = this.#retryer?.promise;
+-    this.#retryer?.cancel(options);
++    const promise = this.___retryer?.promise;
++    this.___retryer?.cancel(options);
+     return promise ? promise.then(noop).catch(noop) : Promise.resolve();
+   }
+   destroy() {
+@@ -88,7 +80,7 @@ var Query = class extends Removable {
+     this.cancel({ silent: true });
+   }
+   get resetState() {
+-    return this.#initialState;
++    return this.___initialState;
+   }
+   reset() {
+     this.destroy();
+@@ -139,57 +131,57 @@ var Query = class extends Removable {
+   onFocus() {
+     const observer = this.observers.find((x) => x.shouldFetchOnWindowFocus());
+     observer?.refetch({ cancelRefetch: false });
+-    this.#retryer?.continue();
++    this.___retryer?.continue();
+   }
+   onOnline() {
+     const observer = this.observers.find((x) => x.shouldFetchOnReconnect());
+     observer?.refetch({ cancelRefetch: false });
+-    this.#retryer?.continue();
++    this.___retryer?.continue();
+   }
+   addObserver(observer) {
+     if (!this.observers.includes(observer)) {
+       this.observers.push(observer);
+       this.clearGcTimeout();
+-      this.#cache.notify({ type: "observerAdded", query: this, observer });
++      this.___cache.notify({ type: "observerAdded", query: this, observer });
+     }
+   }
+   removeObserver(observer) {
+     if (this.observers.includes(observer)) {
+       this.observers = this.observers.filter((x) => x !== observer);
+       if (!this.observers.length) {
+-        if (this.#retryer) {
+-          if (this.#abortSignalConsumed || this.#isInitialPausedFetch()) {
+-            this.#retryer.cancel({ revert: true });
++        if (this.___retryer) {
++          if (this.___abortSignalConsumed || this.___isInitialPausedFetch()) {
++            this.___retryer.cancel({ revert: true });
+           } else {
+-            this.#retryer.cancelRetry();
++            this.___retryer.cancelRetry();
+           }
+         }
+         this.scheduleGc();
+       }
+-      this.#cache.notify({ type: "observerRemoved", query: this, observer });
++      this.___cache.notify({ type: "observerRemoved", query: this, observer });
+     }
+   }
+   getObserversCount() {
+     return this.observers.length;
+   }
+-  #isInitialPausedFetch() {
++  ___isInitialPausedFetch() {
+     return this.state.fetchStatus === "paused" && this.state.status === "pending";
+   }
+   invalidate() {
+     if (!this.state.isInvalidated) {
+-      this.#dispatch({ type: "invalidate" });
++      this.___dispatch({ type: "invalidate" });
+     }
+   }
+   async fetch(options, fetchOptions) {
+     if (this.state.fetchStatus !== "idle" && // If the promise in the retryer is already rejected, we have to definitely
+     // re-start the fetch; there is a chance that the query is still in a
+     // pending state when that happens
+-    this.#retryer?.status() !== "rejected") {
++    this.___retryer?.status() !== "rejected") {
+       if (this.state.data !== void 0 && fetchOptions?.cancelRefetch) {
+         this.cancel({ silent: true });
+-      } else if (this.#retryer) {
+-        this.#retryer.continueRetry();
+-        return this.#retryer.promise;
++      } else if (this.___retryer) {
++        this.___retryer.continueRetry();
++        return this.___retryer.promise;
+       }
+     }
+     if (options) {
+@@ -213,7 +205,7 @@ var Query = class extends Removable {
+       Object.defineProperty(object, "signal", {
+         enumerable: true,
+         get: () => {
+-          this.#abortSignalConsumed = true;
++          this.___abortSignalConsumed = true;
+           return abortController.signal;
+         }
+       });
+@@ -222,7 +214,7 @@ var Query = class extends Removable {
+       const queryFn = ensureQueryFn(this.options, fetchOptions);
+       const createQueryFnContext = () => {
+         const queryFnContext2 = {
+-          client: this.#client,
++          client: this.___client,
+           queryKey: this.queryKey,
+           meta: this.meta
+         };
+@@ -230,7 +222,7 @@ var Query = class extends Removable {
+         return queryFnContext2;
+       };
+       const queryFnContext = createQueryFnContext();
+-      this.#abortSignalConsumed = false;
++      this.___abortSignalConsumed = false;
+       if (this.options.persister) {
+         return this.options.persister(
+           queryFn,
+@@ -245,7 +237,7 @@ var Query = class extends Removable {
+         fetchOptions,
+         options: this.options,
+         queryKey: this.queryKey,
+-        client: this.#client,
++        client: this.___client,
+         state: this.state,
+         fetchFn
+       };
+@@ -253,34 +245,34 @@ var Query = class extends Removable {
+       return context2;
+     };
+     const context = createFetchContext();
+-    const behavior = this.#queryType === "infinite" ? infiniteQueryBehavior(
++    const behavior = this.___queryType === "infinite" ? infiniteQueryBehavior(
+       this.options.pages
+     ) : this.options.behavior;
+     behavior?.onFetch(context, this);
+-    this.#revertState = this.state;
++    this.___revertState = this.state;
+     if (this.state.fetchStatus === "idle" || this.state.fetchMeta !== context.fetchOptions?.meta) {
+-      this.#dispatch({ type: "fetch", meta: context.fetchOptions?.meta });
++      this.___dispatch({ type: "fetch", meta: context.fetchOptions?.meta });
+     }
+-    this.#retryer = createRetryer({
++    this.___retryer = createRetryer({
+       initialPromise: fetchOptions?.initialPromise,
+       fn: context.fetchFn,
+       onCancel: (error) => {
+         if (error instanceof CancelledError && error.revert) {
+           this.setState({
+-            ...this.#revertState,
++            ...this.___revertState,
+             fetchStatus: "idle"
+           });
+         }
+         abortController.abort();
+       },
+       onFail: (failureCount, error) => {
+-        this.#dispatch({ type: "failed", failureCount, error });
++        this.___dispatch({ type: "failed", failureCount, error });
+       },
+       onPause: () => {
+-        this.#dispatch({ type: "pause" });
++        this.___dispatch({ type: "pause" });
+       },
+       onContinue: () => {
+-        this.#dispatch({ type: "continue" });
++        this.___dispatch({ type: "continue" });
+       },
+       retry: context.options.retry,
+       retryDelay: context.options.retryDelay,
+@@ -288,7 +280,7 @@ var Query = class extends Removable {
+       canRun: () => true
+     });
+     try {
+-      const data = await this.#retryer.start();
++      const data = await this.___retryer.start();
+       if (data === void 0) {
+         if (process.env.NODE_ENV !== "production") {
+           console.error(
+@@ -298,8 +290,8 @@ var Query = class extends Removable {
+         throw new Error(`${this.queryHash} data is undefined`);
+       }
+       this.setData(data);
+-      this.#cache.config.onSuccess?.(data, this);
+-      this.#cache.config.onSettled?.(
++      this.___cache.config.onSuccess?.(data, this);
++      this.___cache.config.onSettled?.(
+         data,
+         this.state.error,
+         this
+@@ -308,7 +300,7 @@ var Query = class extends Removable {
+     } catch (error) {
+       if (error instanceof CancelledError) {
+         if (error.silent) {
+-          return this.#retryer.promise;
++          return this.___retryer.promise;
+         } else if (error.revert) {
+           if (this.state.data === void 0) {
+             throw error;
+@@ -316,15 +308,15 @@ var Query = class extends Removable {
+           return this.state.data;
+         }
+       }
+-      this.#dispatch({
++      this.___dispatch({
+         type: "error",
+         error
+       });
+-      this.#cache.config.onError?.(
++      this.___cache.config.onError?.(
+         error,
+         this
+       );
+-      this.#cache.config.onSettled?.(
++      this.___cache.config.onSettled?.(
+         this.state.data,
+         error,
+         this
+@@ -334,7 +326,7 @@ var Query = class extends Removable {
+       this.scheduleGc();
+     }
+   }
+-  #dispatch(action) {
++  ___dispatch(action) {
+     const reducer = (state) => {
+       switch (action.type) {
+         case "failed":
+@@ -370,7 +362,7 @@ var Query = class extends Removable {
+               fetchFailureReason: null
+             }
+           };
+-          this.#revertState = action.manual ? newState : void 0;
++          this.___revertState = action.manual ? newState : void 0;
+           return newState;
+         case "error":
+           const error = action.error;
+@@ -404,7 +396,7 @@ var Query = class extends Removable {
+       this.observers.forEach((observer) => {
+         observer.onQueryUpdate();
+       });
+-      this.#cache.notify({ query: this, type: "updated", action });
++      this.___cache.notify({ query: this, type: "updated", action });
+     });
+   }
+ };
+diff --git a/build/modern/queryCache.cjs b/build/modern/queryCache.cjs
+index ce63393a342100223c15d9bcf8eaba06610b526f..683313784ecb2f8c3ed06748ee858d6dc41c2d3f 100644
+--- a/build/modern/queryCache.cjs
++++ b/build/modern/queryCache.cjs
+@@ -31,9 +31,8 @@ var QueryCache = class extends import_subscribable.Subscribable {
+   constructor(config = {}) {
+     super();
+     this.config = config;
+-    this.#queries = /* @__PURE__ */ new Map();
++    this.___queries = /* @__PURE__ */ new Map();
+   }
+-  #queries;
+   build(client, options, state) {
+     const queryKey = options.queryKey;
+     const queryHash = options.queryHash ?? (0, import_utils.hashQueryKeyByOptions)(queryKey, options);
+@@ -52,8 +51,8 @@ var QueryCache = class extends import_subscribable.Subscribable {
+     return query;
+   }
+   add(query) {
+-    if (!this.#queries.has(query.queryHash)) {
+-      this.#queries.set(query.queryHash, query);
++    if (!this.___queries.has(query.queryHash)) {
++      this.___queries.set(query.queryHash, query);
+       this.notify({
+         type: "added",
+         query
+@@ -61,11 +60,11 @@ var QueryCache = class extends import_subscribable.Subscribable {
+     }
+   }
+   remove(query) {
+-    const queryInMap = this.#queries.get(query.queryHash);
++    const queryInMap = this.___queries.get(query.queryHash);
+     if (queryInMap) {
+       query.destroy();
+       if (queryInMap === query) {
+-        this.#queries.delete(query.queryHash);
++        this.___queries.delete(query.queryHash);
+       }
+       this.notify({ type: "removed", query });
+     }
+@@ -78,10 +77,10 @@ var QueryCache = class extends import_subscribable.Subscribable {
+     });
+   }
+   get(queryHash) {
+-    return this.#queries.get(queryHash);
++    return this.___queries.get(queryHash);
+   }
+   getAll() {
+-    return [...this.#queries.values()];
++    return [...this.___queries.values()];
+   }
+   find(filters) {
+     const defaultedFilters = { exact: true, ...filters };
+diff --git a/build/modern/queryCache.js b/build/modern/queryCache.js
+index 07bd9c1c9593690a6629aa3ddbdc6a434718a114..7dadd18805525fc792937effe84bd87407035f33 100644
+--- a/build/modern/queryCache.js
++++ b/build/modern/queryCache.js
+@@ -7,9 +7,8 @@ var QueryCache = class extends Subscribable {
+   constructor(config = {}) {
+     super();
+     this.config = config;
+-    this.#queries = /* @__PURE__ */ new Map();
++    this.___queries = /* @__PURE__ */ new Map();
+   }
+-  #queries;
+   build(client, options, state) {
+     const queryKey = options.queryKey;
+     const queryHash = options.queryHash ?? hashQueryKeyByOptions(queryKey, options);
+@@ -28,8 +27,8 @@ var QueryCache = class extends Subscribable {
+     return query;
+   }
+   add(query) {
+-    if (!this.#queries.has(query.queryHash)) {
+-      this.#queries.set(query.queryHash, query);
++    if (!this.___queries.has(query.queryHash)) {
++      this.___queries.set(query.queryHash, query);
+       this.notify({
+         type: "added",
+         query
+@@ -37,11 +36,11 @@ var QueryCache = class extends Subscribable {
+     }
+   }
+   remove(query) {
+-    const queryInMap = this.#queries.get(query.queryHash);
++    const queryInMap = this.___queries.get(query.queryHash);
+     if (queryInMap) {
+       query.destroy();
+       if (queryInMap === query) {
+-        this.#queries.delete(query.queryHash);
++        this.___queries.delete(query.queryHash);
+       }
+       this.notify({ type: "removed", query });
+     }
+@@ -54,10 +53,10 @@ var QueryCache = class extends Subscribable {
+     });
+   }
+   get(queryHash) {
+-    return this.#queries.get(queryHash);
++    return this.___queries.get(queryHash);
+   }
+   getAll() {
+-    return [...this.#queries.values()];
++    return [...this.___queries.values()];
+   }
+   find(filters) {
+     const defaultedFilters = { exact: true, ...filters };
+diff --git a/build/modern/queryClient.cjs b/build/modern/queryClient.cjs
+index f90b6980a70e1d262ab0bce4f6cc86e7d74ef409..31c2a7cd9fd9294a8d7afea3b2328e32f886893b 100644
+--- a/build/modern/queryClient.cjs
++++ b/build/modern/queryClient.cjs
+@@ -30,51 +30,43 @@ var import_focusManager = require("./focusManager.cjs");
+ var import_onlineManager = require("./onlineManager.cjs");
+ var import_notifyManager = require("./notifyManager.cjs");
+ var QueryClient = class {
+-  #queryCache;
+-  #mutationCache;
+-  #defaultOptions;
+-  #queryDefaults;
+-  #mutationDefaults;
+-  #mountCount;
+-  #unsubscribeFocus;
+-  #unsubscribeOnline;
+   constructor(config = {}) {
+-    this.#queryCache = config.queryCache || new import_queryCache.QueryCache();
+-    this.#mutationCache = config.mutationCache || new import_mutationCache.MutationCache();
+-    this.#defaultOptions = config.defaultOptions || {};
+-    this.#queryDefaults = /* @__PURE__ */ new Map();
+-    this.#mutationDefaults = /* @__PURE__ */ new Map();
+-    this.#mountCount = 0;
++    this.___queryCache = config.queryCache || new import_queryCache.QueryCache();
++    this.___mutationCache = config.mutationCache || new import_mutationCache.MutationCache();
++    this.___defaultOptions = config.defaultOptions || {};
++    this.___queryDefaults = /* @__PURE__ */ new Map();
++    this.___mutationDefaults = /* @__PURE__ */ new Map();
++    this.___mountCount = 0;
+   }
+   mount() {
+-    this.#mountCount++;
+-    if (this.#mountCount !== 1) return;
+-    this.#unsubscribeFocus = import_focusManager.focusManager.subscribe(async (focused) => {
++    this.___mountCount++;
++    if (this.___mountCount !== 1) return;
++    this.___unsubscribeFocus = import_focusManager.focusManager.subscribe(async (focused) => {
+       if (focused) {
+         await this.resumePausedMutations();
+-        this.#queryCache.onFocus();
++        this.___queryCache.onFocus();
+       }
+     });
+-    this.#unsubscribeOnline = import_onlineManager.onlineManager.subscribe(async (online) => {
++    this.___unsubscribeOnline = import_onlineManager.onlineManager.subscribe(async (online) => {
+       if (online) {
+         await this.resumePausedMutations();
+-        this.#queryCache.onOnline();
++        this.___queryCache.onOnline();
+       }
+     });
+   }
+   unmount() {
+-    this.#mountCount--;
+-    if (this.#mountCount !== 0) return;
+-    this.#unsubscribeFocus?.();
+-    this.#unsubscribeFocus = void 0;
+-    this.#unsubscribeOnline?.();
+-    this.#unsubscribeOnline = void 0;
++    this.___mountCount--;
++    if (this.___mountCount !== 0) return;
++    this.___unsubscribeFocus?.();
++    this.___unsubscribeFocus = void 0;
++    this.___unsubscribeOnline?.();
++    this.___unsubscribeOnline = void 0;
+   }
+   isFetching(filters) {
+-    return this.#queryCache.findAll({ ...filters, fetchStatus: "fetching" }).length;
++    return this.___queryCache.findAll({ ...filters, fetchStatus: "fetching" }).length;
+   }
+   isMutating(filters) {
+-    return this.#mutationCache.findAll({ ...filters, status: "pending" }).length;
++    return this.___mutationCache.findAll({ ...filters, status: "pending" }).length;
+   }
+   /**
+    * Imperative (non-reactive) way to retrieve data for a QueryKey.
+@@ -85,11 +77,11 @@ var QueryClient = class {
+    */
+   getQueryData(queryKey) {
+     const options = this.defaultQueryOptions({ queryKey });
+-    return this.#queryCache.get(options.queryHash)?.state.data;
++    return this.___queryCache.get(options.queryHash)?.state.data;
+   }
+   ensureQueryData(options) {
+     const defaultedOptions = this.defaultQueryOptions(options);
+-    const query = this.#queryCache.build(this, defaultedOptions);
++    const query = this.___queryCache.build(this, defaultedOptions);
+     const cachedData = query.state.data;
+     if (cachedData === void 0) {
+       return this.fetchQuery(options);
+@@ -100,14 +92,14 @@ var QueryClient = class {
+     return Promise.resolve(cachedData);
+   }
+   getQueriesData(filters) {
+-    return this.#queryCache.findAll(filters).map(({ queryKey, state }) => {
++    return this.___queryCache.findAll(filters).map(({ queryKey, state }) => {
+       const data = state.data;
+       return [queryKey, data];
+     });
+   }
+   setQueryData(queryKey, updater, options) {
+     const defaultedOptions = this.defaultQueryOptions({ queryKey });
+-    const query = this.#queryCache.get(
++    const query = this.___queryCache.get(
+       defaultedOptions.queryHash
+     );
+     const prevData = query?.state.data;
+@@ -115,11 +107,11 @@ var QueryClient = class {
+     if (data === void 0) {
+       return void 0;
+     }
+-    return this.#queryCache.build(this, defaultedOptions).setData(data, { ...options, manual: true });
++    return this.___queryCache.build(this, defaultedOptions).setData(data, { ...options, manual: true });
+   }
+   setQueriesData(filters, updater, options) {
+     return import_notifyManager.notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).map(({ queryKey }) => [
++      () => this.___queryCache.findAll(filters).map(({ queryKey }) => [
+         queryKey,
+         this.setQueryData(queryKey, updater, options)
+       ])
+@@ -127,12 +119,12 @@ var QueryClient = class {
+   }
+   getQueryState(queryKey) {
+     const options = this.defaultQueryOptions({ queryKey });
+-    return this.#queryCache.get(
++    return this.___queryCache.get(
+       options.queryHash
+     )?.state;
+   }
+   removeQueries(filters) {
+-    const queryCache = this.#queryCache;
++    const queryCache = this.___queryCache;
+     import_notifyManager.notifyManager.batch(() => {
+       queryCache.findAll(filters).forEach((query) => {
+         queryCache.remove(query);
+@@ -140,7 +132,7 @@ var QueryClient = class {
+     });
+   }
+   resetQueries(filters, options) {
+-    const queryCache = this.#queryCache;
++    const queryCache = this.___queryCache;
+     return import_notifyManager.notifyManager.batch(() => {
+       queryCache.findAll(filters).forEach((query) => {
+         query.reset();
+@@ -157,13 +149,13 @@ var QueryClient = class {
+   cancelQueries(filters, cancelOptions = {}) {
+     const defaultedCancelOptions = { revert: true, ...cancelOptions };
+     const promises = import_notifyManager.notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).map((query) => query.cancel(defaultedCancelOptions))
++      () => this.___queryCache.findAll(filters).map((query) => query.cancel(defaultedCancelOptions))
+     );
+     return Promise.all(promises).then(import_utils.noop).catch(import_utils.noop);
+   }
+   invalidateQueries(filters, options = {}) {
+     return import_notifyManager.notifyManager.batch(() => {
+-      this.#queryCache.findAll(filters).forEach((query) => {
++      this.___queryCache.findAll(filters).forEach((query) => {
+         query.invalidate();
+       });
+       if (filters?.refetchType === "none") {
+@@ -184,7 +176,7 @@ var QueryClient = class {
+       cancelRefetch: options.cancelRefetch ?? true
+     };
+     const promises = import_notifyManager.notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).filter((query) => !query.isDisabled() && !query.isStatic()).map((query) => {
++      () => this.___queryCache.findAll(filters).filter((query) => !query.isDisabled() && !query.isStatic()).map((query) => {
+         let promise = query.fetch(void 0, fetchOptions);
+         if (!fetchOptions.throwOnError) {
+           promise = promise.catch(import_utils.noop);
+@@ -199,7 +191,7 @@ var QueryClient = class {
+     if (defaultedOptions.retry === void 0) {
+       defaultedOptions.retry = false;
+     }
+-    const query = this.#queryCache.build(this, defaultedOptions);
++    const query = this.___queryCache.build(this, defaultedOptions);
+     return query.isStaleByTime(
+       (0, import_utils.resolveStaleTime)(defaultedOptions.staleTime, query)
+     ) ? query.fetch(defaultedOptions) : Promise.resolve(query.state.data);
+@@ -220,30 +212,30 @@ var QueryClient = class {
+   }
+   resumePausedMutations() {
+     if (import_onlineManager.onlineManager.isOnline()) {
+-      return this.#mutationCache.resumePausedMutations();
++      return this.___mutationCache.resumePausedMutations();
+     }
+     return Promise.resolve();
+   }
+   getQueryCache() {
+-    return this.#queryCache;
++    return this.___queryCache;
+   }
+   getMutationCache() {
+-    return this.#mutationCache;
++    return this.___mutationCache;
+   }
+   getDefaultOptions() {
+-    return this.#defaultOptions;
++    return this.___defaultOptions;
+   }
+   setDefaultOptions(options) {
+-    this.#defaultOptions = options;
++    this.___defaultOptions = options;
+   }
+   setQueryDefaults(queryKey, options) {
+-    this.#queryDefaults.set((0, import_utils.hashKey)(queryKey), {
++    this.___queryDefaults.set((0, import_utils.hashKey)(queryKey), {
+       queryKey,
+       defaultOptions: options
+     });
+   }
+   getQueryDefaults(queryKey) {
+-    const defaults = [...this.#queryDefaults.values()];
++    const defaults = [...this.___queryDefaults.values()];
+     const result = {};
+     defaults.forEach((queryDefault) => {
+       if ((0, import_utils.partialMatchKey)(queryKey, queryDefault.queryKey)) {
+@@ -253,13 +245,13 @@ var QueryClient = class {
+     return result;
+   }
+   setMutationDefaults(mutationKey, options) {
+-    this.#mutationDefaults.set((0, import_utils.hashKey)(mutationKey), {
++    this.___mutationDefaults.set((0, import_utils.hashKey)(mutationKey), {
+       mutationKey,
+       defaultOptions: options
+     });
+   }
+   getMutationDefaults(mutationKey) {
+-    const defaults = [...this.#mutationDefaults.values()];
++    const defaults = [...this.___mutationDefaults.values()];
+     const result = {};
+     defaults.forEach((queryDefault) => {
+       if ((0, import_utils.partialMatchKey)(mutationKey, queryDefault.mutationKey)) {
+@@ -273,7 +265,7 @@ var QueryClient = class {
+       return options;
+     }
+     const defaultedOptions = {
+-      ...this.#defaultOptions.queries,
++      ...this.___defaultOptions.queries,
+       ...this.getQueryDefaults(options.queryKey),
+       ...options,
+       _defaulted: true
+@@ -303,15 +295,15 @@ var QueryClient = class {
+       return options;
+     }
+     return {
+-      ...this.#defaultOptions.mutations,
++      ...this.___defaultOptions.mutations,
+       ...options?.mutationKey && this.getMutationDefaults(options.mutationKey),
+       ...options,
+       _defaulted: true
+     };
+   }
+   clear() {
+-    this.#queryCache.clear();
+-    this.#mutationCache.clear();
++    this.___queryCache.clear();
++    this.___mutationCache.clear();
+   }
+ };
+ // Annotate the CommonJS export names for ESM import in node:
+diff --git a/build/modern/queryClient.js b/build/modern/queryClient.js
+index c4b789a4e248195f741fcfefbfa27a8ce66364f1..b4042af84e5991927c480f093d9338876f8f0d3f 100644
+--- a/build/modern/queryClient.js
++++ b/build/modern/queryClient.js
+@@ -14,51 +14,43 @@ import { focusManager } from "./focusManager.js";
+ import { onlineManager } from "./onlineManager.js";
+ import { notifyManager } from "./notifyManager.js";
+ var QueryClient = class {
+-  #queryCache;
+-  #mutationCache;
+-  #defaultOptions;
+-  #queryDefaults;
+-  #mutationDefaults;
+-  #mountCount;
+-  #unsubscribeFocus;
+-  #unsubscribeOnline;
+   constructor(config = {}) {
+-    this.#queryCache = config.queryCache || new QueryCache();
+-    this.#mutationCache = config.mutationCache || new MutationCache();
+-    this.#defaultOptions = config.defaultOptions || {};
+-    this.#queryDefaults = /* @__PURE__ */ new Map();
+-    this.#mutationDefaults = /* @__PURE__ */ new Map();
+-    this.#mountCount = 0;
++    this.___queryCache = config.queryCache || new QueryCache();
++    this.___mutationCache = config.mutationCache || new MutationCache();
++    this.___defaultOptions = config.defaultOptions || {};
++    this.___queryDefaults = /* @__PURE__ */ new Map();
++    this.___mutationDefaults = /* @__PURE__ */ new Map();
++    this.___mountCount = 0;
+   }
+   mount() {
+-    this.#mountCount++;
+-    if (this.#mountCount !== 1) return;
+-    this.#unsubscribeFocus = focusManager.subscribe(async (focused) => {
++    this.___mountCount++;
++    if (this.___mountCount !== 1) return;
++    this.___unsubscribeFocus = focusManager.subscribe(async (focused) => {
+       if (focused) {
+         await this.resumePausedMutations();
+-        this.#queryCache.onFocus();
++        this.___queryCache.onFocus();
+       }
+     });
+-    this.#unsubscribeOnline = onlineManager.subscribe(async (online) => {
++    this.___unsubscribeOnline = onlineManager.subscribe(async (online) => {
+       if (online) {
+         await this.resumePausedMutations();
+-        this.#queryCache.onOnline();
++        this.___queryCache.onOnline();
+       }
+     });
+   }
+   unmount() {
+-    this.#mountCount--;
+-    if (this.#mountCount !== 0) return;
+-    this.#unsubscribeFocus?.();
+-    this.#unsubscribeFocus = void 0;
+-    this.#unsubscribeOnline?.();
+-    this.#unsubscribeOnline = void 0;
++    this.___mountCount--;
++    if (this.___mountCount !== 0) return;
++    this.___unsubscribeFocus?.();
++    this.___unsubscribeFocus = void 0;
++    this.___unsubscribeOnline?.();
++    this.___unsubscribeOnline = void 0;
+   }
+   isFetching(filters) {
+-    return this.#queryCache.findAll({ ...filters, fetchStatus: "fetching" }).length;
++    return this.___queryCache.findAll({ ...filters, fetchStatus: "fetching" }).length;
+   }
+   isMutating(filters) {
+-    return this.#mutationCache.findAll({ ...filters, status: "pending" }).length;
++    return this.___mutationCache.findAll({ ...filters, status: "pending" }).length;
+   }
+   /**
+    * Imperative (non-reactive) way to retrieve data for a QueryKey.
+@@ -69,11 +61,11 @@ var QueryClient = class {
+    */
+   getQueryData(queryKey) {
+     const options = this.defaultQueryOptions({ queryKey });
+-    return this.#queryCache.get(options.queryHash)?.state.data;
++    return this.___queryCache.get(options.queryHash)?.state.data;
+   }
+   ensureQueryData(options) {
+     const defaultedOptions = this.defaultQueryOptions(options);
+-    const query = this.#queryCache.build(this, defaultedOptions);
++    const query = this.___queryCache.build(this, defaultedOptions);
+     const cachedData = query.state.data;
+     if (cachedData === void 0) {
+       return this.fetchQuery(options);
+@@ -84,14 +76,14 @@ var QueryClient = class {
+     return Promise.resolve(cachedData);
+   }
+   getQueriesData(filters) {
+-    return this.#queryCache.findAll(filters).map(({ queryKey, state }) => {
++    return this.___queryCache.findAll(filters).map(({ queryKey, state }) => {
+       const data = state.data;
+       return [queryKey, data];
+     });
+   }
+   setQueryData(queryKey, updater, options) {
+     const defaultedOptions = this.defaultQueryOptions({ queryKey });
+-    const query = this.#queryCache.get(
++    const query = this.___queryCache.get(
+       defaultedOptions.queryHash
+     );
+     const prevData = query?.state.data;
+@@ -99,11 +91,11 @@ var QueryClient = class {
+     if (data === void 0) {
+       return void 0;
+     }
+-    return this.#queryCache.build(this, defaultedOptions).setData(data, { ...options, manual: true });
++    return this.___queryCache.build(this, defaultedOptions).setData(data, { ...options, manual: true });
+   }
+   setQueriesData(filters, updater, options) {
+     return notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).map(({ queryKey }) => [
++      () => this.___queryCache.findAll(filters).map(({ queryKey }) => [
+         queryKey,
+         this.setQueryData(queryKey, updater, options)
+       ])
+@@ -111,12 +103,12 @@ var QueryClient = class {
+   }
+   getQueryState(queryKey) {
+     const options = this.defaultQueryOptions({ queryKey });
+-    return this.#queryCache.get(
++    return this.___queryCache.get(
+       options.queryHash
+     )?.state;
+   }
+   removeQueries(filters) {
+-    const queryCache = this.#queryCache;
++    const queryCache = this.___queryCache;
+     notifyManager.batch(() => {
+       queryCache.findAll(filters).forEach((query) => {
+         queryCache.remove(query);
+@@ -124,7 +116,7 @@ var QueryClient = class {
+     });
+   }
+   resetQueries(filters, options) {
+-    const queryCache = this.#queryCache;
++    const queryCache = this.___queryCache;
+     return notifyManager.batch(() => {
+       queryCache.findAll(filters).forEach((query) => {
+         query.reset();
+@@ -141,13 +133,13 @@ var QueryClient = class {
+   cancelQueries(filters, cancelOptions = {}) {
+     const defaultedCancelOptions = { revert: true, ...cancelOptions };
+     const promises = notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).map((query) => query.cancel(defaultedCancelOptions))
++      () => this.___queryCache.findAll(filters).map((query) => query.cancel(defaultedCancelOptions))
+     );
+     return Promise.all(promises).then(noop).catch(noop);
+   }
+   invalidateQueries(filters, options = {}) {
+     return notifyManager.batch(() => {
+-      this.#queryCache.findAll(filters).forEach((query) => {
++      this.___queryCache.findAll(filters).forEach((query) => {
+         query.invalidate();
+       });
+       if (filters?.refetchType === "none") {
+@@ -168,7 +160,7 @@ var QueryClient = class {
+       cancelRefetch: options.cancelRefetch ?? true
+     };
+     const promises = notifyManager.batch(
+-      () => this.#queryCache.findAll(filters).filter((query) => !query.isDisabled() && !query.isStatic()).map((query) => {
++      () => this.___queryCache.findAll(filters).filter((query) => !query.isDisabled() && !query.isStatic()).map((query) => {
+         let promise = query.fetch(void 0, fetchOptions);
+         if (!fetchOptions.throwOnError) {
+           promise = promise.catch(noop);
+@@ -183,7 +175,7 @@ var QueryClient = class {
+     if (defaultedOptions.retry === void 0) {
+       defaultedOptions.retry = false;
+     }
+-    const query = this.#queryCache.build(this, defaultedOptions);
++    const query = this.___queryCache.build(this, defaultedOptions);
+     return query.isStaleByTime(
+       resolveStaleTime(defaultedOptions.staleTime, query)
+     ) ? query.fetch(defaultedOptions) : Promise.resolve(query.state.data);
+@@ -204,30 +196,30 @@ var QueryClient = class {
+   }
+   resumePausedMutations() {
+     if (onlineManager.isOnline()) {
+-      return this.#mutationCache.resumePausedMutations();
++      return this.___mutationCache.resumePausedMutations();
+     }
+     return Promise.resolve();
+   }
+   getQueryCache() {
+-    return this.#queryCache;
++    return this.___queryCache;
+   }
+   getMutationCache() {
+-    return this.#mutationCache;
++    return this.___mutationCache;
+   }
+   getDefaultOptions() {
+-    return this.#defaultOptions;
++    return this.___defaultOptions;
+   }
+   setDefaultOptions(options) {
+-    this.#defaultOptions = options;
++    this.___defaultOptions = options;
+   }
+   setQueryDefaults(queryKey, options) {
+-    this.#queryDefaults.set(hashKey(queryKey), {
++    this.___queryDefaults.set(hashKey(queryKey), {
+       queryKey,
+       defaultOptions: options
+     });
+   }
+   getQueryDefaults(queryKey) {
+-    const defaults = [...this.#queryDefaults.values()];
++    const defaults = [...this.___queryDefaults.values()];
+     const result = {};
+     defaults.forEach((queryDefault) => {
+       if (partialMatchKey(queryKey, queryDefault.queryKey)) {
+@@ -237,13 +229,13 @@ var QueryClient = class {
+     return result;
+   }
+   setMutationDefaults(mutationKey, options) {
+-    this.#mutationDefaults.set(hashKey(mutationKey), {
++    this.___mutationDefaults.set(hashKey(mutationKey), {
+       mutationKey,
+       defaultOptions: options
+     });
+   }
+   getMutationDefaults(mutationKey) {
+-    const defaults = [...this.#mutationDefaults.values()];
++    const defaults = [...this.___mutationDefaults.values()];
+     const result = {};
+     defaults.forEach((queryDefault) => {
+       if (partialMatchKey(mutationKey, queryDefault.mutationKey)) {
+@@ -257,7 +249,7 @@ var QueryClient = class {
+       return options;
+     }
+     const defaultedOptions = {
+-      ...this.#defaultOptions.queries,
++      ...this.___defaultOptions.queries,
+       ...this.getQueryDefaults(options.queryKey),
+       ...options,
+       _defaulted: true
+@@ -287,15 +279,15 @@ var QueryClient = class {
+       return options;
+     }
+     return {
+-      ...this.#defaultOptions.mutations,
++      ...this.___defaultOptions.mutations,
+       ...options?.mutationKey && this.getMutationDefaults(options.mutationKey),
+       ...options,
+       _defaulted: true
+     };
+   }
+   clear() {
+-    this.#queryCache.clear();
+-    this.#mutationCache.clear();
++    this.___queryCache.clear();
++    this.___mutationCache.clear();
+   }
+ };
+ export {
+diff --git a/build/modern/queryObserver.cjs b/build/modern/queryObserver.cjs
+index 297c5249f616bf186624fa5b82d166fc34168876..06aa287c82d312085a3ce8a3959c4fb642b5e0c8 100644
+--- a/build/modern/queryObserver.cjs
++++ b/build/modern/queryObserver.cjs
+@@ -35,41 +35,26 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+   constructor(client, options) {
+     super();
+     this.options = options;
+-    this.#client = client;
+-    this.#selectError = null;
+-    this.#currentThenable = (0, import_thenable.pendingThenable)();
++    this.___client = client;
++    this.___selectError = null;
++    this.___currentThenable = (0, import_thenable.pendingThenable)();
+     this.bindMethods();
+     this.setOptions(options);
+   }
+-  #client;
+-  #currentQuery = void 0;
+-  #currentQueryInitialState = void 0;
+-  #currentResult = void 0;
+-  #currentResultState;
+-  #currentResultOptions;
+-  #currentThenable;
+-  #selectError;
+-  #selectFn;
+-  #selectResult;
+   // This property keeps track of the last query with defined data.
+   // It will be used to pass the previous data and query to the placeholder function between renders.
+-  #lastQueryWithDefinedData;
+-  #staleTimeoutId;
+-  #refetchIntervalId;
+-  #currentRefetchInterval;
+-  #trackedProps = /* @__PURE__ */ new Set();
+   bindMethods() {
+     this.refetch = this.refetch.bind(this);
+   }
+   onSubscribe() {
+     if (this.listeners.size === 1) {
+-      this.#currentQuery.addObserver(this);
+-      if (shouldFetchOnMount(this.#currentQuery, this.options)) {
+-        this.#executeFetch();
++      this.___currentQuery.addObserver(this);
++      if (shouldFetchOnMount(this.___currentQuery, this.options)) {
++        this.___executeFetch();
+       } else {
+         this.updateResult();
+       }
+-      this.#updateTimers();
++      this.___updateTimers();
+     }
+   }
+   onUnsubscribe() {
+@@ -79,72 +64,72 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+   }
+   shouldFetchOnReconnect() {
+     return shouldFetchOn(
+-      this.#currentQuery,
++      this.___currentQuery,
+       this.options,
+       this.options.refetchOnReconnect
+     );
+   }
+   shouldFetchOnWindowFocus() {
+     return shouldFetchOn(
+-      this.#currentQuery,
++      this.___currentQuery,
+       this.options,
+       this.options.refetchOnWindowFocus
+     );
+   }
+   destroy() {
+     this.listeners = /* @__PURE__ */ new Set();
+-    this.#clearStaleTimeout();
+-    this.#clearRefetchInterval();
+-    this.#currentQuery.removeObserver(this);
++    this.___clearStaleTimeout();
++    this.___clearRefetchInterval();
++    this.___currentQuery.removeObserver(this);
+   }
+   setOptions(options) {
+     const prevOptions = this.options;
+-    const prevQuery = this.#currentQuery;
+-    this.options = this.#client.defaultQueryOptions(options);
+-    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.#currentQuery) !== "boolean") {
++    const prevQuery = this.___currentQuery;
++    this.options = this.___client.defaultQueryOptions(options);
++    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.___currentQuery) !== "boolean") {
+       throw new Error(
+         "Expected enabled to be a boolean or a callback that returns a boolean"
+       );
+     }
+-    this.#updateQuery();
+-    this.#currentQuery.setOptions(this.options);
++    this.___updateQuery();
++    this.___currentQuery.setOptions(this.options);
+     if (prevOptions._defaulted && !(0, import_utils.shallowEqualObjects)(this.options, prevOptions)) {
+-      this.#client.getQueryCache().notify({
++      this.___client.getQueryCache().notify({
+         type: "observerOptionsUpdated",
+-        query: this.#currentQuery,
++        query: this.___currentQuery,
+         observer: this
+       });
+     }
+     const mounted = this.hasListeners();
+     if (mounted && shouldFetchOptionally(
+-      this.#currentQuery,
++      this.___currentQuery,
+       prevQuery,
+       this.options,
+       prevOptions
+     )) {
+-      this.#executeFetch();
++      this.___executeFetch();
+     }
+     this.updateResult();
+-    if (mounted && (this.#currentQuery !== prevQuery || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.#currentQuery) !== (0, import_utils.resolveQueryBoolean)(prevOptions.enabled, this.#currentQuery) || (0, import_utils.resolveStaleTime)(this.options.staleTime, this.#currentQuery) !== (0, import_utils.resolveStaleTime)(prevOptions.staleTime, this.#currentQuery))) {
+-      this.#updateStaleTimeout();
++    if (mounted && (this.___currentQuery !== prevQuery || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.___currentQuery) !== (0, import_utils.resolveQueryBoolean)(prevOptions.enabled, this.___currentQuery) || (0, import_utils.resolveStaleTime)(this.options.staleTime, this.___currentQuery) !== (0, import_utils.resolveStaleTime)(prevOptions.staleTime, this.___currentQuery))) {
++      this.___updateStaleTimeout();
+     }
+-    const nextRefetchInterval = this.#computeRefetchInterval();
+-    if (mounted && (this.#currentQuery !== prevQuery || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.#currentQuery) !== (0, import_utils.resolveQueryBoolean)(prevOptions.enabled, this.#currentQuery) || nextRefetchInterval !== this.#currentRefetchInterval)) {
+-      this.#updateRefetchInterval(nextRefetchInterval);
++    const nextRefetchInterval = this.___computeRefetchInterval();
++    if (mounted && (this.___currentQuery !== prevQuery || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.___currentQuery) !== (0, import_utils.resolveQueryBoolean)(prevOptions.enabled, this.___currentQuery) || nextRefetchInterval !== this.___currentRefetchInterval)) {
++      this.___updateRefetchInterval(nextRefetchInterval);
+     }
+   }
+   getOptimisticResult(options) {
+-    const query = this.#client.getQueryCache().build(this.#client, options);
++    const query = this.___client.getQueryCache().build(this.___client, options);
+     const result = this.createResult(query, options);
+     if (shouldAssignObserverCurrentProperties(this, result)) {
+-      this.#currentResult = result;
+-      this.#currentResultOptions = this.options;
+-      this.#currentResultState = this.#currentQuery.state;
++      this.___currentResult = result;
++      this.___currentResultOptions = this.options;
++      this.___currentResultState = this.___currentQuery.state;
+     }
+     return result;
+   }
+   getCurrentResult() {
+-    return this.#currentResult;
++    return this.___currentResult;
+   }
+   trackResult(result, onPropTracked) {
+     return new Proxy(result, {
+@@ -153,8 +138,8 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+         onPropTracked?.(key);
+         if (key === "promise") {
+           this.trackProp("data");
+-          if (!this.options.experimental_prefetchInRender && this.#currentThenable.status === "pending") {
+-            this.#currentThenable.reject(
++          if (!this.options.experimental_prefetchInRender && this.___currentThenable.status === "pending") {
++            this.___currentThenable.reject(
+               new Error(
+                 "experimental_prefetchInRender feature flag is not enabled"
+               )
+@@ -166,10 +151,10 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+     });
+   }
+   trackProp(key) {
+-    this.#trackedProps.add(key);
++    this.___trackedProps.add(key);
+   }
+   getCurrentQuery() {
+-    return this.#currentQuery;
++    return this.___currentQuery;
+   }
+   refetch({ ...options } = {}) {
+     return this.fetch({
+@@ -177,22 +162,22 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+     });
+   }
+   fetchOptimistic(options) {
+-    const defaultedOptions = this.#client.defaultQueryOptions(options);
+-    const query = this.#client.getQueryCache().build(this.#client, defaultedOptions);
++    const defaultedOptions = this.___client.defaultQueryOptions(options);
++    const query = this.___client.getQueryCache().build(this.___client, defaultedOptions);
+     return query.fetch().then(() => this.createResult(query, defaultedOptions));
+   }
+   fetch(fetchOptions) {
+-    return this.#executeFetch({
++    return this.___executeFetch({
+       ...fetchOptions,
+       cancelRefetch: fetchOptions.cancelRefetch ?? true
+     }).then(() => {
+       this.updateResult();
+-      return this.#currentResult;
++      return this.___currentResult;
+     });
+   }
+-  #executeFetch(fetchOptions) {
+-    this.#updateQuery();
+-    let promise = this.#currentQuery.fetch(
++  ___executeFetch(fetchOptions) {
++    this.___updateQuery();
++    let promise = this.___currentQuery.fetch(
+       this.options,
+       fetchOptions
+     );
+@@ -201,62 +186,62 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+     }
+     return promise;
+   }
+-  #updateStaleTimeout() {
+-    this.#clearStaleTimeout();
++  ___updateStaleTimeout() {
++    this.___clearStaleTimeout();
+     const staleTime = (0, import_utils.resolveStaleTime)(
+       this.options.staleTime,
+-      this.#currentQuery
++      this.___currentQuery
+     );
+-    if (import_environmentManager.environmentManager.isServer() || this.#currentResult.isStale || !(0, import_utils.isValidTimeout)(staleTime)) {
++    if (import_environmentManager.environmentManager.isServer() || this.___currentResult.isStale || !(0, import_utils.isValidTimeout)(staleTime)) {
+       return;
+     }
+-    const time = (0, import_utils.timeUntilStale)(this.#currentResult.dataUpdatedAt, staleTime);
++    const time = (0, import_utils.timeUntilStale)(this.___currentResult.dataUpdatedAt, staleTime);
+     const timeout = time + 1;
+-    this.#staleTimeoutId = import_timeoutManager.timeoutManager.setTimeout(() => {
+-      if (!this.#currentResult.isStale) {
++    this.___staleTimeoutId = import_timeoutManager.timeoutManager.setTimeout(() => {
++      if (!this.___currentResult.isStale) {
+         this.updateResult();
+       }
+     }, timeout);
+   }
+-  #computeRefetchInterval() {
+-    return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(this.#currentQuery) : this.options.refetchInterval) ?? false;
++  ___computeRefetchInterval() {
++    return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(this.___currentQuery) : this.options.refetchInterval) ?? false;
+   }
+-  #updateRefetchInterval(nextInterval) {
+-    this.#clearRefetchInterval();
+-    this.#currentRefetchInterval = nextInterval;
+-    if (import_environmentManager.environmentManager.isServer() || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.#currentQuery) === false || !(0, import_utils.isValidTimeout)(this.#currentRefetchInterval) || this.#currentRefetchInterval === 0) {
++  ___updateRefetchInterval(nextInterval) {
++    this.___clearRefetchInterval();
++    this.___currentRefetchInterval = nextInterval;
++    if (import_environmentManager.environmentManager.isServer() || (0, import_utils.resolveQueryBoolean)(this.options.enabled, this.___currentQuery) === false || !(0, import_utils.isValidTimeout)(this.___currentRefetchInterval) || this.___currentRefetchInterval === 0) {
+       return;
+     }
+-    this.#refetchIntervalId = import_timeoutManager.timeoutManager.setInterval(() => {
++    this.___refetchIntervalId = import_timeoutManager.timeoutManager.setInterval(() => {
+       if (this.options.refetchIntervalInBackground || import_focusManager.focusManager.isFocused()) {
+-        this.#executeFetch();
++        this.___executeFetch();
+       }
+-    }, this.#currentRefetchInterval);
++    }, this.___currentRefetchInterval);
+   }
+-  #updateTimers() {
+-    this.#updateStaleTimeout();
+-    this.#updateRefetchInterval(this.#computeRefetchInterval());
++  ___updateTimers() {
++    this.___updateStaleTimeout();
++    this.___updateRefetchInterval(this.___computeRefetchInterval());
+   }
+-  #clearStaleTimeout() {
+-    if (this.#staleTimeoutId !== void 0) {
+-      import_timeoutManager.timeoutManager.clearTimeout(this.#staleTimeoutId);
+-      this.#staleTimeoutId = void 0;
++  ___clearStaleTimeout() {
++    if (this.___staleTimeoutId !== void 0) {
++      import_timeoutManager.timeoutManager.clearTimeout(this.___staleTimeoutId);
++      this.___staleTimeoutId = void 0;
+     }
+   }
+-  #clearRefetchInterval() {
+-    if (this.#refetchIntervalId !== void 0) {
+-      import_timeoutManager.timeoutManager.clearInterval(this.#refetchIntervalId);
+-      this.#refetchIntervalId = void 0;
++  ___clearRefetchInterval() {
++    if (this.___refetchIntervalId !== void 0) {
++      import_timeoutManager.timeoutManager.clearInterval(this.___refetchIntervalId);
++      this.___refetchIntervalId = void 0;
+     }
+   }
+   createResult(query, options) {
+-    const prevQuery = this.#currentQuery;
++    const prevQuery = this.___currentQuery;
+     const prevOptions = this.options;
+-    const prevResult = this.#currentResult;
+-    const prevResultState = this.#currentResultState;
+-    const prevResultOptions = this.#currentResultOptions;
++    const prevResult = this.___currentResult;
++    const prevResultState = this.___currentResultState;
++    const prevResultOptions = this.___currentResultOptions;
+     const queryChange = query !== prevQuery;
+-    const queryInitialState = queryChange ? query.state : this.#currentQueryInitialState;
++    const queryInitialState = queryChange ? query.state : this.___currentQueryInitialState;
+     const { state } = query;
+     let newState = { ...state };
+     let isPlaceholderData = false;
+@@ -285,8 +270,8 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+         skipSelect = true;
+       } else {
+         placeholderData = typeof options.placeholderData === "function" ? options.placeholderData(
+-          this.#lastQueryWithDefinedData?.state.data,
+-          this.#lastQueryWithDefinedData
++          this.___lastQueryWithDefinedData?.state.data,
++          this.___lastQueryWithDefinedData
+         ) : options.placeholderData;
+       }
+       if (placeholderData !== void 0) {
+@@ -300,23 +285,23 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+       }
+     }
+     if (options.select && data !== void 0 && !skipSelect) {
+-      if (prevResult && data === prevResultState?.data && options.select === this.#selectFn) {
+-        data = this.#selectResult;
++      if (prevResult && data === prevResultState?.data && options.select === this.___selectFn) {
++        data = this.___selectResult;
+       } else {
+         try {
+-          this.#selectFn = options.select;
++          this.___selectFn = options.select;
+           data = options.select(data);
+           data = (0, import_utils.replaceData)(prevResult?.data, data, options);
+-          this.#selectResult = data;
+-          this.#selectError = null;
++          this.___selectResult = data;
++          this.___selectError = null;
+         } catch (selectError) {
+-          this.#selectError = selectError;
++          this.___selectError = selectError;
+         }
+       }
+     }
+-    if (this.#selectError) {
+-      error = this.#selectError;
+-      data = this.#selectResult;
++    if (this.___selectError) {
++      error = this.___selectError;
++      data = this.___selectResult;
+       errorUpdatedAt = Date.now();
+       status = "error";
+     }
+@@ -350,7 +335,7 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+       isRefetchError: isError && hasData,
+       isStale: isStale(query, options),
+       refetch: this.refetch,
+-      promise: this.#currentThenable,
++      promise: this.___currentThenable,
+       isEnabled: (0, import_utils.resolveQueryBoolean)(options.enabled, query) !== false
+     };
+     const nextResult = result;
+@@ -365,10 +350,10 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+         }
+       };
+       const recreateThenable = () => {
+-        const pending = this.#currentThenable = nextResult.promise = (0, import_thenable.pendingThenable)();
++        const pending = this.___currentThenable = nextResult.promise = (0, import_thenable.pendingThenable)();
+         finalizeThenableIfPossible(pending);
+       };
+-      const prevThenable = this.#currentThenable;
++      const prevThenable = this.___currentThenable;
+       switch (prevThenable.status) {
+         case "pending":
+           if (query.queryHash === prevQuery.queryHash) {
+@@ -390,48 +375,48 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+     return nextResult;
+   }
+   updateResult() {
+-    const prevResult = this.#currentResult;
+-    const nextResult = this.createResult(this.#currentQuery, this.options);
+-    this.#currentResultState = this.#currentQuery.state;
+-    this.#currentResultOptions = this.options;
+-    if (this.#currentResultState.data !== void 0) {
+-      this.#lastQueryWithDefinedData = this.#currentQuery;
++    const prevResult = this.___currentResult;
++    const nextResult = this.createResult(this.___currentQuery, this.options);
++    this.___currentResultState = this.___currentQuery.state;
++    this.___currentResultOptions = this.options;
++    if (this.___currentResultState.data !== void 0) {
++      this.___lastQueryWithDefinedData = this.___currentQuery;
+     }
+     if ((0, import_utils.shallowEqualObjects)(nextResult, prevResult)) {
+       return;
+     }
+-    this.#currentResult = nextResult;
++    this.___currentResult = nextResult;
+     const shouldNotifyListeners = () => {
+       if (!prevResult) {
+         return true;
+       }
+       const { notifyOnChangeProps } = this.options;
+       const notifyOnChangePropsValue = typeof notifyOnChangeProps === "function" ? notifyOnChangeProps() : notifyOnChangeProps;
+-      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !this.#trackedProps.size) {
++      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !this.___trackedProps.size) {
+         return true;
+       }
+       const includedProps = new Set(
+-        notifyOnChangePropsValue ?? this.#trackedProps
++        notifyOnChangePropsValue ?? this.___trackedProps
+       );
+       if (this.options.throwOnError) {
+         includedProps.add("error");
+       }
+-      return Object.keys(this.#currentResult).some((key) => {
++      return Object.keys(this.___currentResult).some((key) => {
+         const typedKey = key;
+-        const changed = this.#currentResult[typedKey] !== prevResult[typedKey];
++        const changed = this.___currentResult[typedKey] !== prevResult[typedKey];
+         return changed && includedProps.has(typedKey);
+       });
+     };
+-    this.#notify({ listeners: shouldNotifyListeners() });
++    this.___notify({ listeners: shouldNotifyListeners() });
+   }
+-  #updateQuery() {
+-    const query = this.#client.getQueryCache().build(this.#client, this.options);
+-    if (query === this.#currentQuery) {
++  ___updateQuery() {
++    const query = this.___client.getQueryCache().build(this.___client, this.options);
++    if (query === this.___currentQuery) {
+       return;
+     }
+-    const prevQuery = this.#currentQuery;
+-    this.#currentQuery = query;
+-    this.#currentQueryInitialState = query.state;
++    const prevQuery = this.___currentQuery;
++    this.___currentQuery = query;
++    this.___currentQueryInitialState = query.state;
+     if (this.hasListeners()) {
+       prevQuery?.removeObserver(this);
+       query.addObserver(this);
+@@ -440,18 +425,18 @@ var QueryObserver = class extends import_subscribable.Subscribable {
+   onQueryUpdate() {
+     this.updateResult();
+     if (this.hasListeners()) {
+-      this.#updateTimers();
++      this.___updateTimers();
+     }
+   }
+-  #notify(notifyOptions) {
++  ___notify(notifyOptions) {
+     import_notifyManager.notifyManager.batch(() => {
+       if (notifyOptions.listeners) {
+         this.listeners.forEach((listener) => {
+-          listener(this.#currentResult);
++          listener(this.___currentResult);
+         });
+       }
+-      this.#client.getQueryCache().notify({
+-        query: this.#currentQuery,
++      this.___client.getQueryCache().notify({
++        query: this.___currentQuery,
+         type: "observerResultsUpdated"
+       });
+     });
+diff --git a/build/modern/queryObserver.js b/build/modern/queryObserver.js
+index efaf32ed9272aeee60dadd7df81bad2aa0a94b43..1fa316f660c3bd43d6dd24ba36dbcfea60407a73 100644
+--- a/build/modern/queryObserver.js
++++ b/build/modern/queryObserver.js
+@@ -19,41 +19,26 @@ var QueryObserver = class extends Subscribable {
+   constructor(client, options) {
+     super();
+     this.options = options;
+-    this.#client = client;
+-    this.#selectError = null;
+-    this.#currentThenable = pendingThenable();
++    this.___client = client;
++    this.___selectError = null;
++    this.___currentThenable = pendingThenable();
+     this.bindMethods();
+     this.setOptions(options);
+   }
+-  #client;
+-  #currentQuery = void 0;
+-  #currentQueryInitialState = void 0;
+-  #currentResult = void 0;
+-  #currentResultState;
+-  #currentResultOptions;
+-  #currentThenable;
+-  #selectError;
+-  #selectFn;
+-  #selectResult;
+   // This property keeps track of the last query with defined data.
+   // It will be used to pass the previous data and query to the placeholder function between renders.
+-  #lastQueryWithDefinedData;
+-  #staleTimeoutId;
+-  #refetchIntervalId;
+-  #currentRefetchInterval;
+-  #trackedProps = /* @__PURE__ */ new Set();
+   bindMethods() {
+     this.refetch = this.refetch.bind(this);
+   }
+   onSubscribe() {
+     if (this.listeners.size === 1) {
+-      this.#currentQuery.addObserver(this);
+-      if (shouldFetchOnMount(this.#currentQuery, this.options)) {
+-        this.#executeFetch();
++      this.___currentQuery.addObserver(this);
++      if (shouldFetchOnMount(this.___currentQuery, this.options)) {
++        this.___executeFetch();
+       } else {
+         this.updateResult();
+       }
+-      this.#updateTimers();
++      this.___updateTimers();
+     }
+   }
+   onUnsubscribe() {
+@@ -63,72 +48,72 @@ var QueryObserver = class extends Subscribable {
+   }
+   shouldFetchOnReconnect() {
+     return shouldFetchOn(
+-      this.#currentQuery,
++      this.___currentQuery,
+       this.options,
+       this.options.refetchOnReconnect
+     );
+   }
+   shouldFetchOnWindowFocus() {
+     return shouldFetchOn(
+-      this.#currentQuery,
++      this.___currentQuery,
+       this.options,
+       this.options.refetchOnWindowFocus
+     );
+   }
+   destroy() {
+     this.listeners = /* @__PURE__ */ new Set();
+-    this.#clearStaleTimeout();
+-    this.#clearRefetchInterval();
+-    this.#currentQuery.removeObserver(this);
++    this.___clearStaleTimeout();
++    this.___clearRefetchInterval();
++    this.___currentQuery.removeObserver(this);
+   }
+   setOptions(options) {
+     const prevOptions = this.options;
+-    const prevQuery = this.#currentQuery;
+-    this.options = this.#client.defaultQueryOptions(options);
+-    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof resolveQueryBoolean(this.options.enabled, this.#currentQuery) !== "boolean") {
++    const prevQuery = this.___currentQuery;
++    this.options = this.___client.defaultQueryOptions(options);
++    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof resolveQueryBoolean(this.options.enabled, this.___currentQuery) !== "boolean") {
+       throw new Error(
+         "Expected enabled to be a boolean or a callback that returns a boolean"
+       );
+     }
+-    this.#updateQuery();
+-    this.#currentQuery.setOptions(this.options);
++    this.___updateQuery();
++    this.___currentQuery.setOptions(this.options);
+     if (prevOptions._defaulted && !shallowEqualObjects(this.options, prevOptions)) {
+-      this.#client.getQueryCache().notify({
++      this.___client.getQueryCache().notify({
+         type: "observerOptionsUpdated",
+-        query: this.#currentQuery,
++        query: this.___currentQuery,
+         observer: this
+       });
+     }
+     const mounted = this.hasListeners();
+     if (mounted && shouldFetchOptionally(
+-      this.#currentQuery,
++      this.___currentQuery,
+       prevQuery,
+       this.options,
+       prevOptions
+     )) {
+-      this.#executeFetch();
++      this.___executeFetch();
+     }
+     this.updateResult();
+-    if (mounted && (this.#currentQuery !== prevQuery || resolveQueryBoolean(this.options.enabled, this.#currentQuery) !== resolveQueryBoolean(prevOptions.enabled, this.#currentQuery) || resolveStaleTime(this.options.staleTime, this.#currentQuery) !== resolveStaleTime(prevOptions.staleTime, this.#currentQuery))) {
+-      this.#updateStaleTimeout();
++    if (mounted && (this.___currentQuery !== prevQuery || resolveQueryBoolean(this.options.enabled, this.___currentQuery) !== resolveQueryBoolean(prevOptions.enabled, this.___currentQuery) || resolveStaleTime(this.options.staleTime, this.___currentQuery) !== resolveStaleTime(prevOptions.staleTime, this.___currentQuery))) {
++      this.___updateStaleTimeout();
+     }
+-    const nextRefetchInterval = this.#computeRefetchInterval();
+-    if (mounted && (this.#currentQuery !== prevQuery || resolveQueryBoolean(this.options.enabled, this.#currentQuery) !== resolveQueryBoolean(prevOptions.enabled, this.#currentQuery) || nextRefetchInterval !== this.#currentRefetchInterval)) {
+-      this.#updateRefetchInterval(nextRefetchInterval);
++    const nextRefetchInterval = this.___computeRefetchInterval();
++    if (mounted && (this.___currentQuery !== prevQuery || resolveQueryBoolean(this.options.enabled, this.___currentQuery) !== resolveQueryBoolean(prevOptions.enabled, this.___currentQuery) || nextRefetchInterval !== this.___currentRefetchInterval)) {
++      this.___updateRefetchInterval(nextRefetchInterval);
+     }
+   }
+   getOptimisticResult(options) {
+-    const query = this.#client.getQueryCache().build(this.#client, options);
++    const query = this.___client.getQueryCache().build(this.___client, options);
+     const result = this.createResult(query, options);
+     if (shouldAssignObserverCurrentProperties(this, result)) {
+-      this.#currentResult = result;
+-      this.#currentResultOptions = this.options;
+-      this.#currentResultState = this.#currentQuery.state;
++      this.___currentResult = result;
++      this.___currentResultOptions = this.options;
++      this.___currentResultState = this.___currentQuery.state;
+     }
+     return result;
+   }
+   getCurrentResult() {
+-    return this.#currentResult;
++    return this.___currentResult;
+   }
+   trackResult(result, onPropTracked) {
+     return new Proxy(result, {
+@@ -137,8 +122,8 @@ var QueryObserver = class extends Subscribable {
+         onPropTracked?.(key);
+         if (key === "promise") {
+           this.trackProp("data");
+-          if (!this.options.experimental_prefetchInRender && this.#currentThenable.status === "pending") {
+-            this.#currentThenable.reject(
++          if (!this.options.experimental_prefetchInRender && this.___currentThenable.status === "pending") {
++            this.___currentThenable.reject(
+               new Error(
+                 "experimental_prefetchInRender feature flag is not enabled"
+               )
+@@ -150,10 +135,10 @@ var QueryObserver = class extends Subscribable {
+     });
+   }
+   trackProp(key) {
+-    this.#trackedProps.add(key);
++    this.___trackedProps.add(key);
+   }
+   getCurrentQuery() {
+-    return this.#currentQuery;
++    return this.___currentQuery;
+   }
+   refetch({ ...options } = {}) {
+     return this.fetch({
+@@ -161,22 +146,22 @@ var QueryObserver = class extends Subscribable {
+     });
+   }
+   fetchOptimistic(options) {
+-    const defaultedOptions = this.#client.defaultQueryOptions(options);
+-    const query = this.#client.getQueryCache().build(this.#client, defaultedOptions);
++    const defaultedOptions = this.___client.defaultQueryOptions(options);
++    const query = this.___client.getQueryCache().build(this.___client, defaultedOptions);
+     return query.fetch().then(() => this.createResult(query, defaultedOptions));
+   }
+   fetch(fetchOptions) {
+-    return this.#executeFetch({
++    return this.___executeFetch({
+       ...fetchOptions,
+       cancelRefetch: fetchOptions.cancelRefetch ?? true
+     }).then(() => {
+       this.updateResult();
+-      return this.#currentResult;
++      return this.___currentResult;
+     });
+   }
+-  #executeFetch(fetchOptions) {
+-    this.#updateQuery();
+-    let promise = this.#currentQuery.fetch(
++  ___executeFetch(fetchOptions) {
++    this.___updateQuery();
++    let promise = this.___currentQuery.fetch(
+       this.options,
+       fetchOptions
+     );
+@@ -185,62 +170,62 @@ var QueryObserver = class extends Subscribable {
+     }
+     return promise;
+   }
+-  #updateStaleTimeout() {
+-    this.#clearStaleTimeout();
++  ___updateStaleTimeout() {
++    this.___clearStaleTimeout();
+     const staleTime = resolveStaleTime(
+       this.options.staleTime,
+-      this.#currentQuery
++      this.___currentQuery
+     );
+-    if (environmentManager.isServer() || this.#currentResult.isStale || !isValidTimeout(staleTime)) {
++    if (environmentManager.isServer() || this.___currentResult.isStale || !isValidTimeout(staleTime)) {
+       return;
+     }
+-    const time = timeUntilStale(this.#currentResult.dataUpdatedAt, staleTime);
++    const time = timeUntilStale(this.___currentResult.dataUpdatedAt, staleTime);
+     const timeout = time + 1;
+-    this.#staleTimeoutId = timeoutManager.setTimeout(() => {
+-      if (!this.#currentResult.isStale) {
++    this.___staleTimeoutId = timeoutManager.setTimeout(() => {
++      if (!this.___currentResult.isStale) {
+         this.updateResult();
+       }
+     }, timeout);
+   }
+-  #computeRefetchInterval() {
+-    return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(this.#currentQuery) : this.options.refetchInterval) ?? false;
++  ___computeRefetchInterval() {
++    return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(this.___currentQuery) : this.options.refetchInterval) ?? false;
+   }
+-  #updateRefetchInterval(nextInterval) {
+-    this.#clearRefetchInterval();
+-    this.#currentRefetchInterval = nextInterval;
+-    if (environmentManager.isServer() || resolveQueryBoolean(this.options.enabled, this.#currentQuery) === false || !isValidTimeout(this.#currentRefetchInterval) || this.#currentRefetchInterval === 0) {
++  ___updateRefetchInterval(nextInterval) {
++    this.___clearRefetchInterval();
++    this.___currentRefetchInterval = nextInterval;
++    if (environmentManager.isServer() || resolveQueryBoolean(this.options.enabled, this.___currentQuery) === false || !isValidTimeout(this.___currentRefetchInterval) || this.___currentRefetchInterval === 0) {
+       return;
+     }
+-    this.#refetchIntervalId = timeoutManager.setInterval(() => {
++    this.___refetchIntervalId = timeoutManager.setInterval(() => {
+       if (this.options.refetchIntervalInBackground || focusManager.isFocused()) {
+-        this.#executeFetch();
++        this.___executeFetch();
+       }
+-    }, this.#currentRefetchInterval);
++    }, this.___currentRefetchInterval);
+   }
+-  #updateTimers() {
+-    this.#updateStaleTimeout();
+-    this.#updateRefetchInterval(this.#computeRefetchInterval());
++  ___updateTimers() {
++    this.___updateStaleTimeout();
++    this.___updateRefetchInterval(this.___computeRefetchInterval());
+   }
+-  #clearStaleTimeout() {
+-    if (this.#staleTimeoutId !== void 0) {
+-      timeoutManager.clearTimeout(this.#staleTimeoutId);
+-      this.#staleTimeoutId = void 0;
++  ___clearStaleTimeout() {
++    if (this.___staleTimeoutId !== void 0) {
++      timeoutManager.clearTimeout(this.___staleTimeoutId);
++      this.___staleTimeoutId = void 0;
+     }
+   }
+-  #clearRefetchInterval() {
+-    if (this.#refetchIntervalId !== void 0) {
+-      timeoutManager.clearInterval(this.#refetchIntervalId);
+-      this.#refetchIntervalId = void 0;
++  ___clearRefetchInterval() {
++    if (this.___refetchIntervalId !== void 0) {
++      timeoutManager.clearInterval(this.___refetchIntervalId);
++      this.___refetchIntervalId = void 0;
+     }
+   }
+   createResult(query, options) {
+-    const prevQuery = this.#currentQuery;
++    const prevQuery = this.___currentQuery;
+     const prevOptions = this.options;
+-    const prevResult = this.#currentResult;
+-    const prevResultState = this.#currentResultState;
+-    const prevResultOptions = this.#currentResultOptions;
++    const prevResult = this.___currentResult;
++    const prevResultState = this.___currentResultState;
++    const prevResultOptions = this.___currentResultOptions;
+     const queryChange = query !== prevQuery;
+-    const queryInitialState = queryChange ? query.state : this.#currentQueryInitialState;
++    const queryInitialState = queryChange ? query.state : this.___currentQueryInitialState;
+     const { state } = query;
+     let newState = { ...state };
+     let isPlaceholderData = false;
+@@ -269,8 +254,8 @@ var QueryObserver = class extends Subscribable {
+         skipSelect = true;
+       } else {
+         placeholderData = typeof options.placeholderData === "function" ? options.placeholderData(
+-          this.#lastQueryWithDefinedData?.state.data,
+-          this.#lastQueryWithDefinedData
++          this.___lastQueryWithDefinedData?.state.data,
++          this.___lastQueryWithDefinedData
+         ) : options.placeholderData;
+       }
+       if (placeholderData !== void 0) {
+@@ -284,23 +269,23 @@ var QueryObserver = class extends Subscribable {
+       }
+     }
+     if (options.select && data !== void 0 && !skipSelect) {
+-      if (prevResult && data === prevResultState?.data && options.select === this.#selectFn) {
+-        data = this.#selectResult;
++      if (prevResult && data === prevResultState?.data && options.select === this.___selectFn) {
++        data = this.___selectResult;
+       } else {
+         try {
+-          this.#selectFn = options.select;
++          this.___selectFn = options.select;
+           data = options.select(data);
+           data = replaceData(prevResult?.data, data, options);
+-          this.#selectResult = data;
+-          this.#selectError = null;
++          this.___selectResult = data;
++          this.___selectError = null;
+         } catch (selectError) {
+-          this.#selectError = selectError;
++          this.___selectError = selectError;
+         }
+       }
+     }
+-    if (this.#selectError) {
+-      error = this.#selectError;
+-      data = this.#selectResult;
++    if (this.___selectError) {
++      error = this.___selectError;
++      data = this.___selectResult;
+       errorUpdatedAt = Date.now();
+       status = "error";
+     }
+@@ -334,7 +319,7 @@ var QueryObserver = class extends Subscribable {
+       isRefetchError: isError && hasData,
+       isStale: isStale(query, options),
+       refetch: this.refetch,
+-      promise: this.#currentThenable,
++      promise: this.___currentThenable,
+       isEnabled: resolveQueryBoolean(options.enabled, query) !== false
+     };
+     const nextResult = result;
+@@ -349,10 +334,10 @@ var QueryObserver = class extends Subscribable {
+         }
+       };
+       const recreateThenable = () => {
+-        const pending = this.#currentThenable = nextResult.promise = pendingThenable();
++        const pending = this.___currentThenable = nextResult.promise = pendingThenable();
+         finalizeThenableIfPossible(pending);
+       };
+-      const prevThenable = this.#currentThenable;
++      const prevThenable = this.___currentThenable;
+       switch (prevThenable.status) {
+         case "pending":
+           if (query.queryHash === prevQuery.queryHash) {
+@@ -374,48 +359,48 @@ var QueryObserver = class extends Subscribable {
+     return nextResult;
+   }
+   updateResult() {
+-    const prevResult = this.#currentResult;
+-    const nextResult = this.createResult(this.#currentQuery, this.options);
+-    this.#currentResultState = this.#currentQuery.state;
+-    this.#currentResultOptions = this.options;
+-    if (this.#currentResultState.data !== void 0) {
+-      this.#lastQueryWithDefinedData = this.#currentQuery;
++    const prevResult = this.___currentResult;
++    const nextResult = this.createResult(this.___currentQuery, this.options);
++    this.___currentResultState = this.___currentQuery.state;
++    this.___currentResultOptions = this.options;
++    if (this.___currentResultState.data !== void 0) {
++      this.___lastQueryWithDefinedData = this.___currentQuery;
+     }
+     if (shallowEqualObjects(nextResult, prevResult)) {
+       return;
+     }
+-    this.#currentResult = nextResult;
++    this.___currentResult = nextResult;
+     const shouldNotifyListeners = () => {
+       if (!prevResult) {
+         return true;
+       }
+       const { notifyOnChangeProps } = this.options;
+       const notifyOnChangePropsValue = typeof notifyOnChangeProps === "function" ? notifyOnChangeProps() : notifyOnChangeProps;
+-      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !this.#trackedProps.size) {
++      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !this.___trackedProps.size) {
+         return true;
+       }
+       const includedProps = new Set(
+-        notifyOnChangePropsValue ?? this.#trackedProps
++        notifyOnChangePropsValue ?? this.___trackedProps
+       );
+       if (this.options.throwOnError) {
+         includedProps.add("error");
+       }
+-      return Object.keys(this.#currentResult).some((key) => {
++      return Object.keys(this.___currentResult).some((key) => {
+         const typedKey = key;
+-        const changed = this.#currentResult[typedKey] !== prevResult[typedKey];
++        const changed = this.___currentResult[typedKey] !== prevResult[typedKey];
+         return changed && includedProps.has(typedKey);
+       });
+     };
+-    this.#notify({ listeners: shouldNotifyListeners() });
++    this.___notify({ listeners: shouldNotifyListeners() });
+   }
+-  #updateQuery() {
+-    const query = this.#client.getQueryCache().build(this.#client, this.options);
+-    if (query === this.#currentQuery) {
++  ___updateQuery() {
++    const query = this.___client.getQueryCache().build(this.___client, this.options);
++    if (query === this.___currentQuery) {
+       return;
+     }
+-    const prevQuery = this.#currentQuery;
+-    this.#currentQuery = query;
+-    this.#currentQueryInitialState = query.state;
++    const prevQuery = this.___currentQuery;
++    this.___currentQuery = query;
++    this.___currentQueryInitialState = query.state;
+     if (this.hasListeners()) {
+       prevQuery?.removeObserver(this);
+       query.addObserver(this);
+@@ -424,18 +409,18 @@ var QueryObserver = class extends Subscribable {
+   onQueryUpdate() {
+     this.updateResult();
+     if (this.hasListeners()) {
+-      this.#updateTimers();
++      this.___updateTimers();
+     }
+   }
+-  #notify(notifyOptions) {
++  ___notify(notifyOptions) {
+     notifyManager.batch(() => {
+       if (notifyOptions.listeners) {
+         this.listeners.forEach((listener) => {
+-          listener(this.#currentResult);
++          listener(this.___currentResult);
+         });
+       }
+-      this.#client.getQueryCache().notify({
+-        query: this.#currentQuery,
++      this.___client.getQueryCache().notify({
++        query: this.___currentQuery,
+         type: "observerResultsUpdated"
+       });
+     });
+diff --git a/build/modern/removable.cjs b/build/modern/removable.cjs
+index 288109fee7285a8c1896db073caba108117761ba..41d734bbf21e968bc38ee36726ec28fe8ecfdba8 100644
+--- a/build/modern/removable.cjs
++++ b/build/modern/removable.cjs
+@@ -27,14 +27,13 @@ var import_timeoutManager = require("./timeoutManager.cjs");
+ var import_environmentManager = require("./environmentManager.cjs");
+ var import_utils = require("./utils.cjs");
+ var Removable = class {
+-  #gcTimeout;
+   destroy() {
+     this.clearGcTimeout();
+   }
+   scheduleGc() {
+     this.clearGcTimeout();
+     if ((0, import_utils.isValidTimeout)(this.gcTime)) {
+-      this.#gcTimeout = import_timeoutManager.timeoutManager.setTimeout(() => {
++      this.___gcTimeout = import_timeoutManager.timeoutManager.setTimeout(() => {
+         this.optionalRemove();
+       }, this.gcTime);
+     }
+@@ -46,9 +45,9 @@ var Removable = class {
+     );
+   }
+   clearGcTimeout() {
+-    if (this.#gcTimeout !== void 0) {
+-      import_timeoutManager.timeoutManager.clearTimeout(this.#gcTimeout);
+-      this.#gcTimeout = void 0;
++    if (this.___gcTimeout !== void 0) {
++      import_timeoutManager.timeoutManager.clearTimeout(this.___gcTimeout);
++      this.___gcTimeout = void 0;
+     }
+   }
+ };
+diff --git a/build/modern/removable.js b/build/modern/removable.js
+index f08351ea5680299f9e91d55789014369946cce8e..99cc356282682e147c48ecd213d494e9884d2972 100644
+--- a/build/modern/removable.js
++++ b/build/modern/removable.js
+@@ -3,14 +3,13 @@ import { timeoutManager } from "./timeoutManager.js";
+ import { environmentManager } from "./environmentManager.js";
+ import { isValidTimeout } from "./utils.js";
+ var Removable = class {
+-  #gcTimeout;
+   destroy() {
+     this.clearGcTimeout();
+   }
+   scheduleGc() {
+     this.clearGcTimeout();
+     if (isValidTimeout(this.gcTime)) {
+-      this.#gcTimeout = timeoutManager.setTimeout(() => {
++      this.___gcTimeout = timeoutManager.setTimeout(() => {
+         this.optionalRemove();
+       }, this.gcTime);
+     }
+@@ -22,9 +21,9 @@ var Removable = class {
+     );
+   }
+   clearGcTimeout() {
+-    if (this.#gcTimeout !== void 0) {
+-      timeoutManager.clearTimeout(this.#gcTimeout);
+-      this.#gcTimeout = void 0;
++    if (this.___gcTimeout !== void 0) {
++      timeoutManager.clearTimeout(this.___gcTimeout);
++      this.___gcTimeout = void 0;
+     }
+   }
+ };
+diff --git a/build/modern/timeoutManager.cjs b/build/modern/timeoutManager.cjs
+index 9d586e984cc64c26ef1b3d8355108879dcf96ec8..a342620b175cfe9c814c83f360a3956ead109e59 100644
+--- a/build/modern/timeoutManager.cjs
++++ b/build/modern/timeoutManager.cjs
+@@ -50,39 +50,37 @@ var TimeoutManager = class {
+   //
+   // We settle for type safety for the TimeoutProvider type, and accept that
+   // this class is unsafe internally to allow for extension.
+-  #provider = defaultTimeoutProvider;
+-  #providerCalled = false;
+   setTimeoutProvider(provider) {
+     if (process.env.NODE_ENV !== "production") {
+-      if (this.#providerCalled && provider !== this.#provider) {
++      if (this.___providerCalled && provider !== this.___provider) {
+         console.error(
+           `[timeoutManager]: Switching provider after calls to previous provider might result in unexpected behavior.`,
+-          { previous: this.#provider, provider }
++          { previous: this.___provider, provider }
+         );
+       }
+     }
+-    this.#provider = provider;
++    this.___provider = provider;
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = false;
++      this.___providerCalled = false;
+     }
+   }
+   setTimeout(callback, delay) {
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = true;
++      this.___providerCalled = true;
+     }
+-    return this.#provider.setTimeout(callback, delay);
++    return this.___provider.setTimeout(callback, delay);
+   }
+   clearTimeout(timeoutId) {
+-    this.#provider.clearTimeout(timeoutId);
++    this.___provider.clearTimeout(timeoutId);
+   }
+   setInterval(callback, delay) {
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = true;
++      this.___providerCalled = true;
+     }
+-    return this.#provider.setInterval(callback, delay);
++    return this.___provider.setInterval(callback, delay);
+   }
+   clearInterval(intervalId) {
+-    this.#provider.clearInterval(intervalId);
++    this.___provider.clearInterval(intervalId);
+   }
+ };
+ var timeoutManager = new TimeoutManager();
+diff --git a/build/modern/timeoutManager.js b/build/modern/timeoutManager.js
+index ce66a8727cfd41a8f309e615301ed6a4af1daedb..7efeb092df0aa124ff81026398dfeb5746300e1a 100644
+--- a/build/modern/timeoutManager.js
++++ b/build/modern/timeoutManager.js
+@@ -23,39 +23,37 @@ var TimeoutManager = class {
+   //
+   // We settle for type safety for the TimeoutProvider type, and accept that
+   // this class is unsafe internally to allow for extension.
+-  #provider = defaultTimeoutProvider;
+-  #providerCalled = false;
+   setTimeoutProvider(provider) {
+     if (process.env.NODE_ENV !== "production") {
+-      if (this.#providerCalled && provider !== this.#provider) {
++      if (this.___providerCalled && provider !== this.___provider) {
+         console.error(
+           `[timeoutManager]: Switching provider after calls to previous provider might result in unexpected behavior.`,
+-          { previous: this.#provider, provider }
++          { previous: this.___provider, provider }
+         );
+       }
+     }
+-    this.#provider = provider;
++    this.___provider = provider;
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = false;
++      this.___providerCalled = false;
+     }
+   }
+   setTimeout(callback, delay) {
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = true;
++      this.___providerCalled = true;
+     }
+-    return this.#provider.setTimeout(callback, delay);
++    return this.___provider.setTimeout(callback, delay);
+   }
+   clearTimeout(timeoutId) {
+-    this.#provider.clearTimeout(timeoutId);
++    this.___provider.clearTimeout(timeoutId);
+   }
+   setInterval(callback, delay) {
+     if (process.env.NODE_ENV !== "production") {
+-      this.#providerCalled = true;
++      this.___providerCalled = true;
+     }
+-    return this.#provider.setInterval(callback, delay);
++    return this.___provider.setInterval(callback, delay);
+   }
+   clearInterval(intervalId) {
+-    this.#provider.clearInterval(intervalId);
++    this.___provider.clearInterval(intervalId);
+   }
+ };
+ var timeoutManager = new TimeoutManager();

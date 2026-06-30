@@ -1,0 +1,75 @@
+Android node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android Bundled 2299ms node_modules/.pnpm/expo-router@6.0.24_5c0397aa18279dcd1dfc42a86636c60d/node_modules/expo-router/entry.js (1448 modules)
+Writing bundle output to: /home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+Writing sourcemap output to: /home/expo/workingdir/build/artifacts/mobile/android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map
+Copying 69 asset files
+Done writing bundle output
+Done writing sourcemap output
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219291:5: error: private properties are not supported
+    #executeFetch(fetchOptions) {
+    ^~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219299:5: error: private properties are not supported
+    #updateStaleTimeout() {
+    ^~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219313:5: error: private properties are not supported
+#computeRefetchInterval() {
+    ^~~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219316:5: error: private properties are not supported
+    #updateRefetchInterval(nextInterval) {
+    ^~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219328:5: error: private properties are not supported
+    #updateTimers() {
+    ^~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219332:5: error: private properties are not supported
+    #clearStaleTimeout() {
+    ^~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219338:5: error: private properties are not supported
+    #clearRefetchInterval() {
+    ^~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219522:5: error: private properties are not supported
+    #updateQuery() {
+    ^~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219541:5: error: private properties are not supported
+    #notify(notifyOptions) {
+    ^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:219878:5: error: private properties are not supported
+    #isInitialPausedFetch() {
+    ^~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:220027:5: error: private properties are not supported
+    #dispatch(action) {
+    ^~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:220856:5: error: private properties are not supported
+    #dispatch(action) {
+    ^~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221008:5: error: private properties are not supported
+    #updateResult() {
+    ^~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221020:5: error: private properties are not supported
+    #notify(action) {
+    ^~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221173:5: error: private properties are not supported
+    #trackResult(result, matches) {
+    ^~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221183:5: error: private properties are not supported
+    #combineResult(input, combine, queryHashes) {
+    ^~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221199:5: error: private properties are not supported
+    #shouldSkipCombine() {
+    ^~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221204:5: error: private properties are not supported
+    #findMatchingObservers(queries) {
+    ^~~~~~~~~~~~~~~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221228:5: error: private properties are not supported
+    #onUpdate(observer, result) {
+    ^~~~~~~~~
+/home/expo/workingdir/build/artifacts/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:221235:5: error: private properties are not supported
+    #notify() {
+    ^~~~~~~
+<unknown>:0: error: too many errors emitted
+> Task :app:createBundleReleaseJsAndAssets FAILED
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/artifacts/mobile/android/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:createBundleReleaseJsAndAssets'.
+> Process 'command '/home/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7bc92965347105dee376b65e7a5db5e933e_9bef296bb3998c22433ada2495335962/node_modules/react-native/sdks/hermesc/linux64-bin/hermesc'' finished with non-zero exit value 2
+* Try:
