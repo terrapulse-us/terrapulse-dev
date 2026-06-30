@@ -25,6 +25,7 @@
     "babel-preset-expo": "^56.0.15",
     "expo": "~54.0.27",
     "expo-blur": "~15.0.8",
+    "expo-dev-client": "~6.0.21",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-file-system": "~19.0.23",
