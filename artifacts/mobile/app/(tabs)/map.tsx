@@ -1484,7 +1484,7 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 136,
-            backgroundColor: mapLayer !== "standard" ? colors.accent : colors.card,
+            backgroundColor: mapLayer !== "standard" ? "#5A9A5A" : colors.card,
             borderColor: mapLayer !== "standard" ? colors.accent : colors.border,
           },
         ]}
@@ -1504,7 +1504,7 @@ export default function MapScreen() {
           styles.locateBtn,
           {
             bottom: tabBarHeight + 80,
-            backgroundColor: followUser ? colors.accent : colors.card,
+            backgroundColor: followUser ? "#5A9A5A" : colors.card,
             borderColor: followUser ? colors.accent : colors.border,
           },
         ]}
@@ -1596,15 +1596,10 @@ export default function MapScreen() {
           onPress={() => setShowLayerPicker(false)}
         >
           <View
-            style={[
-              styles.layerSheet,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
+            style={[styles.layerSheet, styles.layerSheetLight]}
           >
-            <View style={styles.modalHandle} />
-            <Text style={[styles.layerTitle, { color: colors.foreground }]}>
-              MAP LAYERS
-            </Text>
+            <View style={styles.modalHandleLight} />
+            <Text style={styles.layerTitleLight}>MAP LAYERS</Text>
             <View style={styles.layerGrid}>
               {LAYER_OPTIONS.map((opt) => {
                 const active = mapLayer === opt.id;
@@ -1614,10 +1609,8 @@ export default function MapScreen() {
                     style={[
                       styles.layerCard,
                       {
-                        backgroundColor: active
-                          ? colors.accent
-                          : "rgba(255,255,255,0.05)",
-                        borderColor: active ? colors.accent : colors.border,
+                        backgroundColor: active ? "#5A9A5A" : "#EDE7DC",
+                        borderColor: active ? "#5A9A5A" : "#C8C2B8",
                       },
                     ]}
                     onPress={() => {
@@ -1629,12 +1622,12 @@ export default function MapScreen() {
                     <MaterialIcons
                       name={opt.icon as never}
                       size={24}
-                      color={active ? "#000" : colors.mutedForeground}
+                      color={active ? "#fff" : "#6B6B5A"}
                     />
                     <Text
                       style={[
                         styles.layerCardLabel,
-                        { color: active ? "#000" : colors.foreground },
+                        { color: active ? "#fff" : "#3D3D2E" },
                       ]}
                     >
                       {opt.label}
@@ -1645,41 +1638,41 @@ export default function MapScreen() {
             </View>
             {mapLayer === "terrain3d" && (
               <Text
-                style={[styles.layerHint, { color: colors.mutedForeground }]}
+                style={styles.layerHintLight}
               >
                 Tilt the map with two fingers to see 3D elevation
               </Text>
             )}
 
-            <View style={[styles.overlayDivider, { borderColor: colors.border }]} />
-            <Text style={[styles.layerTitle, { color: colors.mutedForeground, fontSize: 10, marginBottom: 10 }]}>
+            <View style={styles.overlayDividerLight} />
+            <Text style={styles.overlaysSectionTitle}>
               OVERLAYS
             </Text>
             {/* USFS toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showUsfsOverlay ? colors.accent : "rgba(255,255,255,0.05)", borderColor: showUsfsOverlay ? colors.accent : colors.border }]}
+              style={[styles.overlayToggle, showUsfsOverlay ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showUsfsOverlay ? "#5A9A5A" : "#C8C2B8" }]}
               onPress={() => setShowUsfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />
+              <MaterialIcons name="forest" size={20} color={showUsfsOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showUsfsOverlay ? "#000" : colors.foreground }]}>
                   USFS TRAILS{usfsLoading ? "  ⏳" : usfsGeoJSON ? `  (${usfsGeoJSON.features.length})` : ""}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "#000" : colors.mutedForeground }]}>
+                <Text style={[styles.overlaySubLabel, { color: showUsfsOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
                   Official OHV / 4x4 gov. routes (blue)
                 </Text>
               </View>
-              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#000" : colors.accent} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#000" : colors.mutedForeground} />}
+              {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#fff" : "#5A9A5A"} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : "#6B6B5A"} />}
             </TouchableOpacity>
 
             {/* OSM toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showOsmOverlay ? "#3DAA5C" : "rgba(255,255,255,0.05)", borderColor: showOsmOverlay ? "#3DAA5C" : colors.border, marginTop: 8 }]}
+              style={[styles.overlayToggle, showOsmOverlay ? styles.overlayToggleOsmActive : styles.overlayToggleInactive, { borderColor: showOsmOverlay ? "#3DAA5C" : "#C8C2B8", marginTop: 8 }]}
               onPress={() => setShowOsmOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="terrain" size={20} color={showOsmOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name="terrain" size={20} color={showOsmOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showOsmOverlay ? "#fff" : colors.foreground }]}>
                   OSM TRAILS{osmLoading ? "  ⏳" : osmGeoJSON ? `  (${osmGeoJSON.features.length})` : ""}
@@ -1688,16 +1681,16 @@ export default function MapScreen() {
                   Community 4x4 tracks, dirt roads, OHV paths (green)
                 </Text>
               </View>
-              {osmLoading ? <ActivityIndicator size="small" color={showOsmOverlay ? "#fff" : "#3DAA5C"} /> : <MaterialIcons name={showOsmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showOsmOverlay ? "#fff" : colors.mutedForeground} />}
+              {osmLoading ? <ActivityIndicator size="small" color={showOsmOverlay ? "#fff" : "#3DAA5C"} /> : <MaterialIcons name={showOsmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showOsmOverlay ? "#fff" : "#6B6B5A"} />}
             </TouchableOpacity>
 
             {/* BLM toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showBlmOverlay ? "#D4860A" : "rgba(255,255,255,0.05)", borderColor: showBlmOverlay ? "#D4860A" : colors.border, marginTop: 8 }]}
+              style={[styles.overlayToggle, showBlmOverlay ? styles.overlayToggleBlmActive : styles.overlayToggleInactive, { borderColor: showBlmOverlay ? "#D4860A" : "#C8C2B8", marginTop: 8 }]}
               onPress={() => setShowBlmOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="map" size={20} color={showBlmOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name="map" size={20} color={showBlmOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showBlmOverlay ? "#fff" : colors.foreground }]}>
                   BLM LAND STATUS{blmLoading ? "  ⏳" : blmOhvData ? `  (${blmOhvData.features.length} areas)` : ""}
@@ -1706,16 +1699,16 @@ export default function MapScreen() {
                   Public land boundaries + designated OHV areas (orange)
                 </Text>
               </View>
-              {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : colors.mutedForeground} />}
+              {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : "#6B6B5A"} />}
             </TouchableOpacity>
 
             {/* NFS Trail System toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showNfsOverlay ? "#2D6A4F" : "rgba(255,255,255,0.05)", borderColor: showNfsOverlay ? "#2D6A4F" : colors.border, marginTop: 8 }]}
+              style={[styles.overlayToggle, showNfsOverlay ? styles.overlayToggleNfsActive : styles.overlayToggleInactive, { borderColor: showNfsOverlay ? "#2D6A4F" : "#C8C2B8", marginTop: 8 }]}
               onPress={() => setShowNfsOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="hiking" size={20} color={showNfsOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name="hiking" size={20} color={showNfsOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showNfsOverlay ? "#fff" : colors.foreground }]}>
                   USFS NFS TRAILS{nfsLoading ? "  ⏳" : nfsGeoJSON ? `  (${nfsGeoJSON.features.length} trails)` : ""}
@@ -1724,16 +1717,16 @@ export default function MapScreen() {
                   National Forest System — 158k mi of classified trails (dark green)
                 </Text>
               </View>
-              {nfsLoading ? <ActivityIndicator size="small" color={showNfsOverlay ? "#fff" : "#2D6A4F"} /> : <MaterialIcons name={showNfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNfsOverlay ? "#fff" : colors.mutedForeground} />}
+              {nfsLoading ? <ActivityIndicator size="small" color={showNfsOverlay ? "#fff" : "#2D6A4F"} /> : <MaterialIcons name={showNfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNfsOverlay ? "#fff" : "#6B6B5A"} />}
             </TouchableOpacity>
 
             {/* Recreation.gov (RIDB) toggle */}
             <TouchableOpacity
-              style={[styles.overlayToggle, { backgroundColor: showRidbOverlay ? "#7B3F9E" : "rgba(255,255,255,0.05)", borderColor: showRidbOverlay ? "#7B3F9E" : colors.border, marginTop: 8 }]}
+              style={[styles.overlayToggle, showRidbOverlay ? styles.overlayToggleRidbActive : styles.overlayToggleInactive, { borderColor: showRidbOverlay ? "#7B3F9E" : "#C8C2B8", marginTop: 8 }]}
               onPress={() => setShowRidbOverlay((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showRidbOverlay ? "#fff" : colors.foreground }]}>
                   RECREATION.GOV TRAILHEADS{ridbFacilities.length > 0 ? `  (${ridbFacilities.length})` : ""}
@@ -1742,7 +1735,7 @@ export default function MapScreen() {
                   {ridbHasApiKey() ? "Official federal trailheads + OHV facilities (purple)" : "Add EXPO_PUBLIC_RIDB_API_KEY to enable"}
                 </Text>
               </View>
-              <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : colors.mutedForeground} />
+              <MaterialIcons name={showRidbOverlay ? "toggle-on" : "toggle-off"} size={28} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -2293,6 +2286,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   overlayDivider: { borderTopWidth: 1, marginVertical: 14 },
+  overlayDividerLight: { borderTopWidth: 1, borderColor: '#D0C9BC', marginVertical: 14 },
+  overlayToggleInactive: { backgroundColor: '#F5F0E6' },
+  overlayToggleActive:     { backgroundColor: '#5A9A5A' },
+  overlayToggleOsmActive:  { backgroundColor: '#3DAA5C' },
+  overlayToggleBlmActive:  { backgroundColor: '#D4860A' },
+  overlayToggleNfsActive:  { backgroundColor: '#2D6A4F' },
+  overlayToggleRidbActive: { backgroundColor: '#7B3F9E' },
+  overlayToggleNpsActive:  { backgroundColor: '#1B5E20' },
+  overlaysSectionTitle: { fontWeight: '900', fontSize: 10, letterSpacing: 2, marginBottom: 10, color: '#8A8478' },
+  layerSheetLight: { backgroundColor: '#F5F0E6', borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#D0C9BC' },
+  modalHandleLight: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#C0BAB0', alignSelf: 'center', marginBottom: 16 },
+  layerTitleLight: { fontWeight: '900', fontSize: 13, letterSpacing: 2, marginBottom: 16, color: '#2A2A1E' },
+  layerCardActive: { backgroundColor: '#5A9A5A', borderColor: '#5A9A5A' },
+  layerCardInactive: { backgroundColor: '#EDE7DC', borderColor: '#D0C9BC' },
+  layerHintLight: { fontSize: 11, textAlign: 'center', marginTop: 14, fontStyle: 'italic', color: '#8A8478' },
   overlayToggle: {
     flexDirection: "row",
     alignItems: "center",
