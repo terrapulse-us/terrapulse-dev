@@ -8,7 +8,8 @@
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "eas-build-pre-install": "echo 'MapLibre build starting'"
+    "eas-build-pre-install": "echo 'MapLibre build starting'",
+    "eas-build-post-install": "bash ../../scripts/install-hermesc-wrapper.sh --force"
   },
   "devDependencies": {
     "@expo-google-fonts/inter": "^0.4.0",

@@ -55,7 +55,7 @@ fi
 
 exec "$REAL_HERMESC" "$@"'
 
-PNPM_STORE="$(pwd)/node_modules/.pnpm"
+PNPM_STORE="$WORKSPACE_ROOT/node_modules/.pnpm"
 FORCE="${1:-}"
 count=0
 
