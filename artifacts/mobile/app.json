@@ -20,12 +20,65 @@
         "NSCameraUsageDescription": "TerraPulse uses your camera to broadcast live off-road streams.",
         "NSMicrophoneUsageDescription": "TerraPulse uses your microphone to capture audio during live broadcasts.",
         "NSLocationWhenInUseUsageDescription": "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
-        "NSPhotoLibraryUsageDescription": "TerraPulse needs photo library access to upload trail community photos."
-      }
+        "NSPhotoLibraryUsageDescription": "TerraPulse needs photo library access to upload trail community photos.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "terrapulse"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "terrapulse"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "terrapulse"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101"
+            ]
+          }
+        ]
+      },
+      "buildNumber": "1782796235",
+      "appleTeamId": "TN4GRQ3Y6V"
     },
     "android": {
       "package": "com.terrapulse.app",
       "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.CAMERA",
@@ -76,6 +129,12 @@
         "projectId": "5e42857a-9f58-4c15-8b0b-571dd97b3189"
       }
     },
-    "owner": "mclaporteterrapulses-team"
+    "owner": "mclaporteterrapulses-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5e42857a-9f58-4c15-8b0b-571dd97b3189"
+    }
   }
 }

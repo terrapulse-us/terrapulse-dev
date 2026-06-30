@@ -22,3 +22,17 @@ const _orig = TurboModuleRegistry.getEnforcing.bind(TurboModuleRegistry);
     });
   }
 };
+
+// Fix RN 0.81 Event phase constants — defined without configurable/writable,
+// causing event-target-shim (fetch -> abort-controller) to throw
+// "TypeError: Cannot assign to read only property 'NONE'" during any auth/fetch.
+try {
+  const phases = [["NONE",0],["CAPTURING_PHASE",1],["AT_TARGET",2],["BUBBLING_PHASE",3]];
+  for (const [name, value] of phases) {
+    for (const target of [Event, Event.prototype]) {
+      try {
+        Object.defineProperty(target, name, { configurable: true, writable: true, value });
+      } catch {}
+    }
+  }
+} catch {}

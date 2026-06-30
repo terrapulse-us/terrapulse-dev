@@ -28,13 +28,15 @@ const fs   = require('fs');
 const mobileNodeModules = path.resolve(__dirname, '..', 'artifacts', 'mobile', 'node_modules');
 
 function loadPkg(pkgName) {
-  const pkgPath = path.join(mobileNodeModules, pkgName);
-  try {
-    return require(pkgPath);
-  } catch (e) {
-    process.stderr.write('[transform-bundle] WARNING: cannot load ' + pkgName + ' from ' + pkgPath + ': ' + e.message + '\n');
-    return null;
+  const candidates = [
+    path.join(mobileNodeModules, pkgName),
+    path.join(__dirname, '..', 'node_modules', pkgName),
+  ];
+  for (const p of candidates) {
+    try { return require(p); } catch (e) {}
   }
+  process.stderr.write('[transform-bundle] WARNING: cannot load ' + pkgName + ' from any known path\n');
+  return null;
 }
 
 const filePath = process.argv[2];
