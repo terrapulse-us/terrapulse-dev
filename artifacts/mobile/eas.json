@@ -34,7 +34,8 @@
       "env": {
         "APP_VARIANT": "preview",
         "MAPTILER_API_KEY": "$MAPTILER_API_KEY"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
