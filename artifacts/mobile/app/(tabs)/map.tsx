@@ -1055,6 +1055,7 @@ export default function MapScreen() {
         key={mapLayer}
         style={styles.map}
         mapStyle={mapStyle}
+        onDidFinishLoadingStyle={() => setMapStyleLoaded(true)}
       >
         <Camera
           ref={cameraRef}
@@ -1097,7 +1098,7 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {ridePoints.length > 1 && (
+        {mapStyleLoaded && ridePoints.length > 1 && (
           <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
             <Layer
               id="ride-line"
@@ -1107,7 +1108,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {trailPoints.length > 1 && (
+        {mapStyleLoaded && trailPoints.length > 1 && (
           <GeoJSONSource id="trail-recording" data={trailRecordingGeoJSON}>
             <Layer
               id="trail-recording-line"
@@ -1117,7 +1118,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {selectedUserTrailGeoJSON && (
+        {mapStyleLoaded && selectedUserTrailGeoJSON && (
           <GeoJSONSource id="selected-user-trail" data={selectedUserTrailGeoJSON}>
             <Layer
               id="selected-user-trail-line"
@@ -1150,7 +1151,7 @@ export default function MapScreen() {
         )}
 
         {/* ── BLM OHV designated area polygons ──────────────────────────── */}
-        {blmOhvData && blmOhvData.features.length > 0 && (
+        {mapStyleLoaded && blmOhvData && blmOhvData.features.length > 0 && (
           <GeoJSONSource id="blm-ohv" data={blmOhvData as never}>
             <Layer
               id="blm-ohv-fill"
@@ -1166,7 +1167,7 @@ export default function MapScreen() {
         )}
 
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
-        {osmGeoJSON && osmGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
           <GeoJSONSource id="osm-trails" data={osmGeoJSON as never}>
             <Layer
               id="osm-trails-line"
@@ -1188,7 +1189,7 @@ export default function MapScreen() {
         })}
 
         {/* ── NFS Trail System GeoJSON lines ────────────────────────────── */}
-        {nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="nfs-trails" data={nfsGeoJSON as never}>
             <Layer
               id="nfs-trails-line"
@@ -1221,7 +1222,7 @@ export default function MapScreen() {
         })}
 
         {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
-        {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
             <Layer
               id="usfs-routes-line"
@@ -1624,6 +1625,7 @@ export default function MapScreen() {
                       },
                     ]}
                     onPress={() => {
+                      setMapStyleLoaded(false);
                       setMapLayer(opt.id);
                       setShowLayerPicker(false);
                     }}
