@@ -6,8 +6,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const OVERPASS_URLS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const FETCH_TIMEOUT_MS = 12_000; // 12s per endpoint → max ~36s total
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,31 +86,15 @@ export async function fetchOsmTrailsNear(
 
   // Overpass QL: comprehensive off-road query
   const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
+  // Focused query — fewer regex clauses = faster Overpass response
   const query = [
-    "[out:json][timeout:45];",
+    "[out:json][timeout:25];",
     "(",
-    // Core 4WD / OHV ways
     `  way["highway"="track"]["access"!~"^(private|no)$"](${bbox});`,
     `  way["4wd_only"="yes"](${bbox});`,
     `  way["highway"="path"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Unpaved road surfaces on classified roads
-    `  way["highway"~"^(unclassified|tertiary|residential)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel|earth|mud)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Beach / desert driving
-    `  way["natural"="beach"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Sandy / rocky tracks
-    `  way["highway"~"^(track|path)$"]["surface"~"^(sand|gravel|rock|mud|dirt|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Unpaved service roads (forest roads, fire roads)
-    `  way["highway"="service"]["surface"~"^(unpaved|gravel|dirt|ground|fine_gravel|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
-    // Explicitly tagged ATV / OHV / snowmobile ways
     `  way["atv"~"^(yes|permissive|designated)$"](${bbox});`,
-    `  way["snowmobile"~"^(yes|permissive|designated)$"]["surface"!~"^(asphalt|concrete|paved)$"](${bbox});`,
-    `  way["route"~"^(atv|ohv|offroad|4wd)$"](${bbox});`,
-    // Tracks with explicit quality grades (worse = more likely off-road)
-    `  way["highway"="track"]["tracktype"~"^(grade[2-5])$"](${bbox});`,
-    // Bridleways and paths open to motor vehicles
-    `  way["highway"="bridleway"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    // Forest / logging roads — access tagged open
-    `  way["highway"~"^(track|unclassified|service)$"]["operator"~"^(USFS|USDA|Forest Service|BLM|Bureau of Land Management)$"]["access"!~"^(private|no)$"](${bbox});`,
+    `  way["highway"~"^(track|path|service)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
     ");",
     "out geom;",
   ].join("\n");
@@ -116,7 +102,7 @@ export async function fetchOsmTrailsNear(
   let resp: Response | null = null;
   for (const url of OVERPASS_URLS) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
       resp = await fetch(url, {
         method: "POST",

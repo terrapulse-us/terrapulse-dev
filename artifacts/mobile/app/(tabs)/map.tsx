@@ -444,6 +444,7 @@ export default function MapScreen() {
   const [showOsmOverlay, setShowOsmOverlay] = useState(true);
   const [osmGeoJSON, setOsmGeoJSON] = useState<OsmCollection | null>(null);
   const [osmLoading, setOsmLoading] = useState(false);
+  const [osmError, setOsmError] = useState(false);
 
   const [showBlmOverlay, setShowBlmOverlay] = useState(false);
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
@@ -533,12 +534,13 @@ export default function MapScreen() {
   // osmFetchCenter updates once when the first real GPS fix arrives, triggering a
   // re-fetch for the user's actual location (not the CA-center fallback).
   useEffect(() => {
-    if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
+    if (!showOsmOverlay) { setOsmGeoJSON(null); setOsmError(false); return; }
     let cancelled = false;
     setOsmLoading(true);
-    fetchOsmTrailsNear(osmFetchCenter.lat, osmFetchCenter.lng, 15)
-      .then(data => { if (!cancelled) setOsmGeoJSON(data); })
-      .catch(() => {})
+    setOsmError(false);
+    fetchOsmTrailsNear(osmFetchCenter.lat, osmFetchCenter.lng, 10)
+      .then(data => { if (!cancelled) { setOsmGeoJSON(data); setOsmError(false); } })
+      .catch(() => { if (!cancelled) setOsmError(true); })
       .finally(() => { if (!cancelled) setOsmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1824,13 +1826,18 @@ export default function MapScreen() {
               <MaterialIcons name="terrain" size={20} color={showOsmOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showOsmOverlay ? "#fff" : "#2A2A1E" }]}>
-                  OSM TRAILS{osmLoading ? "  ⏳" : osmGeoJSON ? `  (${osmGeoJSON.features.length})` : ""}
+                  OSM TRAILS{osmLoading ? "" : osmError ? "  ✕" : osmGeoJSON ? `  (${osmGeoJSON.features.length})` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showOsmOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  Community 4x4 tracks, dirt roads, OHV paths (green)
+                  {osmError ? "Tap to retry — server unavailable" : "Community 4x4 tracks, dirt roads, OHV paths (green)"}
                 </Text>
               </View>
-              {osmLoading ? <ActivityIndicator size="small" color={showOsmOverlay ? "#fff" : "#3DAA5C"} /> : <MaterialIcons name={showOsmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showOsmOverlay ? "#fff" : "#A8A89A"} />}
+              {osmLoading
+                ? <ActivityIndicator size="small" color={showOsmOverlay ? "#fff" : "#3DAA5C"} />
+                : osmError
+                  ? <MaterialIcons name="refresh" size={24} color={showOsmOverlay ? "#fff" : "#E57373"} />
+                  : <MaterialIcons name={showOsmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showOsmOverlay ? "#fff" : "#A8A89A"} />
+              }
             </TouchableOpacity>
 
             {/* BLM toggle */}
