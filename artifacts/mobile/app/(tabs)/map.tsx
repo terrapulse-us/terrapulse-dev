@@ -558,25 +558,25 @@ export default function MapScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBlmOverlay]);
 
-  // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on
+  // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
+  // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
+  // (Central Valley has no National Forest land). Re-runs when GPS first arrives.
+  // The 24h cache in fetchUsfsTrailsInBounds deduplicates subsequent GPS ticks.
   useEffect(() => {
-    if (!showUsfsOverlay) {
-      setUsfsGeoJSON(null);
-      return;
-    }
+    if (!showUsfsOverlay) { setUsfsGeoJSON(null); return; }
+    if (!userLocation) return; // defer until GPS lock — avoid CA-farmland fallback
     let cancelled = false;
     setUsfsLoading(true);
-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 }; // CA center fallback
     fetchUsfsTrailsInBounds(
-      center.longitude - 0.25, center.latitude - 0.25,
-      center.longitude + 0.25, center.latitude + 0.25,
+      userLocation.longitude - 0.5, userLocation.latitude - 0.5,
+      userLocation.longitude + 0.5, userLocation.latitude + 0.5,
     )
       .then(data => { if (!cancelled) setUsfsGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setUsfsLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showUsfsOverlay]); // intentionally omit userLocation to avoid refetch on every GPS tick
+  }, [showUsfsOverlay, userLocation]);
 
   useEffect(() => {
     if (!user) return;

@@ -115,15 +115,20 @@ export async function fetchOsmTrailsNear(
 
   let resp: Response | null = null;
   for (const url of OVERPASS_URLS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
     try {
       resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
       });
       if (resp.ok) break;
     } catch {
       resp = null;
+    } finally {
+      clearTimeout(timer);
     }
   }
   if (!resp?.ok) throw new Error(`Overpass API unavailable`);
