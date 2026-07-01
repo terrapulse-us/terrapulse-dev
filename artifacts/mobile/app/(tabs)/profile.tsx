@@ -467,8 +467,11 @@ export default function ProfileScreen() {
               size={16}
               color={activeSection === s ? colors.accent : colors.mutedForeground}
             />
-            <Text style={[styles.tabText, { color: activeSection === s ? colors.accent : colors.mutedForeground }]}>
-              {s.toUpperCase()}
+            <Text
+              numberOfLines={1}
+              style={[styles.tabText, { color: activeSection === s ? colors.accent : colors.mutedForeground }]}
+            >
+              {s === "achievements" ? "BADGES" : s.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
