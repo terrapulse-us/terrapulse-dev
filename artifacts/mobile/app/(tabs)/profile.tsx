@@ -35,6 +35,7 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import { grantBadge } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -90,6 +91,7 @@ const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = [
   { id: "regional_desert", title: "Desert Demon",        description: "Complete all desert trails",      icon: "thermometer" },
   { id: "dunes_king",      title: "Dunes King",          description: "Hit both Pismo & Dumont Dunes",   icon: "wind" },
   // Special
+  { id: "beta_explorer",   title: "Beta Explorer",       description: "Founding beta tester of TerraPulse", icon: "cpu" },
   { id: "went_live",       title: "Broadcaster",         description: "Go live from a trail",            icon: "radio" },
   // Per-trail
   { id: "trail_rubicon",        title: "Rubicon Conqueror",      description: "Conquer the legendary Rubicon Trail",       icon: "shield" },
@@ -176,6 +178,11 @@ export default function ProfileScreen() {
       setAchievements(mapped);
     });
     return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    grantBadge(user.uid, "beta_explorer").catch(() => {});
   }, [user]);
 
   useEffect(() => {
