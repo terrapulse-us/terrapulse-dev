@@ -1,0 +1,28 @@
+Surface(name=VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_439#121943)/@0x1424e62 for 817c1b9 
+com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 21:49:00.838  4113 10981 D WindowManager: Changing focus from null to Window{817c1b9 u0 com.terrapulse.app/com.terrapulse.app.MainActivity} 
+displayId=0 Callers=com.android.server.wm.WindowManagerService.relayoutWindow:1526 com.android.server.wm.Session.relayout:29 
+com.android.server.wm.Session.relayout2:3 android.view.IWindowSession$Stub.onTransact:869 
+06-30 21:49:00.838  4113 10981 D InsetsSourceProvider: updateControlForTarget: control=InsetsSourceControl: {fa900000 mType=statusBars 
+initiallyVisible mSurfacePosition=Point(0, 0) mInsetsHint=Insets{left=0, top=149, right=0, bottom=0} mLeash=Surface(name=Surface(name=4402ace 
+StatusBar#82)/@0x84aebe7 - animation-leash of insets_animation#121944)/@0x93930b0}, target=Window{817c1b9 u0 
+com.terrapulse.app/com.terrapulse.app.MainActivity}, from=com.android.server.wm.InsetsStateController.onControlTargetChanged:81 
+com.android.server.wm.InsetsPolicy.updateBarControlTarget:237 com.android.server.wm.DisplayPolicy.updateSystemBarAttributes:452 
+com.android.server.wm.WindowManagerService.updateFocusedWindowLocked:408 com.android.server.wm.WindowManagerService.relayoutWindow:1526 
+06-30 21:49:00.838  4113 10981 D InsetsSourceProvider: updateControlForTarget: control=InsetsSourceControl: {b8a90001 mType=navigationBars 
+initiallyVisible mSurfacePosition=Point(0, 2940) mInsetsHint=Insets{left=0, top=0, right=0, bottom=180} mLeash=Surface(name=Surface(name=53cd840 
+NavigationBar0#79)/@0x29d68b1 - animation-leash of insets_animation#121945)/@0x2faeeae}, target=Window{817c1b9 u0 
+com.terrapulse.app/com.terrapulse.app.MainActivity}, from=com.android.server.wm.InsetsStateController.onControlTargetChanged:81 
+com.android.server.wm.InsetsPolicy.updateBarControlTarget:250 com.android.server.wm.DisplayPolicy.updateSystemBarAttributes:452 
+com.android.server.wm.WindowManagerService.updateFocusedWindowLocked:408 com.android.server.wm.WindowManagerService.relayoutWindow:1526 
+06-30 21:49:00.838  4113 10981 D WindowManager: updateSystemBarAttributes: displayId=0, focusedCanBeNavColorWin=false, win=Window{817c1b9 u0 
+com.terrapulse.app/com.terrapulse.app.MainActivity}, navColorWin=Window{4d0f3f9 u0 Splash Screen com.terrapulse.app}, 
+caller=com.android.server.wm.WindowManagerService.updateFocusedWindowLocked:408 com.android.server.wm.WindowManagerService.relayoutWindow:1526 
+com.android.server.wm.Session.relayout:29 
+06-30 21:49:00.839  4113 10981 V SystemKeyManager: updateFocusedWindow() is called, com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 21:49:00.839  4113 10981 I SystemKeyManager: requested systemKeyInfo size=1 focusedWindow=com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 21:49:00.839  4113 10981 I SystemKeyManager: requested systemKeyInfo size=1 focusedWindow=com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 21:49:00.839   439   439 I SurfaceComposerClient: setPrivacyOverlapBounds VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_439#121943 
+bounds=[0, 0, 0, 0]
+06-30 21:49:00.840  6921  6921 D NavigationBar: onSystemBarAttributesChanged() -  displayId:0, appearance:16, packageName: com.terrapulse.app 
+(APPEARANCE_LIGHT_NAVIGATION_BARS ), navbarColorManagedByIme:false
