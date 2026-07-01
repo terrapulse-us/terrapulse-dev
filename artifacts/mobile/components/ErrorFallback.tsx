@@ -73,6 +73,13 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           Something went wrong
         </Text>
 
+        <Text
+          style={[styles.errorMessage, { color: "#ef4444", fontFamily: monoFont }]}
+          selectable
+        >
+          {error.message}
+        </Text>
+
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
           Please reload the app to continue.
         </Text>
@@ -197,6 +204,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
+  },
+  errorMessage: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    paddingHorizontal: 8,
   },
   topButton: {
     position: "absolute",

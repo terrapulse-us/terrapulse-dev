@@ -51,8 +51,8 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
-  const isOta = !currentlyRunning.isEmbeddedLaunch;
-  const shortId = currentlyRunning.updateId?.slice(0, 8) ?? "?";
+  const isOta = !!currentlyRunning?.updateId && !currentlyRunning?.isEmbeddedLaunch;
+  const shortId = currentlyRunning?.updateId?.slice(0, 8) ?? "?";
 
   const label = isChecking
     ? "⟳ OTA check…"
@@ -81,6 +81,7 @@ export default function RootLayout() {
             </AuthProvider>
 
             <View
+              pointerEvents="none"
               style={{
                 position: "absolute",
                 top: 52,
@@ -90,11 +91,10 @@ export default function RootLayout() {
                 paddingHorizontal: 7,
                 paddingVertical: 3,
                 zIndex: 9999,
-                pointerEvents: "none",
               }}
             >
               <Text
-                style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}
+                style={{ color: badgeColor, fontSize: 10 }}
               >
                 {label}
               </Text>
