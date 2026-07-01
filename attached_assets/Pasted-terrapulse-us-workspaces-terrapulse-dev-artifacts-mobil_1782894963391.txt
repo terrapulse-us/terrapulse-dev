@@ -1,0 +1,98 @@
+terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ cd /workspaces/terrapulse-dev/artifacts/mobile
+
+# Show all text strings in login.tsx that could be the tagline
+python3 -c "
+src = open('app/login.tsx').read()
+for i, line in enumerate(src.split('\n'), 1):
+    stripped = line.strip()
+    if any(w in stripped.lower() for w in ['california', 'premier', 'tagline', 'community', 'trail', 'bringing']):
+        print(f'{i:4}: {stripped}')
+"
+
+echo "---"
+
+# Also check: did the last OTA actually differ from what's on EAS?
+npx eas-cli update:list --branch preview --limit 2
+ 198: <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
+ 199: Bringing the community together 1 trail at a time
+ 243: tagline: { textAlign: "center", fontSize: 11, letterSpacing: 1 },
+---
+★ eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Login tagline: 1 trail at a time" (3 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  11411b47-dbae-4739-b098-08397bd5c93d
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Login tagline update" (8 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  1ccba263-e3d1-41a4-9aed-1ab9c0afbbe7
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Login tagline update" (12 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  dcb332f6-204e-482e-b90a-431b69b80587
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "chore: APK builds manual-only — OTA handles all push-to-main updates" (13 minutes ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  542706f3-851b-42d5-9a6e-360f666ddb51
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: use --branch instead of --channel in eas update (--channel flag removed in newer eas-cli)" (21 minutes ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  7049724f-df01-4f97-b332-16c9bd09827f
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "channel re-linked test" (21 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  46b417c8-5ab3-42cc-9c1a-82a73a83128d
