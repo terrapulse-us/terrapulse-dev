@@ -82,3 +82,19 @@ export async function markTrailComplete(userId: string, trailId: string) {
 
   return toAdd;
 }
+
+export async function grantBadge(userId: string, badgeId: string): Promise<boolean> {
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+  const data = snap.exists() ? snap.data() : {};
+  const existing: string[] = data.achievements ?? [];
+  if (existing.includes(badgeId)) return false;
+  const dates: Record<string, number> = data.achievementDates ?? {};
+  dates[badgeId] = Date.now();
+  await setDoc(
+    userRef,
+    { achievements: [...existing, badgeId], achievementDates: dates },
+    { merge: true },
+  );
+  return true;
+}
