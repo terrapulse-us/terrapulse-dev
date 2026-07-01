@@ -1,16 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 
-// ─── OpenStreetMap Overpass API ───────────────────────────────────────────────
-// Free public API. Queries 4x4 tracks, OHV paths, and unpaved roads.
+// ─── OpenStreetMap trail data ──────────────────────────────────────────────────
+// Primary: proxied through the API server (reliable on both iOS + Android).
+// Fallback: direct Overpass API using Promise.race timeout (AbortController is
+// unreliable on Android New Architecture — the signal fires but fetch may not cancel).
 const OVERPASS_URLS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
-const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
-const FETCH_TIMEOUT_MS = 12_000; // 12s per endpoint → max ~36s total
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 12_000;
 
 export interface OsmFeature {
   type: "Feature";
@@ -34,7 +35,6 @@ export interface OsmCollection {
   features: OsmFeature[];
 }
 
-// Internal Overpass response shapes
 interface OsmOverpassNode {
   type: "node" | "way" | "relation";
   id: number;
@@ -43,8 +43,6 @@ interface OsmOverpassNode {
   tags?: Record<string, string>;
   geometry?: Array<{ lat: number; lon: number }>;
 }
-
-// ─── Cache helpers ─────────────────────────────────────────────────────────────
 
 async function getCached<T>(key: string): Promise<T | null> {
   try {
@@ -64,57 +62,28 @@ async function setCached<T>(key: string, data: T): Promise<void> {
   } catch { /* ignore */ }
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+function getApiBase(): string {
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  const url = extra?.apiServerUrl as string | undefined;
+  return url?.replace(/\/$/, "") ?? "";
+}
 
-/**
- * Fetch off-road OSM ways (4x4 tracks, OHV paths, unpaved roads) near a point.
- * Results include geometry inline (Overpass `out geom;`) and are cached 12h.
- */
-export async function fetchOsmTrailsNear(
-  lat: number,
-  lng: number,
-  radiusMiles = 5,
-): Promise<OsmCollection> {
-  const deg = radiusMiles / 69.0;
-  const minLat = lat - deg, maxLat = lat + deg;
-  const minLng = lng - deg, maxLng = lng + deg;
-
-  const key = `osm_trails_${minLat.toFixed(2)}_${minLng.toFixed(2)}_${maxLat.toFixed(2)}_${maxLng.toFixed(2)}`;
-  const cached = await getCached<OsmCollection>(key);
-  if (cached) return cached;
-
-  // Overpass QL: comprehensive off-road query
-  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
-  const query = [
-    "[out:json][timeout:30];",
+function buildOverpassQuery(bbox: string): string {
+  return [
+    "[out:json][timeout:25];",
     "(",
     `  way["highway"="track"]["access"!~"^(private|no)$"](${bbox});`,
     `  way["4wd_only"="yes"](${bbox});`,
     `  way["highway"="path"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    `  way["highway"~"^(unclassified|tertiary)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|compacted|fine_gravel|earth)$"](${bbox});`,
-    `  way["natural"="beach"]["motor_vehicle"~"^(yes|permissive|designated)$"](${bbox});`,
-    `  way["highway"~"^(track|path)$"]["surface"~"^(sand|gravel|rock)$"]["access"!~"^(private|no)$"](${bbox});`,
-    `  way["highway"="service"]["surface"~"^(unpaved|gravel|dirt|ground)$"]["access"!~"^(private|no)$"](${bbox});`,
+    `  way["atv"~"^(yes|permissive|designated)$"](${bbox});`,
+    `  way["highway"~"^(track|path|service)$"]["surface"~"^(unpaved|dirt|gravel|ground|sand|rock|earth)$"]["access"!~"^(private|no)$"](${bbox});`,
     ");",
     "out geom;",
   ].join("\n");
+}
 
-  let resp: Response | null = null;
-  for (const url of OVERPASS_URLS) {
-    try {
-      resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(query)}`,
-      });
-      if (resp.ok) break;
-    } catch { resp = null; }
-  }
-  if (!resp?.ok) throw new Error(`Overpass API unavailable`);
-
-  const json = (await resp.json()) as { elements: OsmOverpassNode[] };
-
-  const features: OsmFeature[] = json.elements
+function elementsToCollection(elements: OsmOverpassNode[]): OsmCollection {
+  const features: OsmFeature[] = elements
     .filter(
       (el): el is OsmOverpassNode & Required<Pick<OsmOverpassNode, "geometry">> =>
         el.type === "way" &&
@@ -132,13 +101,74 @@ export async function fetchOsmTrailsNear(
         ...(el.tags ?? {}),
       },
     }));
+  return { type: "FeatureCollection", features };
+}
 
-  const collection: OsmCollection = { type: "FeatureCollection", features };
+const timeoutPromise = (ms: number): Promise<never> =>
+  new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+
+export async function fetchOsmTrailsNear(
+  lat: number,
+  lng: number,
+  radiusMiles = 5,
+): Promise<OsmCollection> {
+  const deg = radiusMiles / 69.0;
+  const minLat = lat - deg, maxLat = lat + deg;
+  const minLng = lng - deg, maxLng = lng + deg;
+
+  const key = `osm_v3_${minLat.toFixed(2)}_${minLng.toFixed(2)}_${maxLat.toFixed(2)}_${maxLng.toFixed(2)}`;
+  const cached = await getCached<OsmCollection>(key);
+  if (cached) return cached;
+
+  // ── 1. Try API server proxy (reliable on both iOS + Android) ─────────────
+  const base = getApiBase();
+  if (base) {
+    try {
+      const proxyUrl = `${base}/api/osm-trails?lat=${lat}&lng=${lng}&radius=${radiusMiles}`;
+      const resp = await Promise.race([
+        fetch(proxyUrl),
+        timeoutPromise(25_000),
+      ]);
+      if (resp.ok) {
+        const collection = (await resp.json()) as OsmCollection;
+        await setCached(key, collection);
+        return collection;
+      }
+    } catch {
+      // proxy unreachable — fall through to direct Overpass
+    }
+  }
+
+  // ── 2. Direct Overpass fallback (Promise.race timeout, no AbortController) ─
+  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
+  const query = buildOverpassQuery(bbox);
+
+  let resp: Response | null = null;
+  for (const url of OVERPASS_URLS) {
+    try {
+      const r = await Promise.race([
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `data=${encodeURIComponent(query)}`,
+        }),
+        timeoutPromise(FETCH_TIMEOUT_MS),
+      ]);
+      if (r.ok) { resp = r; break; }
+    } catch {
+      resp = null;
+    }
+  }
+  if (!resp) throw new Error("Overpass API unavailable");
+
+  const json = (await Promise.race([
+    resp.json(),
+    timeoutPromise(10_000),
+  ])) as { elements: OsmOverpassNode[] };
+  const collection = elementsToCollection(json.elements);
   await setCached(key, collection);
   return collection;
 }
-
-// ─── Helper functions ─────────────────────────────────────────────────────────
 
 export function osmFeatureDisplayName(f: OsmFeature): string {
   const p = f.properties;
