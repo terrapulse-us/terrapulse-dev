@@ -1,0 +1,151 @@
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{StartingSurface#ActivityRecord{254470197 u0 
+com.terrapulse.app/.MainActivity t7443}#120084 z=2147483647} no children}] reparent to OffscreenRoot
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{StartingSurface#ActivityRecord{254470197 u0 
+com.terrapulse.app/.MainActivity t7443}#120084 z=2147483647} no children}] RelativeParent to null
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{fb9d0f7 Splash Screen com.terrapulse.app#120087 z=30000} 1 
+children}] reparent to OffscreenRoot
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{fb9d0f7 Splash Screen com.terrapulse.app#120087 z=30000} 1 
+children}] RelativeParent to null
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{VRI-Splash Screen com.terrapulse.app$_6921#120090} no children}] 
+reparent to OffscreenRoot
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{VRI-Splash Screen com.terrapulse.app$_6921#120090} no children}] 
+RelativeParent to null
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{Surface(name=fb9d0f7 Splash Screen 
+com.terrapulse.app#120087)/@0xcb4d7d4 - animation-leash of starting_reveal#120098} no children}] reparent to OffscreenRoot
+06-30 20:42:09.745  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{Surface(name=fb9d0f7 Splash Screen 
+com.terrapulse.app#120087)/@0xcb4d7d4 - animation-leash of starting_reveal#120098} no children}] RelativeParent to null
+06-30 20:42:09.745  3084  5460 I SurfaceFlinger: id=120087 Removed fb9d0f7 Splash Screen com.terrapulse.app#120087 (314)
+06-30 20:42:09.745  3084  5460 I SurfaceFlinger: id=120098 Removed Surface(name=fb9d0f7 Splash Screen com.terrapulse.app#120087)/@0xcb4d7d4 - 
+animation-leash of starting_reveal#120098 (314)
+06-30 20:42:09.745  3084  3176 I SurfaceFlinger: id=120090 Removed VRI-Splash Screen com.terrapulse.app$_6921#120090 (314)
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: destroyed fb9d0f7 Splash Screen com.terrapulse.app#120087 form LifecycleManager
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: destroyed Surface(name=fb9d0f7 Splash Screen com.terrapulse.app#120087)/@0xcb4d7d4 - animation-leash 
+of starting_reveal#120098 form LifecycleManager
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: destroyed VRI-Splash Screen com.terrapulse.app$_6921#120090 form LifecycleManager
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120087 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{fb9d0f7 Splash Screen 
+com.terrapulse.app#120087 !handle z=30000})
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120098 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{Surface(name=fb9d0f7 Splash 
+Screen com.terrapulse.app#120087)/@0xcb4d7d4 - animation-leash of starting_reveal#120098 !handle})
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120090 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{VRI-Splash Screen 
+com.terrapulse.app$_6921#120090 !handle})
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120087 Destroyed fb9d0f7 Splash Screen com.terrapulse.app#120087
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120098 Destroyed Surface(name=fb9d0f7 Splash Screen com.terrapulse.app#120087)/@0xcb4d7d4 - 
+animation-leash of starting_reveal#120098
+06-30 20:42:09.753  3084  3084 I SurfaceFlinger: id=120090 Destroyed VRI-Splash Screen com.terrapulse.app$_6921#120090
+06-30 20:42:10.123  4113  7241 V WindowManager:    ChangeInfo{6fa4e46 container=Task{7af363b #7443 type=standard A=10511:com.terrapulse.app} 
+flags=0x230}
+06-30 20:42:10.123  4113  7241 V WindowManager:    ChangeInfo{9fee01e container=ActivityRecord{254470197 u0 com.terrapulse.app/.MainActivity t7443} 
+flags=0x0}
+06-30 20:42:10.124  4113  7241 D PersonaActivityHelper: token.toString()  Token{4c24158 ActivityRecord{254470197 u0 com.terrapulse.app/.MainActivity 
+t7443}}
+06-30 20:42:10.131  3084  3084 D SurfaceFlinger:        DEVICE |          107588930764802 | 00002102 | RGBA_8888    |    0.0    0.0 1440.0 3120.0 |    
+0    0 1440 3120 | VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_25050#120095 (54)
+06-30 20:42:10.141  4113  4394 D SGM:FgCheckThread: getForegroundApp(), foregroundPkgName=com.terrapulse.app
+06-30 20:42:10.142  4113  4392 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.142  4113  4392 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.142  4113  4392 D SGM:GameManager: identifyForegroundApp. com.terrapulse.app, mCurrentUserId: 0, callerUserId: 0
+06-30 20:42:10.142  4113  4392 D SGM:GameManager: identifyForegroundApp. com.terrapulse.app, mCurrentUserId: 0, callerUserId: 0
+06-30 20:42:10.142  4113  7241 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.142  4113 11004 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.143  4113  7241 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.193  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.229  4113  4394 D SGM:GameManager: identifyForegroundApp. com.terrapulse.app, mCurrentUserId: 0, callerUserId: 0
+06-30 20:42:10.272  4113  6563 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.273  4113  6563 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.273  4113  6563 D MdnieScenarioControlService:  packageName : com.terrapulse.app    className : com.terrapulse.app.MainActivity
+06-30 20:42:10.335  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:10.694  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:11.194  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:11.340  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:11.403  4113  4165 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:11.404  4113  4165 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.IGameManagerService$Stub.onTransact(IGameManagerService.java:242)
+06-30 20:42:11.695  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:11.904  4113  4165 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.198  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.345  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.405  4113  4165 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.491  3084  3084 I SurfaceFlinger: [VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_25050#120095] setFrameRateCategory: 
+NoPreference
+06-30 20:42:12.492  3084  3084 I SurfaceFlinger: VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_25050#120095 voted ExplicitCategory with 
+category: NoPreference
+06-30 20:42:12.674  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.674  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:12.674  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:12.696  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:12.907  4113  7046 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:13.196  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:13.351  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:13.408  4113  4165 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:13.696  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:14.199  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:14.358  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:14.698  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:14.945 25050 25155 D ProfileInstaller: Skipping profile installation for com.terrapulse.app
+06-30 20:42:14.986  3084  4024 I SurfaceFlinger: Capture layer list:     
+VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_25050#120095(preserveDisplayColors:0)
+06-30 20:42:14.987  3084  3210 D RenderEngine: Rendering layer VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_25050#120095 at index 1
+06-30 20:42:15.199  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:15.365  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:15.700  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:15.708  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:15.708  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:15.708  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:16.201  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:16.372  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:16.702  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:17.201  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:17.378  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:17.701  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:18.204  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:18.385  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:18.702  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:18.740  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:18.740  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:18.740  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:19.202  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:19.391  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:19.702  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:20.203  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:20.398  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:20.703  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:21.203  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:21.404  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:21.705  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:21.772  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:21.772  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:21.772  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:22.205  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:22.410  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:22.705  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:23.207  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:23.417  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:23.707  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:24.208  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:24.425  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:24.708  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:24.795  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:24.795  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:24.795  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:25.209  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:25.432  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:25.710  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:26.211  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:26.438  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:26.711  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:27.212  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:27.445  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:27.712  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:27.822  4113  6663 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:27.822  4113  6663 D SGM:GameManager: identifyGamePackage. com.terrapulse.app, mCurrentUserId: 0, callingMethodInfo: 
+com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:106)
+06-30 20:42:27.822  4113  6663 D SGM:SemGameManager: isGamePackage(), pkgName=com.terrapulse.app, ret=false
+06-30 20:42:28.212  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:28.451  4113  6677 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:28.713  4113  6626 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:42:29.213  4113  6626 W PackageConfigPersister: App-specific configuratio
