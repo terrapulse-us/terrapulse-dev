@@ -1,0 +1,136 @@
+What would cause my eas update for android to not push OTA updates?
+
+When an EAS update fails to push exclusively on Android, it usually boils down to a silent configuration mismatch between what you ran in your terminal and how the native Android binary (.apk or .aab) was compiled.
+
+Because EAS requires an exact cryptographic match between the binary's properties and the update properties, any slight deviation causes Android to reject the OTA.
+
+The most common reasons why this happens on Android—and how to fix them—include:
+
+1. The runtimeVersion Mismatch (Most Common)
+For an update to land, the runtimeVersion of your update must exactly match the runtimeVersion baked into your Android app binary.
+
+The Trap: If you use { "runtimeVersion": { "policy": "appVersion" } } in your app.json, and you incremented the version number in app.json after creating your last native build, your new updates will target a future version. Your current users on the older build will never see it.
+
+The AAB Bug: A known issue in modern Expo versions causes runtimeVersion to sometimes fail to sync correctly inside Google Play .aab production builds, even when it works fine on an .apk.
+
+The Fix: Check your Expo EAS Dashboard. Look at the specific build your phone is running, check its exact runtimeVersion string, and verify it perfectly matches the runtimeVersion listed under your latest update. If they don't match, you must pass the explicit runtime flag when pushing the update:
+
+Bash
+eas update --channel production --runtime-version <exact-version-string-from-dashboard>
+2. Channel to Branch Mapping Confusion
+When you run eas update --channel production, Expo looks at the channel named production and checks which branch it is linked to.
+
+The Trap: By default, the production channel points to the production branch. However, if the channel mapping was accidentally changed or unlinked, the update is going to a branch that your native binary isn't listening to.
+
+The Fix: Run this command in your terminal to verify where your channel is pointing:
+
+Bash
+eas channel:list
+If your channel isn't pointed to the correct branch, link them back up:
+
+Bash
+eas channel:edit production --branch production
+3. Testing with a "Development" Build
+The Trap: If you are testing your OTA updates using a development build (npx expo start), OTA updates are intentionally bypassed.
+
+The Fix: Development builds pull JavaScript directly from your local Metro bundler instead of looking at Expo’s cloud update servers. To test an OTA update, you must use a Preview or Production build profile (like a release APK or a TestFlight/Google Play Internal Track build).
+
+4. Failing the "Double Force-Close" Rule
+Unlike web updates, Expo updates on Android download silently in the background by default so they don't interrupt the user experience.
+
+The Trap: Opening the app once won't show the update.
+
+The Fix:
+
+Open the app from a completely closed (killed) state. (This triggers the background download).
+
+Wait about 10–15 seconds for the download to finish.
+
+Force-close/kill the app completely from your phone's recent apps switcher.
+
+Open the app a second time. The update should now be applied.
+
+5. Modifying Native Code (The OTA Boundary)
+The Trap: Did you add a new native package (like a camera, biometrics, or geolocation plugin) or edit your app.json permissions before hitting eas update?
+
+The Fix: EAS Update cannot inject native code changes or modify the AndroidManifest.xml over the air. If you added any packages that require native setup, the update will either fail silently or crash the app on launch, causing Expo to safely roll back to the last working version. You will need to run a full eas build and update the app binary itself.
+
+How to Diagnose It Quickly
+Go to your Expo Dashboard online, click on Channels, and select your target channel. Expo will show you an interactive deployment map indicating exactly which builds match your latest updates. If you see an orange warning icon or zero matching devices, it will tell you if the blocker is a mismatched channel or runtime version.
+
+The update push doesn't crash, the app just never gets it
+
+If the app isn't crashing and just completely ignores the update, it almost always means the app's native code is looking at one specific door, and your update is knocking on a completely different one. Because it doesn't match, the app's built-in update manager completely filters it out as irrelevant.
+
+Since it's happening strictly on Android, let's run through the precise checklist to figure out where the disconnect is happening.
+
+1. Run the runtimeVersion Diagnostic (Most Likely Culprit)
+EAS updates are strictly gated by the runtimeVersion. If the string doesn't match down to the character, the Android app will act like the update doesn't exist.
+
+Open your terminal and run:
+
+Bash
+eas update:list
+Find your latest Android update and look at the Runtime Version column. (It might look like 1.0.0, or a long hash if you use fingerprints).
+
+Now, look at the actual build running on your phone. If you don't know its exact runtime version, check your Expo Dashboard under Builds, click your latest Android build, and look at its metadata.
+
+Do they match exactly? * Note: If your app.json uses {"policy": "appVersion"} and you changed the version or versionCode in your code after making that native build, the update is targeting a version that doesn't exist on your phone yet.
+
+2. Check the updates Configuration in app.json
+Sometimes the Android native configuration doesn't get properly injected, or the update module is explicitly turned off for certain build profiles.
+
+Open your app.json and ensure your updates block looks like this:
+
+JSON
+{
+  "expo": {
+    "name": "Your App",
+    "slug": "your-app-slug",
+    "updates": {
+      "url": "https://u.expo.dev/YOUR-PROJECT-ID-HERE",
+      "enabled": true,
+      "fallbackToCacheTimeout": 30000
+    }
+  }
+}
+enabled: If this is missing or set to false in your production build profile, Android completely disables the OTA listener.
+
+fallbackToCacheTimeout: Set this to 30000 (30 seconds). If this is set to 0, the app will never wait for an update on launch; it will always load the cached version and check in the background for the next time you open it.
+
+3. Verify the eas.json Profile Settings
+Check how your build profile is configured in eas.json. If you built an APK using a profile that wasn't explicitly tied to a channel, it defaults to ignoring updates.
+
+Ensure your build profile looks like this:
+
+JSON
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview"
+    },
+    "production": {
+      "channel": "production"
+    }
+  }
+}
+If you built the app using a command like eas build --profile preview, but your update was sent to eas update --channel production, the preview APK on your phone is listening to the preview channel and will completely ignore the production update.
+
+4. Clear the App Cache Logically
+Android is notorious for aggressively caching old JS bundles if the update handshake fails even once.
+
+Force close the app.
+
+Go to your Android phone's Settings > Apps > [Your App] > Storage.
+
+Clear Cache (do not clear Data, just Cache).
+
+Ensure you are on a strong Wi-Fi connection, open the app, wait 15 seconds, force close it again, and reopen it.
+
+How to trace it live
+If you want to see exactly why it's ignoring it, plug your Android phone into your computer via USB, open your terminal, and run:
+
+Bash
+npx expo log-android
+Filter the logs for keywords like ExpoUpdates. If the app is checking the server and rejecting the update, you'll see a native log line saying something like: No updates available for runtime version X or Database expected runtime Y but got Z. That log will pinpoint the exact string mismatch instantly.
