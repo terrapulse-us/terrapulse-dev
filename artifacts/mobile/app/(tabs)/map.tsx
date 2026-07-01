@@ -1067,7 +1067,9 @@ export default function MapScreen() {
           trackUserLocation={followUser ? "course" : undefined}
         />
 
-        <UserLocation />
+        <UserLocation>
+          <View style={styles.userLocationDot} />
+        </UserLocation>
 
         {filteredTrails.map((trail) => (
           <Marker
@@ -2269,6 +2271,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     fontStyle: "italic",
   },
+  userLocationDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: "#33B5E5", borderWidth: 2.5, borderColor: "#fff" },
   userTrailMarker: {
     width: 14,
     height: 14,

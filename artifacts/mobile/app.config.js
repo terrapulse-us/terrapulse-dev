@@ -23,7 +23,7 @@ module.exports = () => ({
       backgroundColor: "#EBE4D1",
     },
     ios: {
-      supportsTablet: false,
+      supportsTablet: true,
       bundleIdentifier: "com.terrapulse.app",
       buildNumber: String(Math.floor(Date.now() / 1000)),
       appleTeamId: "TN4GRQ3Y6V",
