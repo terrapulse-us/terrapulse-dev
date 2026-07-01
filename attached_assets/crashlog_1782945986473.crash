@@ -1,0 +1,440 @@
+Incident Identifier: 33E7955E-607C-44D5-9462-CAA2EEF7AA7F
+Hardware Model:      iPad6,7
+Process:             TerraPulse [2017]
+Path:                /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/TerraPulse
+Identifier:          com.terrapulse.app
+Version:             1.0.22 (1782943562)
+AppStoreTools:       17F106
+AppVariant:          1:iPad6,7:16
+Beta:                YES
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+Coalition:           com.terrapulse.app [682]
+
+Date/Time:           2026-07-01 15:45:25.7114 -0700
+Launch Time:         2026-07-01 15:36:41.1433 -0700
+OS Version:          iPhone OS 16.7.16 (20H392)
+Release Type:        User
+Report Version:      104
+
+Exception Type:  EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Termination Reason: SIGNAL 6 Abort trap: 6
+Terminating Process: TerraPulse [2017]
+
+Triggered by Thread:  0
+
+Last Exception Backtrace:
+0   CoreFoundation                	0x1bbe0940c __exceptionPreprocess + 160 (NSException.m:202)
+1   libobjc.A.dylib               	0x1b5165c28 objc_exception_throw + 56 (objc-exception.mm:356)
+2   CoreFoundation                	0x1bbf6a400 -[NSObject(NSObject) doesNotRecognizeSelector:] + 132 (NSObject.m:140)
+3   CoreFoundation                	0x1bbe1e8b8 ___forwarding___ + 1340 (NSForwarding.m:3590)
+4   CoreFoundation                	0x1bbe808fc _CF_forwarding_prep_0 + 92 (:-1)
+5   MapLibre                      	0x102094270 MLNStyleValueTransformer<mbgl::Color, UIColor* __strong, mbgl::Color, UIColor* __strong>::getMBGLValue(UIColor*, mbgl::Color&) + 4 (MLNStyleValue_Private.h:93)
+6   MapLibre                      	0x102094270 std::__1::enable_if<!std::is_same<mbgl::style::PropertyValue<mbgl::Color>, mbgl::style::ColorRampPropertyValue>::value, mbgl::style::PropertyValue<mbgl::Color>>::type MLNStyleValueTransformer<mbgl:... + 180
+7   MapLibre                      	0x10209788c -[MLNCircleStyleLayer setCircleColor:] + 112 (MLNCircleStyleLayer.mm:153)
+8   TerraPulse                    	0x1007bc2fc 0x100500000 + 2867964
+9   TerraPulse                    	0x1007b837c 0x100500000 + 2851708
+10  TerraPulse                    	0x100795348 0x100500000 + 2708296
+11  TerraPulse                    	0x100794f8c 0x100500000 + 2707340
+12  TerraPulse                    	0x1007b4f34 0x100500000 + 2838324
+13  TerraPulse                    	0x10078b414 0x100500000 + 2667540
+14  TerraPulse                    	0x1007b4d40 0x100500000 + 2837824
+15  TerraPulse                    	0x10079a024 0x100500000 + 2727972
+16  TerraPulse                    	0x1007a0610 0x100500000 + 2754064
+17  React                         	0x101134d3c RCTPerformMountInstructions(std::__1::vector<facebook::react::ShadowViewMutation, std::__1::allocator<facebook::react::ShadowViewMutation>> const&, RCTComponentViewRegistry*, RCTMountingTransaction... + 644 (RCTMountingManager.mm:89)
+18  React                         	0x101134d3c -[RCTMountingManager performTransaction:]::$_1::operator()(facebook::react::MountingTransaction const&, facebook::react::SurfaceTelemetry const&) const + 680 (RCTMountingManager.mm:264)
+19  React                         	0x101134d3c decltype(std::declval<-[RCTMountingManager performTransaction:]::$_1&>()(std::declval<facebook::react::MountingTransaction const&>(), std::declval<facebook::react::SurfaceTelemetry const&>())) std:... + 680 (invoke.h:344)
+20  React                         	0x101134d3c void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne180100]<-[RCTMountingManager performTransaction:]::$_1&, facebook::react::MountingTransaction const&, facebook::react::SurfaceT... + 680 (invoke.h:419)
+21  React                         	0x101134d3c std::__1::__function::__alloc_func<-[RCTMountingManager performTransaction:]::$_1, std::__1::allocator<-[RCTMountingManager performTransaction:]::$_1>, void (facebook::react::MountingTransaction co... + 680 (function.h:169)
+22  React                         	0x101134d3c std::__1::__function::__func<-[RCTMountingManager performTransaction:]::$_1, std::__1::allocator<-[RCTMountingManager performTransaction:]::$_1>, void (facebook::react::MountingTransaction const&, ... + 716 (function.h:311)
+23  React                         	0x1010c8454 std::__1::__function::__value_func<void (facebook::react::MountingTransaction const&, facebook::react::SurfaceTelemetry const&)>::operator()[abi:ne180100](facebook::react::MountingTransaction const... + 28 (function.h:428)
+24  React                         	0x1010c8454 std::__1::function<void (facebook::react::MountingTransaction const&, facebook::react::SurfaceTelemetry const&)>::operator()(facebook::react::MountingTransaction const&, facebook::react::SurfaceTel... + 28 (function.h:981)
+25  React                         	0x1010c8454 facebook::react::TelemetryController::pullTransaction(std::__1::function<void (facebook::react::MountingTransaction const&, facebook::react::SurfaceTelemetry const&)> const&, std::__1::function<voi... + 380 (TelemetryController.cpp:39)
+26  React                         	0x1011338c4 -[RCTMountingManager performTransaction:] + 216 (RCTMountingManager.mm:258)
+27  React                         	0x1011337ac -[RCTMountingManager initiateTransaction:] + 132 (RCTMountingManager.mm:246)
+28  libdispatch.dylib             	0x1c2baf7a8 _dispatch_call_block_and_release + 24 (init.c:1518)
+29  libdispatch.dylib             	0x1c2bb0780 _dispatch_client_callout + 16 (object.m:560)
+30  libdispatch.dylib             	0x1c2b5cbdc _dispatch_main_queue_drain + 928 (queue.c:7794)
+31  libdispatch.dylib             	0x1c2b5c82c _dispatch_main_queue_callback_4CF$VARIANT$mp + 36 (queue.c:7954)
+32  CoreFoundation                	0x1bbe919ac __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12 (CFRunLoop.c:1780)
+33  CoreFoundation                	0x1bbe75648 __CFRunLoopRun + 2080 (CFRunLoop.c:3147)
+34  CoreFoundation                	0x1bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+35  GraphicsServices              	0x1f3691998 GSEventRunModal + 160 (GSEvent.c:2196)
+36  UIKitCore                     	0x1be10c34c -[UIApplication _run] + 868 (UIApplication.m:3782)
+37  UIKitCore                     	0x1be10bfc4 UIApplicationMain + 312 (UIApplication.m:5372)
+38  TerraPulse                    	0x100505620 0x100500000 + 22048
+39  dyld                          	0x1d962c344 start + 1860 (dyldMain.cpp:1165)
+
+Thread 0 name:
+Thread 0 Crashed:
+0   libsystem_kernel.dylib        	0x00000001f6d73198 __pthread_kill + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062465f8 pthread_kill + 208 (pthread.c:1670)
+2   libsystem_c.dylib             	0x00000001c2c704b8 abort + 124 (abort.c:118)
+3   libc++abi.dylib               	0x000000020617ef54 abort_message + 128 (:-1)
+4   libc++abi.dylib               	0x000000020616fa4c demangling_terminate_handler() + 300 (:-1)
+5   libobjc.A.dylib               	0x00000001b516aafc _objc_terminate() + 124 (objc-exception.mm:498)
+6   libc++abi.dylib               	0x000000020617e424 std::__terminate(void (*)()) + 12 (:-1)
+7   libc++abi.dylib               	0x000000020617e3d4 std::terminate() + 52 (:-1)
+8   libdispatch.dylib             	0x00000001c2bb0794 _dispatch_client_callout + 36 (object.m:563)
+9   libdispatch.dylib             	0x00000001c2b5cbdc _dispatch_main_queue_drain + 928 (queue.c:7794)
+10  libdispatch.dylib             	0x00000001c2b5c82c _dispatch_main_queue_callback_4CF$VARIANT$mp + 36 (queue.c:7954)
+11  CoreFoundation                	0x00000001bbe919ac __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12 (CFRunLoop.c:1780)
+12  CoreFoundation                	0x00000001bbe75648 __CFRunLoopRun + 2080 (CFRunLoop.c:3147)
+13  CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+14  GraphicsServices              	0x00000001f3691998 GSEventRunModal + 160 (GSEvent.c:2196)
+15  UIKitCore                     	0x00000001be10c34c -[UIApplication _run] + 868 (UIApplication.m:3782)
+16  UIKitCore                     	0x00000001be10bfc4 UIApplicationMain + 312 (UIApplication.m:5372)
+17  TerraPulse                    	0x0000000100505620 0x100500000 + 22048
+18  dyld                          	0x00000001d962c344 start + 1860 (dyldMain.cpp:1165)
+
+Thread 1 name:
+Thread 1:
+0   libsystem_kernel.dylib        	0x00000001f6d6d704 __bsdthread_ctl + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000020623aec8 _pthread_set_properties_self + 116 (qos.c:294)
+2   libdispatch.dylib             	0x00000001c2b519c4 _dispatch_set_priority_and_mach_voucher_slow$VARIANT$mp + 200 (queue.c:183)
+3   libdispatch.dylib             	0x00000001c2b51b64 _dispatch_set_priority_and_voucher_slow$VARIANT$mp + 208 (queue.c:209)
+4   libdispatch.dylib             	0x00000001c2b52800 _dispatch_continuation_pop$VARIANT$mp + 640 (queue.c:306)
+5   libdispatch.dylib             	0x00000001c2b647ac _dispatch_source_invoke$VARIANT$mp + 1660 (source.c:961)
+6   libdispatch.dylib             	0x00000001c2b57f14 _dispatch_workloop_invoke$VARIANT$mp + 1684 (queue.c:4485)
+7   libdispatch.dylib             	0x00000001c2b60dc8 _dispatch_workloop_worker_thread + 632 (queue.c:6507)
+8   libsystem_pthread.dylib       	0x000000020623abd0 _pthread_wqthread + 284 (pthread.c:2618)
+9   libsystem_pthread.dylib       	0x000000020623a720 start_wqthread + 8 (:-1)
+
+Thread 2:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 3 name:
+Thread 3:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   Foundation                    	0x00000001b6248ef8 -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 208 (NSRunLoop.m:373)
+8   Foundation                    	0x00000001b6248df4 -[NSRunLoop(NSRunLoop) runUntilDate:] + 60 (NSRunLoop.m:420)
+9   UIKitCore                     	0x00000001be22e818 -[UIEventFetcher threadMain] + 404 (UIEventFetcher.m:1376)
+10  Foundation                    	0x00000001b6260a5c __NSThread__start__ + 704 (NSThread.m:963)
+11  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+12  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 4:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 5:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 6 name:
+Thread 6:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   React                         	0x00000001011c4f14 +[RCTJSThreadManager runRunLoop] + 252 (RCTJSThreadManager.mm:102)
+8   Foundation                    	0x00000001b6260a5c __NSThread__start__ + 704 (NSThread.m:963)
+9   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+10  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 7 name:
+Thread 7:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   hermes                        	0x0000000101c5b9c4 void std::__1::condition_variable::wait<hermes::vm::HadesGC::Executor::worker()::'lambda'()>(std::__1::unique_lock<std::__1::mutex>&, hermes::vm::HadesGC::Executor::worker()::'lambda'()) + 28 (condition_variable.h:146)
+4   hermes                        	0x0000000101c5b9c4 hermes::vm::HadesGC::Executor::worker() + 116 (HadesGC.cpp:1062)
+5   hermes                        	0x0000000101c5b92c hermes::vm::HadesGC::Executor::Executor()::'lambda'()::operator()() const + 4 (HadesGC.cpp:1033)
+6   hermes                        	0x0000000101c5b92c decltype(std::declval<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>()()) std::__1::__invoke[abi:nn180100]<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>(hermes::vm::HadesGC::Execut... + 4 (invoke.h:344)
+7   hermes                        	0x0000000101c5b92c void std::__1::__thread_execute[abi:nn180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Executor()::'lambd... + 4 (thread.h:199)
+8   hermes                        	0x0000000101c5b92c void* std::__1::__thread_proxy[abi:nn180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exe... + 44 (thread.h:208)
+9   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+10  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 8 name:
+Thread 8:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   JavaScriptCore                	0x00000001ce35c2b8 0x1ce252000 + 1090232
+3   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+4   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 9 name:
+Thread 9:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CFNetwork                     	0x00000001bcff9510 +[__CFN_CoreSchedulingSetRunnable _run:] + 344 (CoreSchedulingSet.mm:1562)
+8   Foundation                    	0x00000001b6260a5c __NSThread__start__ + 704 (NSThread.m:963)
+9   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+10  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 10:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 11 name:
+Thread 11:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x000000010210dde8 mbgl::util::Thread<mbgl::AssetFileSource::Impl>::Thread<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>(std::__1::function<void ()>, std::__1::basic_string<char, std::__1::char_traits<... + 208 (thread.hpp:66)
+9   MapLibre                      	0x000000010210dbb4 decltype(std::declval<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>()()) std::__1::__invoke[abi:ue170006]<mbgl::util::Thread<mbgl::AssetFileSource::Impl>::Thread<std::__1::tuple<mbgl... + 4 (thread.h:238)
+10  MapLibre                      	0x000000010210dbb4 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::AssetFileSource::Impl>::... + 8 (:-1)
+11  MapLibre                      	0x000000010210dbb4 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::AssetFile... + 52 (:-1)
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 12 name:
+Thread 12:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x00000001021492b4 mbgl::util::Thread<mbgl::OnlineFileSourceThread>::Thread<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>(std::__1::function<void ()>, std::__1::basic_string<char, std::__1::char_traits... + 160 (thread.hpp:66)
+9   MapLibre                      	0x00000001021490b0 decltype(std::declval<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>()()) std::__1::__invoke[abi:ue170006]<mbgl::util::Thread<mbgl::OnlineFileSourceThread>::Thread<std::__1::tuple<mbg... + 4 (thread.h:238)
+10  MapLibre                      	0x00000001021490b0 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::OnlineFileSourceThread>:... + 8 (:-1)
+11  MapLibre                      	0x00000001021490b0 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::OnlineFil... + 52 (:-1)
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 13 name:
+Thread 13:
+0   libsystem_kernel.dylib        	0x00000001f6d6ee4c fsync + 8 (:-1)
+1   libsqlite3.dylib              	0x00000001de8a0aec unixSync + 208 (sqlite3.c:42244)
+2   libsqlite3.dylib              	0x00000001de8a90c8 syncJournal + 492 (sqlite3.c:65588)
+3   libsqlite3.dylib              	0x00000001de8a0680 sqlite3PagerCommitPhaseOne + 388 (sqlite3.c:67879)
+4   libsqlite3.dylib              	0x00000001de891690 sqlite3BtreeCommitPhaseOne + 168 (sqlite3.c:78021)
+5   libsqlite3.dylib              	0x00000001de891164 vdbeCommit + 684 (sqlite3.c:90610)
+6   libsqlite3.dylib              	0x00000001de869c98 sqlite3VdbeHalt + 1316 (sqlite3.c:91020)
+7   libsqlite3.dylib              	0x00000001de88b8a8 sqlite3VdbeExec + 42780 (sqlite3.c:97087)
+8   libsqlite3.dylib              	0x00000001de88071c sqlite3_step + 980 (sqlite3.c:94140)
+9   MapLibre                      	0x000000010215a59c mapbox::sqlite::Query::run() + 36 (sqlite3.cpp:354)
+10  MapLibre                      	0x0000000102135d54 mbgl::OfflineDatabase::getResource(mbgl::Resource const&) + 120 (offline_database.cpp:358)
+11  MapLibre                      	0x00000001021354e4 mbgl::OfflineDatabase::getInternal(mbgl::Resource const&) + 48 (offline_database.cpp:252)
+12  MapLibre                      	0x00000001021354e4 mbgl::OfflineDatabase::get(mbgl::Resource const&) + 88 (:-1)
+13  MapLibre                      	0x000000010210f9f0 mbgl::DatabaseFileSourceThread::request(mbgl::Resource const&, mbgl::ActorRef<mbgl::FileSourceRequest> const&) + 176 (database_file_source.cpp:27)
+14  MapLibre                      	0x0000000102165b84 mbgl::Mailbox::receive() + 300 (mailbox.cpp:145)
+15  MapLibre                      	0x00000001021667d4 mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mbgl::util::SimpleIdentity> const&)::$_2::operator()() const + 32 (function.h:364)
+16  MapLibre                      	0x00000001021667d4 decltype(std::declval<mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mbgl::util::SimpleIdentity> const&)::$_2&>()()) std::__1::__invoke[abi:ue170006]<mbgl::Mailbox::scheduleToRecieve(std::__1:... + 32
+17  MapLibre                      	0x00000001021667d4 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ue170006]<mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mbgl::util::SimpleIdentity> const&)::$_2&>(mbgl::Mailbox::scheduleT... + 32
+18  MapLibre                      	0x00000001021667d4 std::__1::__function::__alloc_func<mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mbgl::util::SimpleIdentity> const&)::$_2, std::__1::allocator<mbgl::Mailbox::scheduleToRecieve(std::__1::optio... + 32
+19  MapLibre                      	0x00000001021667d4 std::__1::__function::__func<mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mbgl::util::SimpleIdentity> const&)::$_2, std::__1::allocator<mbgl::Mailbox::scheduleToRecieve(std::__1::optional<mb... + 48
+20  MapLibre                      	0x000000010215fa84 std::__1::__function::__value_func<void ()>::operator()[abi:ue170006]() const + 20 (work_task_impl.hpp:25)
+21  MapLibre                      	0x000000010215fa84 std::__1::function<void ()>::operator()() const + 20
+22  MapLibre                      	0x000000010215fa84 void mbgl::WorkTaskImpl<std::__1::function<void ()>, std::__1::tuple<>>::invoke<>(std::__1::integer_sequence<unsigned long>) + 20
+23  MapLibre                      	0x000000010215fa84 mbgl::WorkTaskImpl<std::__1::function<void ()>, std::__1::tuple<>>::operator()() + 60
+24  MapLibre                      	0x000000010215ee44 mbgl::util::RunLoop::process() + 184 (run_loop.hpp:132)
+25  CoreFoundation                	0x00000001bbec90e8 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 24 (CFRunLoop.c:1957)
+26  CoreFoundation                	0x00000001bbed4d5c __CFRunLoopDoSource0 + 172 (CFRunLoop.c:2001)
+27  CoreFoundation                	0x00000001bbe5ffc4 __CFRunLoopDoSources0 + 232 (CFRunLoop.c:2038)
+28  CoreFoundation                	0x00000001bbe75138 __CFRunLoopRun + 784 (CFRunLoop.c:2953)
+29  CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+30  CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+31  MapLibre                      	0x0000000102114928 mbgl::util::Thread<mbgl::DatabaseFileSourceThread>::Thread<std::__1::tuple<std::__1::shared_ptr<mbgl::FileSource>, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char... + 144 (thread.hpp:66)
+32  MapLibre                      	0x000000010211470c decltype(std::declval<std::__1::tuple<std::__1::shared_ptr<mbgl::FileSource>, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>>>()()) std::__1::__invoke[abi:ue17... + 4 (thread.h:238)
+33  MapLibre                      	0x000000010211470c void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::DatabaseFileSourceThread... + 8 (:-1)
+34  MapLibre                      	0x000000010211470c void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::DatabaseF... + 52 (:-1)
+35  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+36  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 14 name:
+Thread 14:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x000000010211c180 mbgl::util::Thread<mbgl::LocalFileSource::Impl>::Thread<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>(std::__1::function<void ()>, std::__1::basic_string<char, std::__1::char_traits<... + 160 (thread.hpp:66)
+9   MapLibre                      	0x000000010211bf7c decltype(std::declval<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>()()) std::__1::__invoke[abi:ue170006]<mbgl::util::Thread<mbgl::LocalFileSource::Impl>::Thread<std::__1::tuple<mbgl... + 4 (thread.h:238)
+10  MapLibre                      	0x000000010211bf7c void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::LocalFileSource::Impl>::... + 8 (:-1)
+11  MapLibre                      	0x000000010211bf7c void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::LocalFile... + 52 (:-1)
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 15 name:
+Thread 15:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x000000010212df70 mbgl::util::Thread<mbgl::MBTilesFileSource::Impl>::Thread<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>(std::__1::function<void ()>, std::__1::basic_string<char, std::__1::char_trait... + 208 (thread.hpp:66)
+9   MapLibre                      	0x000000010212dd3c decltype(std::declval<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>()()) std::__1::__invoke[abi:ue170006]<mbgl::util::Thread<mbgl::MBTilesFileSource::Impl>::Thread<std::__1::tuple<mb... + 4 (thread.h:238)
+10  MapLibre                      	0x000000010212dd3c void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::MBTilesFileSource::Impl>... + 8 (:-1)
+11  MapLibre                      	0x000000010212dd3c void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::MBTilesFi... + 52 (:-1)
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 16 name:
+Thread 16:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x0000000102158314 mbgl::util::Thread<mbgl::PMTilesFileSource::Impl>::Thread<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>(std::__1::function<void ()>, std::__1::basic_string<char, std::__1::char_trait... + 212 (thread.hpp:66)
+9   MapLibre                      	0x00000001021580dc decltype(std::declval<std::__1::tuple<mbgl::ResourceOptions, mbgl::ClientOptions>>()()) std::__1::__invoke[abi:ue170006]<mbgl::util::Thread<mbgl::PMTilesFileSource::Impl>::Thread<std::__1::tuple<mb... + 4 (thread.h:238)
+10  MapLibre                      	0x00000001021580dc void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::PMTilesFileSource::Impl>... + 8
+11  MapLibre                      	0x00000001021580dc void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::PMTilesFi... + 52
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 17 name:
+Thread 17:
+0   libsystem_kernel.dylib        	0x00000001f6d6d030 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001f6d7eb18 mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001f6d7edb8 mach_msg_overwrite + 484 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001f6d6d524 mach_msg + 20 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001bbe74148 __CFRunLoopServiceMachPort + 156 (CFRunLoop.c:2622)
+5   CoreFoundation                	0x00000001bbe752e0 __CFRunLoopRun + 1208 (CFRunLoop.c:3005)
+6   CoreFoundation                	0x00000001bbe79d20 CFRunLoopRunSpecific + 584 (CFRunLoop.c:3418)
+7   CoreFoundation                	0x00000001bbeb8bec CFRunLoopRun + 60 (CFRunLoop.c:3444)
+8   MapLibre                      	0x00000001021221fc mbgl::util::Thread<mbgl::MainResourceLoaderThread>::Thread<std::__1::tuple<std::__1::shared_ptr<mbgl::FileSource>, std::__1::shared_ptr<mbgl::FileSource>, std::__1::shared_ptr<mbgl::FileSource>, st... + 216 (thread.hpp:66)
+9   MapLibre                      	0x0000000102121f90 decltype(std::declval<std::__1::tuple<std::__1::shared_ptr<mbgl::FileSource>, std::__1::shared_ptr<mbgl::FileSource>, std::__1::shared_ptr<mbgl::FileSource>, std::__1::shared_ptr<mbgl::FileSource>,... + 4 (thread.h:238)
+10  MapLibre                      	0x0000000102121f90 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::MainResourceLoaderThread... + 8 (:-1)
+11  MapLibre                      	0x0000000102121f90 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::util::Thread<mbgl::MainResou... + 52 (:-1)
+12  libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+13  libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 18:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 19:
+0   libsystem_pthread.dylib       	0x000000020623a718 start_wqthread + 0 (:-1)
+
+Thread 20 name:
+Thread 20:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 21 name:
+Thread 21:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 22 name:
+Thread 22:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 23 name:
+Thread 23:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 24 name:
+Thread 24:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+Thread 25 name:
+Thread 25:
+0   libsystem_kernel.dylib        	0x00000001f6d6d87c __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002062429ac _pthread_cond_wait$VARIANT$mp + 1236 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001c97244d8 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 24 (condition_variable.cpp:46)
+3   MapLibre                      	0x00000001024241f8 mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0::operator()() const + 360 (thread.h:238)
+4   MapLibre                      	0x00000001024241f8 decltype(std::declval<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_0>()()) std::__1::__invoke[abi:ue170006]<mbgl::ThreadedSchedulerBase::makeSchedulerThread(unsigned long)::$_... + 360 (:-1)
+5   MapLibre                      	0x00000001024241f8 void std::__1::__thread_execute[abi:ue170006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeSchedulerThread(... + 360 (:-1)
+6   MapLibre                      	0x00000001024241f8 void* std::__1::__thread_proxy[abi:ue170006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, mbgl::ThreadedSchedulerBase::makeS... + 440 (:-1)
+7   libsystem_pthread.dylib       	0x000000020623c0ec _pthread_start + 116 (pthread.c:893)
+8   libsystem_pthread.dylib       	0x000000020623a72c thread_start + 8 (:-1)
+
+
+Thread 0 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000000   x2: 0x0000000000000000   x3: 0x0000000000000000
+    x4: 0x00000002061824ff   x5: 0x000000016f8fe6e0   x6: 0x000000000000006e   x7: 0xfffffffffffffe15
+    x8: 0x0000000216a867c0   x9: 0x52bc50900c02ca08  x10: 0x0000000000000200  x11: 0x000000000000000b
+   x12: 0x000000000000000b  x13: 0x00000000001ff800  x14: 0x00000000000007fb  x15: 0x0000000000000001
+   x16: 0x0000000000000148  x17: 0x000000028269b300  x18: 0x0000000000000000  x19: 0x0000000000000006
+   x20: 0x0000000000000103  x21: 0x0000000216a868a0  x22: 0x0000000000000000  x23: 0x0000000000000000
+   x24: 0x0000000281dc2080  x25: 0x0000000216a868a0  x26: 0x000000000000000f  x27: 0x0000000000000114
+   x28: 0x0000000000000000   fp: 0x000000016f8fe650   lr: 0x00000002062465f8
+    sp: 0x000000016f8fe630   pc: 0x00000001f6d73198 cpsr: 0x40000000
+   esr: 0x56000080  Address size fault
+
+
+Binary Images:
+        0x100500000 -         0x100beffff TerraPulse arm64  <b96718bb1de73ca99e180edc7b96c2a0> /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/TerraPulse
+        0x100f24000 -         0x10135ffff React arm64  <76fbcee9351730b39dc662c4e914e908> /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/Frameworks/React.framework/React
+        0x101a34000 -         0x101abbfff ReactNativeDependencies arm64  <b35f1182b82e33728a74a4fe502c0906> /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/Frameworks/ReactNativeDependencies.framework/ReactNativeDependencies
+        0x101b8c000 -         0x101d8ffff hermes arm64  <80d5528f2c783b90b90f747e89a9f880> /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/Frameworks/hermes.framework/hermes
+        0x10202c000 -         0x1026dffff MapLibre arm64  <668273620d9f3e4a8503cb555c10e922> /private/var/containers/Bundle/Application/19746D9D-E6F6-419D-8F99-BBE9B6CCDC4A/TerraPulse.app/Frameworks/MapLibre.framework/MapLibre
+        0x1045b4000 -         0x1045bffff libobjc-trampolines.dylib arm64  <1ab75847bb2d36f9999a72dd61f86b85> /private/preboot/Cryptexes/OS/usr/lib/libobjc-trampolines.dylib
+        0x1b5150000 -         0x1b518ad7f libobjc.A.dylib arm64  <ed021f8f14a13308913023e1a30aaf4a> /usr/lib/libobjc.A.dylib
+        0x1b620a000 -         0x1b6a52fff Foundation arm64  <dce5e5872a0d34cf824523e1b12936a9> /System/Library/Frameworks/Foundation.framework/Foundation
+        0x1bbe00000 -         0x1bc1cefff CoreFoundation arm64  <55b9ba284c5c3fe79c474983337d6e83> /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+        0x1bcdd0000 -         0x1bd167fff CFNetwork arm64  <62f20f83c1423bc383c8ad47bfc9297f> /System/Library/Frameworks/CFNetwork.framework/CFNetwork
+        0x1bdd9b000 -         0x1bf4affff UIKitCore arm64  <1242978a2c2c37818d6c9777edce2804> /System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+        0x1c2b4c000 -         0x1c2bcffff libdispatch.dylib arm64  <b51e7cdbabc935afb8bb2dce23bc4d6e> /usr/lib/system/libdispatch.dylib
+        0x1c2c54000 -         0x1c2ccdfff libsystem_c.dylib arm64  <03790d8154d237b0ad532615960b3c22> /usr/lib/system/libsystem_c.dylib
+        0x1c9712000 -         0x1c9793fff libc++.1.dylib arm64  <07f1fd58739234ff8d56ae101ebc175a> /usr/lib/libc++.1.dylib
+        0x1ce252000 -         0x1cf73bfff JavaScriptCore arm64  <8697d5737afd3bbebbebc45817c0cb1e> /System/Library/Frameworks/JavaScriptCore.framework/JavaScriptCore
+        0x1d9618000 -         0x1d96948db dyld arm64  <199941a595ee30548e54ae6387a9fa9a> /usr/lib/dyld
+        0x1de855000 -         0x1de9b9fff libsqlite3.dylib arm64  <670209ffab2b378b97f5113a1cd41a14> /usr/lib/libsqlite3.dylib
+        0x1f3690000 -         0x1f3698fff GraphicsServices arm64  <bd39268bdd513b91a12da4a75a6e2308> /System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices
+        0x1f6d6c000 -         0x1f6da1ff7 libsystem_kernel.dylib arm64  <2e54c705197430d2b37181fd168f8d76> /usr/lib/system/libsystem_kernel.dylib
+        0x20616b000 -         0x206184fff libc++abi.dylib arm64  <1816eba1e14e393e9a1d0a0d45d846e9> /usr/lib/libc++abi.dylib
+        0x206239000 -         0x206249fff libsystem_pthread.dylib arm64  <78c98f1859853be3bc4bf2a3a34ae906> /usr/lib/system/libsystem_pthread.dylib
+
+EOF
