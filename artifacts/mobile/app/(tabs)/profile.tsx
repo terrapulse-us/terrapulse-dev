@@ -634,7 +634,7 @@ export default function ProfileScreen() {
               ]}
             >
               <View style={[styles.achIcon, { backgroundColor: ach.unlocked ? colors.accent : colors.border }]}>
-                <Feather name={ach.icon as keyof typeof Feather.glyphMap} size={18} color={ach.unlocked ? "#000" : "#555"} />
+                <Feather name={ach.icon as keyof typeof Feather.glyphMap} size={18} color={ach.unlocked ? "#fff" : "#555"} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.achTitle, { color: ach.unlocked ? colors.foreground : colors.mutedForeground }]}>
