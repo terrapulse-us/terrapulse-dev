@@ -43,18 +43,40 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  // Passive hook: reloads when native layer signals a downloaded update is ready
   useEffect(() => {
     if (isUpdatePending) {
       Updates.reloadAsync().catch(() => {});
     }
   }, [isUpdatePending]);
 
+  // Active fallback: explicitly check → download → reload so we don't rely solely
+  // on the native ON_LOAD pre-JS check (which silently no-ops if Updates.isEnabled
+  // is false at the native layer due to missing channel config in eas.json).
+  const [otaError, setOtaError] = React.useState<string | null>(null);
+  useEffect(() => {
+    if (!Updates.isEnabled) return;
+    Updates.checkForUpdateAsync()
+      .then(async ({ isAvailable }) => {
+        if (isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      })
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        setOtaError(msg.slice(0, 60));
+      });
+  }, []);
+
   if (!fontsLoaded && !fontError) return null;
 
   const isOta = !!currentlyRunning?.updateId && !currentlyRunning?.isEmbeddedLaunch;
   const shortId = currentlyRunning?.updateId?.slice(0, 8) ?? "?";
 
-  const label = isChecking
+  const label = otaError
+    ? `ERR: ${otaError}`
+    : isChecking
     ? "⟳ OTA check…"
     : isDownloading
     ? "⬇ Downloading…"
@@ -62,9 +84,9 @@ export default function RootLayout() {
     ? "✓ Reloading…"
     : isOta
     ? `OTA: ${shortId}`
-    : "APK Build";
+    : `APK | enabled:${Updates.isEnabled}`;
 
-  const badgeColor = isOta ? "#22c55e" : "#9ca3af";
+  const badgeColor = otaError ? "#ef4444" : isOta ? "#22c55e" : "#9ca3af";
 
   return (
     <SafeAreaProvider>

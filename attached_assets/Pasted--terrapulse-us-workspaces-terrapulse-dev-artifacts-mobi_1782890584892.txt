@@ -1,0 +1,84 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ cd /workspaces/terrapulse-dev/artifacts/mobile
+
+# 1. Show eas.json — channel config is what the APK subscribes to
+cat eas.json
+
+# 2. What does expo-updates think it's configured with at runtime?
+#    Grep the compiled native config baked into the APK
+grep -r "runtimeVersion\|channel\|projectId" .expo/ 2>/dev/null | head -20
+
+# 3. What expo-updates version is installed?
+cat node_modules/expo-updates/package.json | python3 -c "import json,sys; p=json.load(sys.stdin); print('expo-updates:', p['version'])"
+
+# 4. Does Updates.isEnabled reflect true in a quick JS check?
+node -e "
+try {
+  const u = require('./node_modules/expo-updates');
+  console.log('isEnabled:', u.isEnabled);
+  console.log('updateUrl:', u.updateUrl);
+} catch(e) { console.log('require failed:', e.message); }
+"
+{
+  "cli": {
+    "version": ">= 10.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "APP_VARIANT": "development",
+        "MAPTILER_API_KEY": "$MAPTILER_API_KEY"
+      }
+    },
+    "preview": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "distribution": "store",
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "preview",
+        "MAPTILER_API_KEY": "$MAPTILER_API_KEY"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": {
+        "distribution": "store",
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6783926607"
+      }
+    },
+    "preview": {
+      "ios": {
+        "ascAppId": "6783926607"
+      }
+    }
+  }
+}
+expo-updates: 29.0.18
+require failed: Cannot find module '/workspaces/terrapulse-dev/node_modules/.pnpm/expo-updates@29.0.18_expo@54.0.35_react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7_f1a93319ab872cd9357c97cd985c4438/node_modules/expo-updates/build/Updates' imported from /workspaces/terrapulse-dev/node_modules/.pnpm/expo-updates@29.0.18_expo@54.0.35_react-native@0.81.5_patch_hash=f033a5332cad04f5e8dec7_f1a93319ab872cd9357c97cd985c4438/node_modules/expo-updates/build/index.js
