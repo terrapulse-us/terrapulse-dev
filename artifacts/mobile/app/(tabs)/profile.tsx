@@ -576,16 +576,16 @@ export default function ProfileScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: specsSaved ? colors.success : colors.accent }, savingSpecs && { opacity: 0.6 }]}
+              style={[styles.saveBtn, { backgroundColor: "#74C274" }, savingSpecs && { opacity: 0.6 }]}
               onPress={saveSpecs}
               disabled={savingSpecs}
             >
               {savingSpecs ? (
-                <ActivityIndicator color="#000" />
+                <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Feather name={specsSaved ? "check" : "save"} size={16} color="#000" />
-                  <Text style={styles.saveBtnText}>{specsSaved ? "SAVED!" : "SAVE RIG SPECS"}</Text>
+                  <Feather name={specsSaved ? "check" : "save"} size={16} color="#fff" />
+                  <Text style={[styles.saveBtnText, { color: "#fff" }]}>{specsSaved ? "SAVED!" : "SAVE RIG SPECS"}</Text>
                 </>
               )}
             </TouchableOpacity>
