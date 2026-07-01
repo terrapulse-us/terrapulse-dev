@@ -29,6 +29,8 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const { isUpdatePending } = Updates.useUpdates();
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
@@ -36,20 +38,10 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    if (__DEV__) return;
-    async function checkForUpdate() {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
-        }
-      } catch (e) {
-        console.error("[OTA] update check failed:", e);
-      }
+    if (isUpdatePending) {
+      Updates.reloadAsync().catch(() => {});
     }
-    checkForUpdate();
-  }, []);
+  }, [isUpdatePending]);
 
   if (!fontsLoaded && !fontError) return null;
 
