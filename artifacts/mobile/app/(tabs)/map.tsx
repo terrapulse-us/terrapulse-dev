@@ -477,6 +477,7 @@ export default function MapScreen() {
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showOsmOverlay) { setOsmGeoJSON(null); return; }
+    if (!userLocation) return;
     let cancelled = false;
     setOsmLoading(true);
     const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
@@ -486,7 +487,7 @@ export default function MapScreen() {
       .finally(() => { if (!cancelled) setOsmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showOsmOverlay, osmFetchCenter]);
+  }, [showOsmOverlay, userLocation]);
 
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
