@@ -95,6 +95,10 @@ module.exports = () => ({
     },
     extra: {
       maptilerApiKey: process.env.MAPTILER_API_KEY || "3EmaPZ2ftYudXivDYAER",
+      apiServerUrl:
+        process.env.EXPO_PUBLIC_API_URL ||
+        (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null) ||
+        "https://f55b6b3b-b267-454f-b847-778520bf2a33-00-3gty5no40pwe.janeway.replit.dev",
       // Firebase config — apiKey comes from GOOGLE_API_KEY secret (Replit) or
       // EXPO_PUBLIC_FIREBASE_API_KEY (EAS secret). Other values are public config
       // safe to embed directly.
