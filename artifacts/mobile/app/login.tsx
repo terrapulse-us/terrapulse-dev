@@ -196,7 +196,7 @@ export default function LoginScreen() {
         </View>
 
         <Text style={[styles.tagline, { color: colors.mutedForeground }]}>
-          California's premier off-road trail community
+          Bringing the community together 1 trail at a time
         </Text>
       </View>
     </KeyboardAvoidingView>

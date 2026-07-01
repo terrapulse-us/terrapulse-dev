@@ -50,7 +50,7 @@ export default function RootLayout() {
     }
   }, [isUpdatePending]);
 
-  // Active fallback: explicit check→download→reload bypasses native ON_LOAD silence
+  // Active fallback: explicit check→download→reload
   const [otaError, setOtaError] = React.useState<string | null>(null);
   useEffect(() => {
     if (!Updates.isEnabled) return;
@@ -72,17 +72,18 @@ export default function RootLayout() {
   const isOta = !!currentlyRunning?.updateId && !currentlyRunning?.isEmbeddedLaunch;
   const shortId = currentlyRunning?.updateId?.slice(0, 8) ?? "?";
 
+  // OTA_MARKER_v2
   const label = otaError
     ? `ERR: ${otaError}`
     : isChecking
-    ? "⟳ OTA check…"
+    ? "\u27f3 OTA check\u2026"
     : isDownloading
-    ? "⬇ Downloading…"
+    ? "\u2b07 Downloading\u2026"
     : isUpdatePending
-    ? "✓ Reloading…"
+    ? "\u2713 Reloading\u2026"
     : isOta
-    ? `OTA: ${shortId}`
-    : `APK | enabled:${Updates.isEnabled}`;
+    ? `OTA-v2: ${shortId}`
+    : `APK | en:${Updates.isEnabled}`;
 
   const badgeColor = otaError ? "#ef4444" : isOta ? "#22c55e" : "#9ca3af";
 
@@ -114,7 +115,7 @@ export default function RootLayout() {
               }}
             >
               <Text
-                style={{ color: badgeColor, fontSize: 10 }}
+                style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}
               >
                 {label}
               </Text>
