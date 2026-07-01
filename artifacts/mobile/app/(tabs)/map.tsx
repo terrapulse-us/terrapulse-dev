@@ -406,10 +406,14 @@ export default function MapScreen() {
     longitude: number;
   } | null>(null);
   const hasAutoFlownRef = useRef(false);
-  // OSM fetch center — starts at CA fallback, updates once when real GPS arrives
+  // Gate all GeoJSONSource renders until the map style has finished loading.
+  // Registering sources before onDidFinishLoadingStyle silently fails on Android.
+  const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
+  // OSM fetch center — defaults to Johnson Valley (SoCal OHV hub), updates once
+  // when the first real GPS fix arrives so trails match the user's location.
   const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number }>({
-    lat: 36.7783,
-    lng: -119.4179,
+    lat: 34.4214,
+    lng: -116.6833,
   });
 
   const [isRecording, setIsRecording] = useState(false);
@@ -1150,6 +1154,7 @@ export default function MapScreen() {
         key={mapLayer}
         style={styles.map}
         mapStyle={mapStyle}
+        onDidFinishLoadingStyle={() => setMapStyleLoaded(true)}
       >
         <Camera
           ref={cameraRef}
@@ -1192,7 +1197,7 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {ridePoints.length > 1 && (
+        {mapStyleLoaded && ridePoints.length > 1 && (
           <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
             <Layer
               id="ride-line"
@@ -1202,7 +1207,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {trailPoints.length > 1 && (
+        {mapStyleLoaded && trailPoints.length > 1 && (
           <GeoJSONSource id="trail-recording" data={trailRecordingGeoJSON}>
             <Layer
               id="trail-recording-line"
@@ -1212,7 +1217,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {selectedUserTrailGeoJSON && (
+        {mapStyleLoaded && selectedUserTrailGeoJSON && (
           <GeoJSONSource id="selected-user-trail" data={selectedUserTrailGeoJSON}>
             <Layer
               id="selected-user-trail-line"
@@ -1222,7 +1227,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {allTrailRoutesGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && allTrailRoutesGeoJSON.features.length > 0 && (
           <GeoJSONSource id="all-trail-routes" data={allTrailRoutesGeoJSON as never}>
             <Layer
               id="all-trail-routes-line"
@@ -1259,7 +1264,7 @@ export default function MapScreen() {
         )}
 
         {/* ── BLM OHV designated area polygons ──────────────────────────── */}
-        {blmOhvData && blmOhvData.features.length > 0 && (
+        {mapStyleLoaded && blmOhvData && blmOhvData.features.length > 0 && (
           <GeoJSONSource id="blm-ohv" data={blmOhvData as never}>
             <Layer
               id="blm-ohv-fill"
@@ -1275,7 +1280,7 @@ export default function MapScreen() {
         )}
 
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
-        {osmGeoJSON && osmGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
           <GeoJSONSource id="osm-trails" data={osmGeoJSON as never}>
             <Layer
               id="osm-trails-line"
@@ -1297,7 +1302,7 @@ export default function MapScreen() {
         })}
 
         {/* ── NFS Trail System GeoJSON lines ────────────────────────────── */}
-        {nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="nfs-trails" data={nfsGeoJSON as never}>
             <Layer
               id="nfs-trails-line"
@@ -1341,7 +1346,7 @@ export default function MapScreen() {
         })}
 
         {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
-        {usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
+        {mapStyleLoaded && usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
             <Layer
               id="usfs-routes-line"
@@ -1765,6 +1770,7 @@ export default function MapScreen() {
                       active ? styles.layerCardActive : styles.layerCardInactive,
                     ]}
                     onPress={() => {
+                      setMapStyleLoaded(false);
                       setMapLayer(opt.id);
                       setShowLayerPicker(false);
                     }}
