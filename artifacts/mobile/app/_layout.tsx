@@ -13,6 +13,7 @@ import * as Updates from "expo-updates";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Text, View } from "react-native";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
@@ -29,7 +30,12 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  const { isUpdatePending } = Updates.useUpdates();
+  const {
+    currentlyRunning,
+    isUpdatePending,
+    isChecking,
+    isDownloading,
+  } = Updates.useUpdates();
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -45,19 +51,54 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
+  const isOta = !currentlyRunning.isEmbeddedLaunch;
+  const shortId = currentlyRunning.updateId?.slice(0, 8) ?? "?";
+
+  const label = isChecking
+    ? "⟳ OTA check…"
+    : isDownloading
+    ? "⬇ Downloading…"
+    : isUpdatePending
+    ? "✓ Reloading…"
+    : isOta
+    ? `OTA: ${shortId}`
+    : "APK Build";
+
+  const badgeColor = isOta ? "#22c55e" : "#9ca3af";
+
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-              <AuthProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="index" />
-                  <Stack.Screen name="login" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="user/[uid]" />
-                </Stack>
-              </AuthProvider>
+            <AuthProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="user/[uid]" />
+              </Stack>
+            </AuthProvider>
+
+            <View
+              style={{
+                position: "absolute",
+                top: 52,
+                right: 10,
+                backgroundColor: "rgba(0,0,0,0.55)",
+                borderRadius: 6,
+                paddingHorizontal: 7,
+                paddingVertical: 3,
+                zIndex: 9999,
+                pointerEvents: "none",
+              }}
+            >
+              <Text
+                style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}
+              >
+                {label}
+              </Text>
+            </View>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>
