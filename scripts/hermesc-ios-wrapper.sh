@@ -3,24 +3,40 @@
 #
 # Invoked via HERMES_CLI_PATH build setting set by the withHermescWrapper plugin.
 #
-# DIAGNOSTIC: Babel pre-transform DISABLED.
-# The transform-bundle.cjs step re-parsed and re-serialized the entire 10-30 MB
-# Metro bundle through @babel/generator, producing subtly different output even
-# when no class fields were found — enough to corrupt a startup module and trigger
-# expo-updates error recovery (SIGABRT on expo.controller.errorRecoveryQueue).
+# Applies a safe perl text-substitution pass to strip private class field/method
+# syntax (#field, #method) before handing the bundle to the real hermesc.
+# This is a pure rename — NO Babel parse/serialize cycle — so it cannot corrupt
+# the bundle or cause the expo-updates SIGABRT that the full Babel step caused.
 #
-# The macOS hermesc in Pods (osx-bin) is a newer build than the Linux one and
-# handles class-field syntax that the Linux v0.12.0 rejects. iOS builds succeeded
-# on TestFlight before the wrapper was added to the iOS path; re-enabling the
-# transform broke startup.
+# Step 1: rename ALL #identifier → ___identifier (covers accesses, declarations,
+#         method names, and static fields in one pass).
+# Step 2: delete bare field-declaration lines (___field; / ___field = value;).
+#         Method declarations have a "(" after the name and are NOT deleted.
 #
-# If a future build fails with "private properties not supported" / "invalid
-# statement encountered" from hermesc, the Babel step can be re-enabled here.
+# The Babel transform-bundle-classes.cjs step (full re-parse) remains DISABLED.
+# It re-serialised the entire 10-30 MB Metro bundle through @babel/generator,
+# producing subtly different output that corrupted the startup module and
+# triggered expo-updates error recovery → SIGABRT on expo.controller.
 REAL_HERMESC="${PODS_ROOT}/hermes-engine/destroot/bin/hermesc"
 
-if [ -n "${HERMES_WRAPPER_VERBOSE}" ]; then
-  echo "[hermesc-ios-wrapper] Calling real hermesc (transform skipped)" >&2
-  echo "[hermesc-ios-wrapper] hermesc: ${REAL_HERMESC}" >&2
+INPUT_JS=""
+for arg in "$@"; do
+  case "$arg" in
+    *.js|*.bundle|*.jsbundle) INPUT_JS="$arg" ;;
+  esac
+done
+
+if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
+  # Step 1: rename ALL #identifier → ___identifier
+  # Covers: this.#field → this.___field, #method() {, #field;, static #x = 0
+  perl -i -pe 's/#([a-zA-Z_][a-zA-Z0-9_]*)/___$1/g' "$INPUT_JS"
+  # Step 2: remove bare field declarations (no "(" = not a method)
+  perl -i -ne 'print unless /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/' "$INPUT_JS"
+  if [ -n "${HERMES_WRAPPER_VERBOSE}" ]; then
+    echo "[hermesc-ios-wrapper] perl transform applied to $(basename "$INPUT_JS")" >&2
+  fi
+elif [ -n "${HERMES_WRAPPER_VERBOSE}" ]; then
+  echo "[hermesc-ios-wrapper] no .js/.bundle file found in args — skipping transform" >&2
 fi
 
 exec "$REAL_HERMESC" "$@"

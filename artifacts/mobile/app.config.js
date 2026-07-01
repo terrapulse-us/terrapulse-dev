@@ -89,6 +89,7 @@ module.exports = () => ({
       ],
       "@maplibre/maplibre-react-native",
       "./plugins/withModularHeaders",
+      "./plugins/withHermescWrapper",
     ],
     experiments: {
       typedRoutes: true,
