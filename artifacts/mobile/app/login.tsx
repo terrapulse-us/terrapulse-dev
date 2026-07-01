@@ -111,6 +111,7 @@ export default function LoginScreen() {
       style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <View style={styles.tabletCenter}>
       <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.header}>
           <TerraPulseLogo color={colors.primary} size="lg" />
@@ -206,12 +207,14 @@ export default function LoginScreen() {
           Bringing the community together 1 trail at a time
         </Text>
       </View>
+    </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  tabletCenter: { flex: 1, maxWidth: 480, width: "100%", alignSelf: "center" },
   container: { flex: 1, paddingHorizontal: 28, justifyContent: "space-between" },
   header: { alignItems: "center", gap: 12 },
   logoImage: { width: 90, height: 90, borderRadius: 18, marginBottom: 8 },
