@@ -1,0 +1,784 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ cd /workspaces/terrapulse-dev/artifacts/mobile
+
+# Plain text — see what's actually in preview channel
+npx eas-cli update:list --channel preview --limit 5
+
+echo "---"
+
+# And what's in preview branch  
+npx eas-cli update:list --branch preview --limit 5
+★ eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+Nonexistent flag: --channel
+See more help with --help
+    Error: update:list command failed.
+---
+★ eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Polyfill in OTA bundles" (5 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  df6dcedf-3b6a-4ba0-a6e4-4c91a8dabde8
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Test OTA delivery on fixed APK" (20 minutes ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  811f956c-8c5e-4447-8527-0eb598069ced
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix mapStyleLoaded JSI crash on MapLibre v11 New Arch" (41 minutes ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  54e52885-3bbd-42f1-a48f-952e0a16ebef
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Bump metro cacheVersion to v15 — force fresh polyfill bundle" (1 hour ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  af871bb8-2277-4845-ba24-3c1212757f89
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Show real error message on crash screen + fix badge null-safety" (1 hour ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  1dda74c9-7192-41cd-9320-04b2af767a8b
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Show crash error message" (1 hour ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  a9a65bd5-10fa-474f-9aec-0b3f95adb285
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add OTA status badge" (2 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  e7f0668a-c1f3-4d4e-8152-a8950d243af9
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add OTA status badge" (2 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  e20c9f15-f568-4821-aa61-3e5610e450b5
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix: OSM 30s timeout + USFS waits for GPS" (2 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  df7ff47e-d317-4f6c-82d6-231776dbbf73
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix OSM spinner + USFS GPS wait" (2 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  fc5bbccc-2ed1-4202-9ab4-56a2daab23a4
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix trail lines + OSM overlay rendering" (2 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  3b83d43e-a1d1-4b0c-9685-552072bd5a4c
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix: gate GeoJSONSource on mapStyleLoaded + OSM center → Johnson Valley" (2 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  5358bda0-f0bf-4c11-aafb-8b08ed9f3182
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix: remove duplicate Updates import, fix font typo" (3 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  93079889-fd9a-482b-9594-1fab2b919e22
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "Fix OTA check conflict" (7 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  651a5c49-31aa-4f1d-a3b5-65e28747f726
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "CA map + OTA badge" (7 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  a6ff89c6-9756-4bad-b1e1-476982a81597
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix: CA camera start, OSM fallback, OTA update badge" (8 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  d4035157-933d-40c5-983e-d20d7c888be8
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "CA map + OTA badge" (8 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  74f783a6-1121-4e4e-8f7c-04eec655640f
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "CA map + OTA badge" (9 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  24b83088-ac26-4ac8-818c-a4c1cb25d2c0
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "CA map + OTA badge" (9 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  6234711f-518f-4f75-8c05-a6758cc3eb8e
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "CA map start + OSM fallback" (9 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ef06fe60-5b71-4e5d-bd90-26a65fd74158
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "Fix map auto-fly and OSM trails" (9 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  a06905f8-9cca-4e09-be07-2da44c0eefb9
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: use plain require() in transform-bundle-classes (hermesc class fix)" (10 hours ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  51bafc29-5ea2-4ab6-899a-89a8b22e4aa2
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "fix: layer card JSX hardcoded cream palette" (16 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  f2bc3cf2-e36a-4ebf-9a6d-f32d633b4580
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "fix: layer/follow buttons accent->5A9A5A cream palette" (16 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  c5b1b66e-da2e-4053-8686-d376163a1e34
+
+———
+
+Platforms                 android
+Runtime Version           1.0.22
+Message                   "fix: cream palette USFS toggle + keep Event.NONE polyfill" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  43a13618-199c-44f6-a573-13b801b740f2
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: Object.defineProperty interceptor polyfill v13" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  1a42978a-9ff9-4f1e-91bb-a4a36b6b0c41
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: Object.defineProperty interceptor + cache bust v13" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  b48be31e-a050-4572-9102-edcfbbbe42d0
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: JS-level Event.NONE guard in native-guard.ts" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  52bb4fa9-8298-4be6-af9b-e4e3410bc751
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: restore Event.NONE patch + map layer colors" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  199216ed-3cb5-4ee6-bea4-9c00e89772e2
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: revert invalid layerCardInactive.backgroundColor crash" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ec3b2e20-8b4d-403e-b91b-a750f4bdb05e
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: USFS toggle cream fix" (17 hours ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  3c38db81-9c5b-4e7e-9d12-69bd2aee5f38
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: warm cream color palette" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ee78c508-6c92-4831-8fad-6ba13db1a6e5
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: match Android cream color palette" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  2793aa59-ab1d-49ac-b61d-be3e5d76f3f3
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "iOS map layers: match Android cream color palette" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  7d901ae5-030a-418d-813d-a2bef57b92ec
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Stable OTA — matches working build 1782527653" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ec1d3954-9f47-4955-a9c0-3304f662ae84
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 ios
+Runtime Version           1.0.22
+Message                   "Fix Event.NONE crash on iOS auth" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  092f7560-c0a7-4063-b5ab-ace359448534
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: remove debug overlay from map screen" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  7b4329f2-4d10-4fa7-84fc-4496e87328b7
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  a6ea958f-69e8-45cf-9792-2ffc45bf097f
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  f6b77cfb-af36-43a1-a07c-f99af6451780
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  54b1bf38-ba0c-45a8-85b1-f69f9a343a27
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix MapTiler key in OTA bundle" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  029ed107-3ea6-402f-9eaf-aecd5728648d
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  15bf86b6-49ea-4724-b2aa-fa83b2fa3a9c
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: update lockfile to remove expo-dev-client" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  aa832113-d141-4e9d-93bf-0ad280532155
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Restore working state" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  4e6c32f6-2f95-45f7-87d1-80fe4f9bc650
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  dfef5273-e939-4898-9da5-076c7cb48fbf
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove debug overlay" (1 day ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  d1b8e882-6602-4bd9-9cd3-22053528653a
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: remove expo-dev-client plugin from app.config.js" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  4753034d-10cf-4691-84fd-5bee4fb94f61
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: upgrade expo-updates to 56.x to match EAS-resolved expo-dev-launcher/expo-updates-interface versions" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  cce810f5-a07c-402d-82ee-6fae6a03edeb
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: pin expo-dev-launcher and expo-updates-interface to SDK 54 compatible versions" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  d20f8ff1-90e0-40fa-9882-ec46c946f2c7
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: add google-signin to root package.json for EAS pnpm isolated linker" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  c899a46c-a9ae-4614-bb21-cc0dd3422b1e
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix TypeError: Cannot assign to read-only property 'NONE' on login" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  699a2b56-4141-48ef-a601-58a324d82675
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix(ci): repair YAML syntax error in eas-build-android.yml and trim eas-update.yml" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  56a34133-d918-4aba-9bfb-87ff69383bda
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Remove duplicate update configuration and add safeguards for native modules" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  03a10f5b-451b-4881-a19b-cd14d748b68a
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Fix emulator errors by stubbing native modules for web bundling" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  60c907a2-2485-4065-9582-1080502aeb25
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add over-the-air update support via EAS Update" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  f292c41a-761f-47d5-876e-ffe7dfd56c71
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Improve commit message handling in update workflows" (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  2890429d-3b2a-4232-ba42-a6f7d9ec4ea0
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Exclude Firebase from Babel transformation to fix authentication errors
+
+Update metro.config.js to exclude Firebase packages from Babel transformation, resolving a TypeError related to read-only properties during Google Sign-In.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: 1451c373-e5b3-4b5f-91b5-52f9a758b298
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-producti..." (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  dccaa25c-474e-4c54-9a4d-cc8357e1bfd6
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add fallback configuration for Firebase API keys
+
+Update the Firebase configuration to include hardcoded fallback values for API keys and other essential parameters, ensuring functionality even when environment variables are not accessible. This change also modifies the EAS update workflow to include the Google API key secret and removes a preflight network check from the authentication context.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Chec..." (1 day ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  f52229c7-05c1-48c2-b007-b54bbfd4b7eb
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Improve error reporting for authentication network issues
+
+Expose detailed error messages from Firebase for network request failures and other authentication errors to aid in debugging.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: a57955b0-1bdb-4297-993a-4a40df43eeeb
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/f55b6b3b-b267-454f-b847-7785..." (2 days ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  5b8ceca5-b561-4d01-a5f7-eea6e3aa7358
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add new image for attached assets
+
+Add image to attached assets.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: 5455c6b0-4ccb-49b8-bad7-d86281ae16e0
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/f55b6b3b-b267-454f-b847-778520bf2a33/8ba3c866-f234-4a82-a914-251f3e2b95ff/lYj1PaD
+Replit-Helium-Checkpoint-Created: true" (2 days ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  fc510020-1cc7-4293-b271-6f77b2a28011
+✔ Load more update groups? … yes
+
+Branch:
+Name  preview
+ID    019f1020-50d7-74a3-8f9f-225dbf4c32ca
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add custom persistence for Firebase authentication
+
+Implement a custom AsyncStorage persistence adapter for Firebase Auth in v12, replacing the removed  and ensuring proper environment detection to resolve network errors.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: 57db2850-504a-4a01-be67-0d7fdfe208ca
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-c..." (2 days ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  dd084966-c0b4-472b-9250-bdfe06ce1646
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Add OTA updates for Android by configuring channels and creating a new workflow
+
+Configure update channels in eas.json and add a GitHub Actions workflow to publish OTA updates.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 8ba3c866-f234-4a82-a914-251f3e2b95ff
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: bb44ceeb-f4ad-4114-b5b7-c4509ed860a1
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/f55b6b3b-b267-454f-b847-778520bf2a33/..." (2 days ago by github actions - terrapulse (robot))
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  00e59031-659a-4abe-a6fd-91ac0e6a4517
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "fix: vehicle filter + layer button colors" (2 days ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  20af7559-361a-4b22-a519-3c631a58fb8d
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Test Update" (2 days ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  4138d343-004b-4445-8b40-0336939eb835
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.22
+Message                   "Trail count fix, USFS+OSM on by default" (2 days ago by mclaporte.terrapulse)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  3f7100cf-737b-4091-8745-debf37660c38
