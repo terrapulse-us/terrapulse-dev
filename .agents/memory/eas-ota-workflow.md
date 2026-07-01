@@ -11,31 +11,26 @@ Replit checkpoint commits are pushed to Replit's own git remote. The Codespace t
 
 **Rule:** All code changes that must reach EAS (builds or OTA) must be committed and pushed from the Codespace, or manually applied there before running `eas update`.
 
-## Correct `eas update` flow
+## Correct OTA delivery flow — ALWAYS commit and push
+
+**The only reliable way to publish OTA updates is: commit in Codespace → `git push origin main` → GitHub Actions delivers the OTA.**
+
+Manual `eas update` from the Codespace working tree silently produces corrupted hermesc bundles. The OTA publishes successfully (visible in `update:list`) but crashes on-device and expo-updates rolls back to the embedded bundle with no visible error. The badge stays gray.
 
 ```bash
+# In Codespace — make your changes, then:
 cd /workspaces/terrapulse-dev
-
-# 1. Reinstall hermesc wrappers (must be done once per Codespace, or after pnpm install)
-bash scripts/install-hermesc-wrapper.sh --force
-
-# 2. Clear the transform log so you can check it after
-> /tmp/hermesc-transform.log
-
-# 3. Run the update (use --branch, NOT --channel — --channel flag was removed in newer eas-cli)
-cd artifacts/mobile
-MAPTILER_API_KEY=<key> EXPO_TOKEN=$EXPO_TOKEN npx eas-cli update \
-  --branch preview \
-  --message "description" \
-  --non-interactive
-
-# 4. Check the log — should be empty on success, errors appear if transform failed
-cat /tmp/hermesc-transform.log
+git add artifacts/mobile/app/whatever-you-changed.tsx
+git commit -m "Your change description"
+git push origin main
+# GitHub Actions eas-ota-update.yml handles the rest (~2-3 min)
 ```
 
-**Why MAPTILER_API_KEY must be set explicitly:** `app.config.js` reads `process.env.MAPTILER_API_KEY` at bundle time. EAS env vars/secrets are only substituted during `eas build` (native builds), not during `eas update` (JS-only bundles). Without it set in the shell, `extra.maptilerApiKey` is empty in the OTA bundle.
+The GitHub Actions workflow (`eas-ota-update.yml`) installs the hermesc wrapper cleanly on a fresh checkout, sets `MAPTILER_API_KEY` from secrets, and runs `eas update --branch preview` reliably.
 
-**Why `--branch` not `--channel`:** The `--channel` flag was removed from `eas update` in newer eas-cli versions (confirmed broken in eas-cli ≥ 10.x). Always use `--branch <branchname>`. The branch must be linked to the channel (see below).
+**Manual `eas update` is unreliable** — even with `install-hermesc-wrapper.sh --force` and `MAPTILER_API_KEY` set, the interactive Codespace shell doesn't reproduce the clean transform pipeline that Actions gets. Do not use it as the primary delivery mechanism.
+
+**Why `--branch` not `--channel`:** The `--channel` flag was removed from `eas update` in newer eas-cli versions (confirmed broken in eas-cli ≥ 10.x). Always use `--branch <branchname>`. The branch must be linked to the channel (see Channel ↔ Branch linking section below).
 
 ## Channel ↔ Branch linking (critical one-time setup)
 
