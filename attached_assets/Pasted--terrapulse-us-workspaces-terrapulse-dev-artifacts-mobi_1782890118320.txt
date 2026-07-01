@@ -1,0 +1,77 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ cd /workspaces/terrapulse-dev/artifacts/mobile
+
+# 1. What does the published OTA say its runtimeVersion is?
+npx eas-cli update:list --branch preview --limit 3 --json 2>/dev/null | python3 -c "
+import json, sys
+updates = json.load(sys.stdin)
+for u in updates[:3]:
+    print(f\"ID: {u.get('id','?')[:8]}  runtime: {u.get('runtimeVersion','?')}  created: {u.get('createdAt','?')[:10]}\")
+"
+
+# 2. What runtimeVersion does the INSTALLED APK expect?
+#    Read it directly from the embedded manifest
+python3 -c "
+import json, zipfile, os
+apk = sorted([f for f in os.listdir('.') if f.endswith('.apk')], key=os.path.getmtime)
+print('Found APKs:', apk[-3:] if apk else 'none here — try ls ../../')
+"
+
+# 3. What does the channel→branch mapping look like?
+npx eas-cli channel:list --json 2>/dev/null | python3 -c "
+import json, sys
+chs = json.load(sys.stdin)
+for c in chs:
+    print(f\"Channel '{c.get('name')}' → branch '{c.get('branchMapping','?')[:60]}\")
+" 2>/dev/null || npx eas-cli channel:list 2>/dev/null | head -20
+
+  app/'(tabs)'/map.tsx | head -25ation\|fetchUsfsTrails\|setUsfsGeoJSON\|setUsfsLoading" \
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+KeyError: slice(None, 3, None)
+Found APKs: none here — try ls ../../
+
+Channel:
+Name    production
+ID      019f11cf-16de-71ca-848a-57096b6ca8da
+Status  Active
+
+Branches pointed at this channel and their most recent update group:
+
+Branch           production
+Platforms        android, ios
+Runtime Version  1.0.22
+Message          "Remove duplicate update configuration and add safeguards for native modules" (1 day ago by github actions - terrapulse (robot))
+Group ID         952cfc10-a571-4926-8f9f-bc5a4c024ee9
+
+———
+
+Channel:
+Name    preview
+ID      019f11cd-f8d7-70c3-92bd-ee6dcd41958e
+Status  Active
+63:  fetchUsfsTrailsInBounds,
+295:  const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
+374:  const [userLocation, setUserLocation] = useState<{
+400:  const [usfsGeoJSON, setUsfsGeoJSON] = useState<UsfsCollection | null>(null);
+401:  const [usfsLoading, setUsfsLoading] = useState(false);
+456:    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+469:    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+482:    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+496:    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+508:  // The 24h cache in fetchUsfsTrailsInBounds deduplicates subsequent GPS ticks.
+510:    if (!showUsfsOverlay) { setUsfsGeoJSON(null); return; }
+511:    if (!userLocation) return; // defer until GPS lock — avoid CA-farmland fallback
+513:    setUsfsLoading(true);
+514:    fetchUsfsTrailsInBounds(
+515:      userLocation.longitude - 0.5, userLocation.latitude - 0.5,
+516:      userLocation.longitude + 0.5, userLocation.latitude + 0.5,
+518:      .then(data => { if (!cancelled) setUsfsGeoJSON(data); })
+520:      .finally(() => { if (!cancelled) setUsfsLoading(false); });
+523:  }, [showUsfsOverlay, userLocation]);
+549:    if (!userLocation || hasAutoFlownRef.current) return;
+551:    cameraRef.current?.flyTo({ center: [userLocation.longitude, userLocation.latitude], zoom: 12, duration: 1500 });
+552:    setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
+553:  }, [userLocation]);
+580:    if (!isNavigating || !navTrail?.routeCoordinates?.length || !userLocation) return;
+585:      const d = latLngDistMiles(userLocation.latitude, userLocation.longitude, route[i].lat, route[i].lng);
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ 
