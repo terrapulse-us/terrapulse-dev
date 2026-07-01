@@ -5,8 +5,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const OVERPASS_URLS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const FETCH_TIMEOUT_MS = 12_000; // 12s per endpoint → max ~36s total
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
