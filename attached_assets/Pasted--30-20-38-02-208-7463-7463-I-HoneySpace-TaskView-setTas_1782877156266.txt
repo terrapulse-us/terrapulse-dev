@@ -1,0 +1,204 @@
+-30 20:38:02.208  7463  7463 I HoneySpace.TaskView: setTaskLabel, TerraPulse
+06-30 20:38:02.208  7463 18655 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7432, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.209  7463 22446 I HoneySpace.SuggestedItemsFacade: DPS items : TerraPulse, com.terrapulse.app/.MainActivity#UserHandle{0}
+06-30 20:38:02.209  7463 22446 I HoneySpace.FilteredItemProvider: collect filtered items g, [PK(p='com.terrapulse.app', u=UserHandle{0}), 
+PK(p='com.android.settings', u=UserHandle{0}), PK(p='com.google.android.apps.chromecast.app', u=UserHandle{0})]
+06-30 20:38:02.209  7463 22446 I HoneySpace.SuggestedItemsFacade: filteredItem : PK(p='com.terrapulse.app', u=UserHandle{0})
+06-30 20:38:02.209  7463 22446 I HoneySpace.SuggestedItemsFacade: item removed by filter - PK(p='com.terrapulse.app', u=UserHandle{0})
+06-30 20:38:02.216  7463 22446 I HoneySpace.TaskDataRepositoryImpl: Request icon and label, id=7441, iconAndLabel: 
+IconAndLabel(icon=android.graphics.Bitmap@9bebc4e, label=TerraPulse), componentKey: com.terrapulse.app/.MainActivity#UserHandle{0}
+06-30 20:38:02.216  7463  7463 I HoneySpace.TaskView: setTaskLabel, TerraPulse
+06-30 20:38:02.216  7463 18656 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7440, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.216  7463 10475 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7440, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.217  7463 18653 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7439, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.217  7463 12117 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7439, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.218  3084  4168 I SurfaceFlinger: Capture layer list:     
+VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955(preserveDisplayColors:0)
+06-30 20:38:02.218  3084  3210 D RenderEngine: Rendering layer VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 at index 1
+06-30 20:38:02.220  4113  7673 D WindowManager: Changing focus from Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity} to 
+Window{ec28ff9 u0 com.sec.android.app.launcher/com.android.quickstep.RecentsActivity} displayId=0 
+Callers=com.android.server.wm.ActivityTaskManagerService.setLastResumedActivityUncheckLocked:298 
+com.android.server.wm.ActivityTaskManagerService.setFocusedTask:75 com.android.server.wm.ActivityTaskManagerService.focusTopTask:58 
+android.app.IActivityTaskManager$Stub.onTransact:2907 
+06-30 20:38:02.221  4113  7673 D WindowManager: updateSystemBarAttributes: displayId=0, focusedCanBeNavColorWin=false, win=Window{ec28ff9 u0 
+com.sec.android.app.launcher/com.android.quickstep.RecentsActivity}, navColorWin=Window{e1dcc29 u0 
+com.terrapulse.app/com.terrapulse.app.MainActivity}, caller=com.android.server.wm.WindowManagerService.updateFocusedWindowLocked:408 
+com.android.server.wm.ActivityTaskManagerService.setLastResumedActivityUncheckLocked:298 
+com.android.server.wm.ActivityTaskManagerService.setFocusedTask:75 
+06-30 20:38:02.221  7463 17934 I HoneySpace.TaskThumbnailSourceImpl: ThumbnailData for taskId=7441, insets=Rect(0, 149 - 0, 180), rotation=0
+06-30 20:38:02.222  4113  4395 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:38:02.234  3084  3084 D SurfaceFlinger:        CLIENT |           97281009254402 | 00002102 | RGBA_8888    |    0.0    0.0 1440.0 3120.0 |    
+0    0 1440 3120 | VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 (58)
+06-30 20:38:02.234  4113  8400 D InputDispatcher: Focus left window (0): e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 20:38:02.253 22650 22654 W .terrapulse.app: Cleared Reference was only reachable from finalizer (only reported once)
+06-30 20:38:02.423  4113  8400 I WindowContainerVisibilityHelperImpl: getTaskFragmentVisibility still isTransientVisible, current=Task{d2f621 #7441 
+type=standard A=10511:com.terrapulse.app}
+06-30 20:38:02.677  3084  3177 I SurfaceFlinger: Capture layer list:     
+VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955(preserveDisplayColors:0)
+06-30 20:38:02.678  3084  3210 D RenderEngine: Rendering layer VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 at index 1
+06-30 20:38:02.691  3084  3084 D SurfaceFlinger:        CLIENT |           97281009254402 | 00002102 | RGBA_8888    |    0.0  149.0  305.0 2940.0 | 
+1238  426 1440 2275 | VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 (58)
+06-30 20:38:02.696  4113  8459 V WindowManager:    ChangeInfo{5c9968f container=Task{d2f621 #7441 type=standard A=10511:com.terrapulse.app} flags=0x4}
+06-30 20:38:02.696  4113  8459 V WindowManager:    ChangeInfo{5d5a76e container=Display{#0 state=ON size=1440x3120 ROTATION_0} flags=0x0}
+06-30 20:38:02.696  4113  8459 D ActivityTaskManager: scheduleTopResumedActivityChanged, onTop=false, r=ActivityRecord{58461320 u0 
+com.terrapulse.app/.MainActivity t7441}, caller=com.android.server.wm.ActivityTaskSupervisor.scheduleTopResumedStateLossIfNeeded:31 
+com.android.server.wm.TransitionController.finishTransition:312 com.android.server.wm.WindowOrganizerController.finishTransitionInner:33 
+com.android.server.wm.WindowOrganizerController.finishAllTransitions:65 android.window.IWindowOrganizerController$Stub.onTransact:287 
+com.android.server.wm.WindowOrganizerController.onTransact:0 
+06-30 20:38:02.697  4113  8459 D PersonaActivityHelper: token.toString()  Token{f570a46 ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity 
+t7441}}
+06-30 20:38:02.698  4113  8400 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:38:02.701  4113  4394 D SGM:FgCheckThread: notePauseComponent(), received pkgName: com.terrapulse.app, userId: 0
+06-30 20:38:02.703 22650 22650 D VRI[MainActivity]@18783e4: WindowStopped on com.terrapulse.app/com.terrapulse.app.MainActivity set to true
+06-30 20:38:02.710  4113  7673 I WindowManager: Relayout Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity}: viewVisibility=4 
+req=1440x3120 ty=1 d0
+06-30 20:38:02.710  4113  7673 D WindowManager: Waiting to update view visibility, win=Window{e1dcc29 u0 
+com.terrapulse.app/com.terrapulse.app.MainActivity}
+06-30 20:38:02.711  4113  7673 V WindowManager: Setting visibility of Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity}: false, 
+caller=com.android.server.wm.WindowContainer.sendAppVisibilityToClients:18 com.android.server.wm.WindowToken.setClientVisible:90 
+com.android.server.wm.ActivityRecord.activityStopped:292 com.android.server.wm.ActivityClientController.activityStopped:105 
+android.app.IActivityClientController$Stub.onTransact:833 
+06-30 20:38:02.711  4113  7673 E WindowManager: win=Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity} destroySurfaces: 
+appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=4 
+caller=com.android.server.wm.ActivityRecord.destroySurfaces:23 com.android.server.wm.ActivityRecord.activityStopped:295 
+com.android.server.wm.ActivityClientController.activityStopped:105 android.app.IActivityClientController$Stub.onTransact:833 
+com.android.server.wm.ActivityClientController.onTransact:0 android.os.Binder.execTransactInternal:1405 android.os.Binder.execTransact:1359 
+06-30 20:38:02.712  4113  4394 D SGM:FgCheckThread: pkgName: com.terrapulse.app is not in foreground
+06-30 20:38:02.712  4113  4394 D SGM:FgCheckThread: noteStopComponent(), received pkgName: com.terrapulse.app, focusedPkgName: 
+com.sec.android.app.launcher, userId: 0
+06-30 20:38:02.713  4113  4392 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:38:02.713  3084  3084 I SurfaceFlinger: RequestedLayer [ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity t7441}#119943] hidden!! 
+flag from(0) --> to(1) // by pid (4113)
+06-30 20:38:02.713  3084  3084 I SurfaceFlinger: RequestedLayer [e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity#119954] hidden!! flag 
+from(0) --> to(1) // by pid (4113)
+06-30 20:38:02.713  4113  4392 D PkgPredictorService-SecIpmManagerServiceImpl: bg information pid:22650 uid:10511 pkgName:com.terrapulse.app
+06-30 20:38:02.713  4113  4392 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:38:02.721  3084  3084 I SurfaceFlinger: 
+[LayerHierarchy{RequestedLayerState{VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955} no children}] reparent to OffscreenRoot
+06-30 20:38:02.721  3084  3084 I SurfaceFlinger: 
+[LayerHierarchy{RequestedLayerState{VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955} no children}] RelativeParent to null
+06-30 20:38:02.725  3084  4024 I SurfaceFlinger: id=119955 Removed VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 (337)
+06-30 20:38:02.730  3084  3084 I SurfaceFlinger: destroyed VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 form LifecycleManager
+06-30 20:38:02.730  3084  3084 I SurfaceFlinger: id=119955 onLayerDestroyed from 
+LayerHierarchyBuilder(RequestedLayerState{VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955 !handle})
+06-30 20:38:02.730  3084  3084 I SurfaceFlinger: id=119955 Destroyed VRI-com.terrapulse.app/com.terrapulse.app.MainActivity$_22650#119955
+06-30 20:38:02.838  2967  6773 I sensors-hal: handle_sns_client_event:209, auto_rotation_debug_2 mode,255, type,1,0 acc,2.560,3.589,9.188, ar,255, 
+ver,15, pedo,1,e,1,i,3
+06-30 20:38:02.921  2967  6773 I sensors-hal: handle_sns_client_event:178, auto_rotation_event_2 event,255, duration,1079, ts,929570645472566, 
+ts_diff,317288
+06-30 20:38:02.921  2967  6773 I sensors-hal: handle_sns_client_event:183, auto_rotation_debug_2 acc,1.421,2.565,8.672, ar,255, ver,15, pedo,1,e,1,i,3
+06-30 20:38:02.921  7463  7463 I HoneySpace.OrientationManagerImpl: rotationChanged
+06-30 20:38:02.921  7463  7463 I HoneySpace.OrientationManagerImpl: return: invalid range, prevRotation: 0
+06-30 20:38:02.922  6921  6921 D AppController: AppControlSensorListener.onSensorChanged, Rotation: -1
+06-30 20:38:02.922  4113  4392 V WindowManager: Computed rotation=ROTATION_0 (0) for display id=0 based on lastOrientation=SCREEN_ORIENTATION_LOCKED 
+(14) and oldRotation=ROTATION_0 (0), caller=com.android.server.wm.WindowManagerService.updateRotationUnchecked:87 
+com.android.server.wm.DisplayRotation$OrientationListener.onProposedRotationChanged:166 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge.finalizeRotation:25 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge.onSensorChanged:430 
+android.hardware.SystemSensorManager$SensorEventQueue.dispatchSensorEvent:1225 android.os.MessageQueue.nativePollOnce:-2 
+06-30 20:38:03.169  2967  6773 I sensors-hal: handle_sns_client_event:178, auto_rotation_event_2 event,0, duration,0, ts,929570894165379, 
+ts_diff,199162
+06-30 20:38:03.169  2967  6773 I sensors-hal: handle_sns_client_event:183, auto_rotation_debug_2 acc,1.445,4.178,7.652, ar,255, ver,15, pedo,1,e,1,i,3
+06-30 20:38:03.169  7463  7463 I HoneySpace.OrientationManagerImpl: rotationChanged
+06-30 20:38:03.170  7463  7463 I HoneySpace.OrientationManagerImpl: prevRotation: 0, newRotation: 0
+06-30 20:38:03.170  6921  6921 D AppController: AppControlSensorListener.onSensorChanged, Rotation: 0
+06-30 20:38:03.170  4113  4392 V WindowManager: Computed rotation=ROTATION_0 (0) for display id=0 based on lastOrientation=SCREEN_ORIENTATION_LOCKED 
+(14) and oldRotation=ROTATION_0 (0), caller=com.android.server.wm.WindowManagerService.updateRotationUnchecked:87 
+com.android.server.wm.DisplayRotation$OrientationListener.onProposedRotationChanged:166 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge.finalizeRotation:25 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge.onSensorChanged:430 
+android.hardware.SystemSensorManager$SensorEventQueue.dispatchSensorEvent:1225 android.os.MessageQueue.nativePollOnce:-2 
+06-30 20:38:03.440  7463  7463 I HoneySpace.TaskView: Active Launch activated from recents UI for com.terrapulse.app
+06-30 20:38:03.440  4113 10972 I Pageboost: start alp : com.terrapulse.app
+06-30 20:38:03.440  4113  6811 I Pageboost: alp skip : com.terrapulse.app , 2
+06-30 20:38:03.671  4113  4392 V WindowManager: Computed rotation=ROTATION_0 (0) for display id=0 based on lastOrientation=SCREEN_ORIENTATION_LOCKED 
+(14) and oldRotation=ROTATION_0 (0), caller=com.android.server.wm.WindowManagerService.updateRotationUnchecked:87 
+com.android.server.wm.DisplayRotation$OrientationListener.onProposedRotationChanged:166 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge$2.run:24 android.os.Handler.handleCallback:1095 
+android.os.Handler.dispatchMessageImpl:135 android.os.Handler.dispatchMessage:125 
+06-30 20:38:03.752  7463  7463 I HoneySpace.RecentDataListRepositoryImpl[173488620]: prevVisibleData: [RecentData(keyId=6045, 
+items=[DefaultTaskData([#taskId 7441 : com.terrapulse.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, 
+deskCount=0, dummy=false), RecentData(keyId=6046, items=[DefaultTaskData([#taskId 7440 : com.android.settings])], displayId=0, deskId=-1, type=1, 
+deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6047, items=[DefaultTaskData([#taskId 7439 : 
+com.google.android.apps.chromecast.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), 
+RecentData(keyId=6048, items=[DefaultTaskData([#taskId 7432 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, 
+lockedItemCount=0, deskCount=0, dummy=false)]
+06-30 20:38:03.753  7463  7463 I HoneySpace.TaskListViewModel[178069154][0]: prevData:[RecentData(keyId=6045, items=[DefaultTaskData([#taskId 7441 : 
+com.terrapulse.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), 
+RecentData(keyId=6046, items=[DefaultTaskData([#taskId 7440 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, 
+lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6047, items=[DefaultTaskData([#taskId 7439 : com.google.android.apps.chromecast.app])], 
+displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6048, 
+items=[DefaultTaskData([#taskId 7432 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, 
+deskCount=0, dummy=false)],
+06-30 20:38:03.753  7463  7463 I HoneySpace.TaskListPot[0][d0298d]: prevData:[RecentData(keyId=6045, items=[DefaultTaskData([#taskId 7441 : 
+com.terrapulse.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), 
+RecentData(keyId=6046, items=[DefaultTaskData([#taskId 7440 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, 
+lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6047, items=[DefaultTaskData([#taskId 7439 : com.google.android.apps.chromecast.app])], 
+displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6048, 
+items=[DefaultTaskData([#taskId 7432 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, 
+deskCount=0, dummy=false)],
+06-30 20:38:03.754  7463  7463 I HoneySpace.RecentAdapter[Original][84fe2b7][0]: notifyDataChangedOnlyDiff, prev: Load, [RecentData(keyId=6045, 
+items=[DefaultTaskData([#taskId 7441 : com.terrapulse.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, 
+deskCount=0, dummy=false), RecentData(keyId=6046, items=[DefaultTaskData([#taskId 7440 : com.android.settings])], displayId=0, deskId=-1, type=1, 
+deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), RecentData(keyId=6047, items=[DefaultTaskData([#taskId 7439 : 
+com.google.android.apps.chromecast.app])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, lockedItemCount=0, deskCount=0, dummy=false), 
+RecentData(keyId=6048, items=[DefaultTaskData([#taskId 7432 : com.android.settings])], displayId=0, deskId=-1, type=1, deskName=null, deskOrder=-1, 
+lockedItemCount=0, deskCount=0, dummy=false)]
+06-30 20:38:03.756  4113 10972 D CoreBackPreview: Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity}: Setting back callback null
+06-30 20:38:03.757  4113  4394 I ActivityManager: Killing 22650:com.terrapulse.app/u0a511 (adj 900): remove task
+06-30 20:38:03.757  4113 10972 D InputDispatcher: removed InputChannel: e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity
+06-30 20:38:03.757  4113 10972 V WindowManager: Remove Window{e1dcc29 u0 com.terrapulse.app/com.terrapulse.app.MainActivity}: mSurfaceControl=null 
+mAnimatingExit=false mRemoveOnExit=false mHasSurface=false surfaceShowing=false animating=false app-animation=false 
+callers=com.android.server.wm.Session.remove:20 android.view.IWindowSession$Stub.onTransact:812 com.android.server.wm.Session.onTransact:0 
+android.os.Binder.execTransactInternal:1400 android.os.Binder.execTransact:1359 <bottom of call stack> 
+06-30 20:38:03.768  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{e1dcc29 
+com.terrapulse.app/com.terrapulse.app.MainActivity#119954} no children}] reparent to OffscreenRoot
+06-30 20:38:03.768  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{e1dcc29 
+com.terrapulse.app/com.terrapulse.app.MainActivity#119954} no children}] RelativeParent to null
+06-30 20:38:03.768  3084  3084 I SurfaceFlinger: id=119954 Removed e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity#119954 (335)
+06-30 20:38:03.775  3084  3084 I SurfaceFlinger: destroyed e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity#119954 form LifecycleManager
+06-30 20:38:03.775  3084  3084 I SurfaceFlinger: id=119954 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{e1dcc29 
+com.terrapulse.app/com.terrapulse.app.MainActivity#119954 !handle})
+06-30 20:38:03.776  3084  3084 I SurfaceFlinger: id=119954 Destroyed e1dcc29 com.terrapulse.app/com.terrapulse.app.MainActivity#119954
+06-30 20:38:03.792  3084  3177 I SurfaceFlinger: id=119958 Removed Surface(name=8a7e739 Splash Screen com.terrapulse.app#119946)/@0xd7f4bf7 - 
+animation-leash of starting_reveal#119958 (334)
+06-30 20:38:03.792  3084  3084 I SurfaceFlinger: destroyed Surface(name=8a7e739 Splash Screen com.terrapulse.app#119946)/@0xd7f4bf7 - animation-leash 
+of starting_reveal#119958 form LifecycleManager
+06-30 20:38:03.792  3084  3084 I SurfaceFlinger: id=119958 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{Surface(name=8a7e739 Splash 
+Screen com.terrapulse.app#119946)/@0xd7f4bf7 - animation-leash of starting_reveal#119958 !handle})
+06-30 20:38:03.793  3084  3084 I SurfaceFlinger: id=119958 Destroyed Surface(name=8a7e739 Splash Screen com.terrapulse.app#119946)/@0xd7f4bf7 - 
+animation-leash of starting_reveal#119958
+06-30 20:38:03.794  3084  3176 I SurfaceFlinger: id=119947 Removed d03607a ActivityRecordInputSink com.terrapulse.app/.MainActivity#119947 (333)
+06-30 20:38:03.796  4113  5327 W UsageStatsService: Unexpected activity event reported! (com.terrapulse.app/com.terrapulse.app.MainActivity event : 23 
+instanceId : 257362502)
+06-30 20:38:03.796  4113  4394 D SGM:FgCheckThread: pkgName: com.terrapulse.app is not in foreground
+06-30 20:38:03.796  4113  4394 D SGM:FgCheckThread: noteStopComponent(), received pkgName: com.terrapulse.app, focusedPkgName: 
+com.sec.android.app.launcher, userId: 0
+06-30 20:38:03.797 10895 10895 I AFL#SSS:AssistHolder: onActivityEvent Snapshot 
+Destroyed:ComponentInfo{com.terrapulse.app/com.terrapulse.app.MainActivity}
+06-30 20:38:03.799 10895 10895 I AFL#AutoFillPolicyManager: isNudgeBlocked: false (ComponentInfo{com.terrapulse.app/com.terrapulse.app.MainActivity}), 
+isLocaleAllowed: true (en-US)
+06-30 20:38:03.799 10895 10895 I AutofillEventController: reset autofillIdHistory for ComponentInfo{com.terrapulse.app/com.terrapulse.app.MainActivity}
+06-30 20:38:03.801  4113  4395 W PackageConfigPersister: App-specific configuration not found for packageName: com.terrapulse.app and userId: 0
+06-30 20:38:03.801  4113  8400 E WindowOrganizerController: Attempting to externally change a non-organized container: Task{d2f621 #7441 type=standard 
+A=10511:com.terrapulse.app}={handlePackageUpdate:false,} playercount=2 taskorg=android.window.ITaskOrganizer$Stub$Proxy@af286d7
+06-30 20:38:03.809  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity 
+t7441}#119943} 1 children}] reparent to OffscreenRoot
+06-30 20:38:03.809  3084  3084 I SurfaceFlinger: [LayerHierarchy{RequestedLayerState{ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity 
+t7441}#119943} 1 children}] RelativeParent to null
+06-30 20:38:03.810  3084  3084 I SurfaceFlinger: id=119943 Removed ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity t7441}#119943 (334)
+06-30 20:38:03.817  3084  3084 I SurfaceFlinger: destroyed d03607a ActivityRecordInputSink com.terrapulse.app/.MainActivity#119947 form 
+LifecycleManager
+06-30 20:38:03.817  3084  3084 I SurfaceFlinger: destroyed ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity t7441}#119943 form 
+LifecycleManager
+06-30 20:38:03.817  3084  3084 I SurfaceFlinger: id=119947 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{d03607a 
+ActivityRecordInputSink com.terrapulse.app/.MainActivity#119947 !handle z=-2147483648})
+06-30 20:38:03.817  3084  3084 I SurfaceFlinger: id=119943 onLayerDestroyed from LayerHierarchyBuilder(RequestedLayerState{ActivityRecord{58461320 u0 
+com.terrapulse.app/.MainActivity t7441}#119943 !handle})
+06-30 20:38:03.818  3084  3084 I SurfaceFlinger: id=119947 Destroyed d03607a ActivityRecordInputSink com.terrapulse.app/.MainActivity#119947
+06-30 20:38:03.818  3084  3084 I SurfaceFlinger: id=119943 Destroyed ActivityRecord{58461320 u0 com.terrapulse.app/.MainActivity t7441}#119943
+06-30 20:38:04.015  4113  4392 V WindowManager: Computed rotation=ROTATION_0 (0) for display id=0 based on lastOrientation=SCREEN_ORIENTATION_LOCKED 
+(14) and oldRotation=ROTATION_0 (0), caller=com.android.server.wm.WindowManagerService.updateRotationUnchecked:87 
+com.android.server.wm.DisplayRotation$OrientationListener.onProposedRotationChanged:166 
+com.android.server.wm.WindowOrientationListener$OrientationSensorJudge$2.run:24 android.os.Handler.handleCallback:1095 
+android.os.Handler.dispatchMessageImpl:135 android.os.Handler.dispatchMessage:125 
