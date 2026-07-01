@@ -1285,15 +1285,20 @@ export default function MapScreen() {
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
           <GeoJSONSource id="osm-trails" data={osmGeoJSON as never}>
             <Layer
+              id="osm-trails-casing"
+              type="line"
+              paint={{ "line-color": "#1B5E20", "line-width": 5, "line-opacity": 0.5 }}
+            />
+            <Layer
               id="osm-trails-line"
               type="line"
-              paint={{ "line-color": "#3DAA5C", "line-width": 2, "line-opacity": 0.85, "line-dasharray": [2, 1.5] }}
+              paint={{ "line-color": "#4CAF50", "line-width": 3, "line-opacity": 0.95 }}
             />
           </GeoJSONSource>
         )}
 
         {/* ── Tappable OSM pins (cap 120) ────────────────────────────────── */}
-        {osmGeoJSON && osmGeoJSON.features.slice(0, 120).map((f, i) => {
+        {mapStyleLoaded && showOsmOverlay && osmGeoJSON && osmGeoJSON.features.slice(0, 120).map((f, i) => {
           const coord = osmFeatureStartCoord(f);
           if (!coord) return null;
           return (
@@ -2210,11 +2215,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   osmMarker: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: "#3DAA5C",
-    borderWidth: 1.5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#4CAF50",
+    borderWidth: 2,
     borderColor: "#fff",
   },
   usfsMarker: {
