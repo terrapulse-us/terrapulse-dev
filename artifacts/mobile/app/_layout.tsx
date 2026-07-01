@@ -12,7 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, View } from "react-native";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -102,28 +102,33 @@ export default function RootLayout() {
               </Stack>
             </AuthProvider>
 
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 52,
-                right: 10,
-                backgroundColor: "rgba(0,0,0,0.55)",
-                borderRadius: 6,
-                paddingHorizontal: 7,
-                paddingVertical: 3,
-                zIndex: 9999,
-              }}
-            >
-              <Text
-                style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}
-              >
-                {label}
-              </Text>
-            </View>
+            <OtaPill label={label} badgeColor={badgeColor} />
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
+  );
+}
+
+function OtaPill({ label, badgeColor }: { label: string; badgeColor: string }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: insets.top + 8,
+        right: 10,
+        backgroundColor: "rgba(0,0,0,0.55)",
+        borderRadius: 6,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        zIndex: 9999,
+      }}
+    >
+      <Text style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}>
+        {label}
+      </Text>
+    </View>
   );
 }
