@@ -97,7 +97,6 @@ import {
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 import * as Updates from "expo-updates";
-import * as Updates from "expo-updates";
 
 interface TrailPhoto {
   url: string;
