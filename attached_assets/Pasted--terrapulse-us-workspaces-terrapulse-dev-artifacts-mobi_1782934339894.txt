@@ -1,0 +1,45 @@
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ python3 -c "
+import subprocess, os
+root = subprocess.check_output(['git','rev-parse','--show-toplevel']).decode().strip()
+target = root + '/scripts/transform-bundle-classes.cjs'
+content = r'''#!/usr/bin/env node
+\"use strict\";
+const fs = require(\"fs\");
+const path = require(\"path\");
+const bundlePath = process.argv[2];
+if (!bundlePath || !fs.existsSync(bundlePath)) { process.exit(0); }
+function tryRequire(name) {
+  try { const m = require(name); return (m && m.default) || m; }
+  catch (e) { process.stderr.write(\"[hermesc-wrapper] Cannot require \" + name + \": \" + e.message + \"\\n\"); return null; }
+}
+const babel = tryRequire(\"@babel/core\");
+const classPropPlugin = tryRequire(\"@babel/plugin-transform-class-properties\");
+const privMethodsPlugin = tryRequire(\"@babel/plugin-transform-private-methods\");
+const privPropInObjPlugin = tryRequire(\"@babel/plugin-transform-private-property-in-object\");
+const classStaticPlugin = tryRequire(\"@babel/plugin-transform-class-static-block\");
+const classesPlugin = tryRequire(\"@babel/plugin-transform-classes\");
+const asyncToGenPlugin = tryRequire(\"@babel/plugin-transform-async-to-generator\");
+const asyncGenFnsPlugin = tryRequire(\"@babel/plugin-transform-async-generator-functions\");
+if (!babel || !classPropPlugin || !classesPlugin || !asyncToGenPlugin) {
+  process.stderr.write(\"[hermesc-wrapper] Missing required Babel deps - skipping\\n\"); process.exit(0);
+}
+const plugins = [
+"rint('Written:', target) f:rmesc-wrapper] Class transform OK: \" + path.basename(bundlePath) + \"\\n\");t(0);
+bash: !bundlePath: event not found
+bash: !babel: event not found
+Written: /workspaces/terrapulse-dev/scripts/transform-bundle-classes.cjs
+@terrapulse-us ➜ /workspaces/terrapulse-dev/artifacts/mobile (main) $ git add scripts/transform-bundle-classes.cjs
+git commit -m "fix(ios): add missing transform-bundle-classes.cjs for hermesc wrapper"
+git push origin main
+fatal: pathspec 'scripts/transform-bundle-classes.cjs' did not match any files
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   ../../scripts/hermesc-ios-wrapper.sh
+        modified:   ../../scripts/transform-bundle-classes.cjs
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Everything up-to-date
