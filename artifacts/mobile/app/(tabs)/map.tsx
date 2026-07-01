@@ -409,12 +409,9 @@ export default function MapScreen() {
   // Gate all GeoJSONSource renders until the map style has finished loading.
   // Registering sources before onDidFinishLoadingStyle silently fails on Android.
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
-  // OSM fetch center — defaults to Johnson Valley (SoCal OHV hub), updates once
-  // when the first real GPS fix arrives so trails match the user's location.
-  const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number }>({
-    lat: 34.4214,
-    lng: -116.6833,
-  });
+  // OSM fetch center — null until GPS arrives so we always load trails for the
+  // user's real location, not a hardcoded default.
+  const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [ridePoints, setRidePoints] = useState<RidePoint[]>([]);
@@ -531,10 +528,10 @@ export default function MapScreen() {
   }, [showNpsOverlay]);
 
   // ── OSM overlay fetch ───────────────────────────────────────────────────────
-  // osmFetchCenter updates once when the first real GPS fix arrives, triggering a
-  // re-fetch for the user's actual location (not the CA-center fallback).
+  // Only runs once GPS provides a real fix — osmFetchCenter stays null until then.
   useEffect(() => {
     if (!showOsmOverlay) { setOsmGeoJSON(null); setOsmError(false); return; }
+    if (!osmFetchCenter) return; // wait for GPS
     let cancelled = false;
     setOsmLoading(true);
     setOsmError(false);
