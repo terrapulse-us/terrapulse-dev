@@ -2,7 +2,9 @@
 REAL_HERMESC="${PODS_ROOT}/hermes-engine/destroot/bin/hermesc"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRANSFORM_SCRIPT="${SCRIPT_DIR}/transform-bundle-classes.cjs"
-NODE_BIN="$(command -v node 2>/dev/null || echo 'node')"
+# react-native-xcode.sh sources node-binary.sh which exports $NODE_BINARY.
+# Xcode strips PATH so bare "node" doesn't work — use $NODE_BINARY directly.
+NODE_BIN="${NODE_BINARY:-$(command -v node 2>/dev/null || echo 'node')}"
 
 INPUT_JS=""
 for arg in "$@"; do
