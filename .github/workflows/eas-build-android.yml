@@ -12,29 +12,11 @@ on:
           - preview
           - development
           - production
-      ota_only:
-        description: "Push OTA update only (skip full APK build)"
-        required: false
-        default: false
-        type: boolean
-      ota_channel:
-        description: "OTA update channel (used when ota_only is true)"
-        required: false
-        default: "preview"
-        type: choice
-        options:
-          - preview
-          - production
-  push:
-    branches:
-      - main
-      - "release/**"
 
 jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
-    if: ${{ always() }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +38,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --force
 
       - name: Push secrets to EAS environment
         working-directory: artifacts/mobile
@@ -85,4 +67,5 @@ jobs:
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+          NODE_PATH: ${{ github.workspace }}/node_modules
         run: eas build --platform android --profile ${{ inputs.profile || 'preview' }} --non-interactive
