@@ -12,7 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, View } from "react-native";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -43,14 +43,16 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // Passive: reload when native layer signals a downloaded update is ready
+  // Passive hook: reloads when native layer signals a downloaded update is ready
   useEffect(() => {
     if (isUpdatePending) {
       Updates.reloadAsync().catch(() => {});
     }
   }, [isUpdatePending]);
 
-  // Active fallback: explicit check→download→reload
+  // Active fallback: explicitly check → download → reload so we don't rely solely
+  // on the native ON_LOAD pre-JS check (which silently no-ops if Updates.isEnabled
+  // is false at the native layer due to missing channel config in eas.json).
   const [otaError, setOtaError] = React.useState<string | null>(null);
   useEffect(() => {
     if (!Updates.isEnabled) return;
@@ -72,18 +74,17 @@ export default function RootLayout() {
   const isOta = !!currentlyRunning?.updateId && !currentlyRunning?.isEmbeddedLaunch;
   const shortId = currentlyRunning?.updateId?.slice(0, 8) ?? "?";
 
-  // OTA_MARKER_v2
   const label = otaError
     ? `ERR: ${otaError}`
     : isChecking
-    ? "\u27f3 OTA check\u2026"
+    ? "⟳ OTA check…"
     : isDownloading
-    ? "\u2b07 Downloading\u2026"
+    ? "⬇ Downloading…"
     : isUpdatePending
-    ? "\u2713 Reloading\u2026"
+    ? "✓ Reloading…"
     : isOta
-    ? `OTA-v2: ${shortId}`
-    : `APK | en:${Updates.isEnabled}`;
+    ? `OTA: ${shortId}`
+    : `APK | enabled:${Updates.isEnabled}`;
 
   const badgeColor = otaError ? "#ef4444" : isOta ? "#22c55e" : "#9ca3af";
 
@@ -101,28 +102,33 @@ export default function RootLayout() {
               </Stack>
             </AuthProvider>
 
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 52,
-                right: 10,
-                backgroundColor: "rgba(0,0,0,0.55)",
-                borderRadius: 6,
-                paddingHorizontal: 7,
-                paddingVertical: 3,
-                zIndex: 9999,
-              }}
-            >
-              <Text
-                style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}
-              >
-                {label}
-              </Text>
-            </View>
+            <OtaPill label={label} badgeColor={badgeColor} />
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
+  );
+}
+
+function OtaPill({ label, badgeColor }: { label: string; badgeColor: string }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: insets.top + 8,
+        right: 10,
+        backgroundColor: "rgba(0,0,0,0.55)",
+        borderRadius: 6,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        zIndex: 9999,
+      }}
+    >
+      <Text style={{ color: badgeColor, fontSize: 10, fontFamily: "monospace" }}>
+        {label}
+      </Text>
+    </View>
   );
 }
