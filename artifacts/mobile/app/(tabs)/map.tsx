@@ -1164,7 +1164,7 @@ export default function MapScreen() {
         />
 
         <UserLocation
-          renderMode="normal"
+          renderMode={Platform.OS === 'ios' ? "native" : "normal"}
           visible={true}
         />
 
