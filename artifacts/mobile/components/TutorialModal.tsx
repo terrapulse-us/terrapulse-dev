@@ -226,8 +226,8 @@ export default function TutorialModal() {
               </View>
 
               <Text style={[styles.tag, { color: item.accent }]}>{item.tag}</Text>
-              <Text style={[styles.title, { color: colors.foreground }]}>{item.title}</Text>
-              <Text style={[styles.body, { color: colors.mutedForeground }]}>{item.body}</Text>
+              <Text style={[styles.title, { color: "#FFFFFF" }]}>{item.title}</Text>
+              <Text style={[styles.body, { color: "rgba(255,255,255,0.75)" }]}>{item.body}</Text>
             </View>
           )}
         />
