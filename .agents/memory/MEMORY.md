@@ -11,6 +11,7 @@
 - [api.video Kotlin 2.x patch](apivideo-kotlin2-patch.md) — viewTag override fix; pnpm patch applied to 5 event files
 - [api.video camera permission + flip on New Arch](apivideo-camera-fixes.md) — internal PermissionsManager unreliable on New Arch; fix: proactive expo-camera request + camPermDenied overlay; flip: key={isStreaming?"streaming":cameraFacing} forces native remount pre-stream
 - [MapLibre RN v11 Camera tracking prop](maplibre-v11-camera-tracking.md) — use `trackUserLocation` not `followUserLocation`; no followZoomLevel; flyTo first then flip prop
+- [MapLibre RN v11 Camera defaultSettings vs controlled props](maplibre-v11-camera-defaultsettings.md) — never use center/zoom as direct props; use defaultSettings for initial position or flyTo fights every re-render
 - [HaishinKit 1.x / iOS SDK 26 incompatibility](haishinkit-ios26-incompatibility.md) — set `ios: null` in react-native.config.js; post_install flags cannot fix removed AVFoundation symbols
 - [RN 0.81 hermesc linux64 private class fields](rn-hermesc-private-fields.md) — linux hermesc v0.12.0 rejects #field syntax; pnpm patch covers 39 files; also add babel-preset-expo explicitly to mobile package.json
 - [hermesc wrapper must cover osx-bin for EAS iOS builds](hermesc-osx-wrapper.md) — EAS iOS cloud builders are macOS; wrapper loop must include osx-bin AND use perl not sed (BSD sed -i requires '' suffix)
