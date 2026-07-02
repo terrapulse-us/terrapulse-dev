@@ -32,7 +32,7 @@ import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-ico
 import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   collection,
   doc,
@@ -448,6 +448,13 @@ export default function MapScreen() {
   // Gate all GeoJSONSource renders until the map style has finished loading.
   // Registering sources before onDidFinishLoadingStyle silently fails on Android.
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
+  // Deep-link params from Profile > Offline Maps ("view on map" for a saved pack).
+  const { focusLat, focusLng, focusTrailId } = useLocalSearchParams<{
+    focusLat?: string;
+    focusLng?: string;
+    focusTrailId?: string;
+  }>();
+  const focusHandledRef = useRef<string | null>(null);
   // OSM fetch center — null until GPS arrives so we always load trails for the
   // user's real location, not a hardcoded default.
   const [osmFetchCenter, setOsmFetchCenter] = useState<{ lat: number; lng: number } | null>(null);
@@ -653,6 +660,21 @@ export default function MapScreen() {
     // Update OSM fetch center to real location so OSM re-fetches for user's area
     setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
   }, [userLocation]);
+
+  // Handle "view on map" deep link from Profile > Offline Maps: fly to the
+  // saved pack's location and open its trail sheet if it's a known trail.
+  useEffect(() => {
+    if (!mapStyleLoaded || !focusLat || !focusLng) return;
+    const key = `${focusLat},${focusLng},${focusTrailId ?? ""}`;
+    if (focusHandledRef.current === key) return;
+    focusHandledRef.current = key;
+    const lat = parseFloat(focusLat);
+    const lng = parseFloat(focusLng);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    cameraRef.current?.flyTo({ center: [lng, lat], zoom: 12, duration: 1200 });
+    const trail = focusTrailId ? ALL_TRAILS.find((t) => t.id === focusTrailId) : undefined;
+    if (trail) setSelectedTrail(enrichWithRoute(trail));
+  }, [mapStyleLoaded, focusLat, focusLng, focusTrailId]);
 
   // Tapping anywhere along an OSM trail line opens that trail's info sheet.
   // Match the pressed feature back to our full OsmFeature (with geometry) by id.
@@ -1003,7 +1025,12 @@ export default function MapScreen() {
             coords.longitude + pad,
             coords.latitude + pad,
           ],
-          metadata: { trailId: selectedTrail.id },
+          metadata: {
+            trailId: selectedTrail.id,
+            trailTitle: selectedTrail.title,
+            lat: coords.latitude,
+            lng: coords.longitude,
+          },
         },
         (_pack, status) => {
           if (status.percentage >= 100) {

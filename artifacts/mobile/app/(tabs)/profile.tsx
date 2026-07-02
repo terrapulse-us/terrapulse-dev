@@ -18,6 +18,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { OfflineManager } from "@maplibre/maplibre-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   doc,
@@ -77,6 +78,15 @@ interface RideRecord {
   elevationGainFt: number;
 }
 
+interface OfflineMapPack {
+  id: string;
+  trailId?: string;
+  trailTitle: string;
+  lat?: number;
+  lng?: number;
+  sizeMB: number;
+}
+
 const ALL_ACHIEVEMENTS: Omit<Achievement, "unlocked" | "unlockedAt">[] = [
   // Milestones
   { id: "first_trail",   title: "Trail Breaker",         description: "Complete your first trail",       icon: "flag" },
@@ -132,7 +142,7 @@ function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-const SECTIONS = ["gallery", "specs", "achievements", "rides"] as const;
+const SECTIONS = ["gallery", "specs", "achievements", "rides", "maps"] as const;
 type Section = typeof SECTIONS[number];
 
 export default function ProfileScreen() {
@@ -150,6 +160,8 @@ export default function ProfileScreen() {
   const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [rides, setRides] = useState<RideRecord[]>([]);
+  const [offlinePacks, setOfflinePacks] = useState<OfflineMapPack[]>([]);
+  const [loadingPacks, setLoadingPacks] = useState(false);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
@@ -201,6 +213,79 @@ export default function ProfileScreen() {
     });
     return unsub;
   }, [user]);
+
+  const loadOfflinePacks = useCallback(async () => {
+    setLoadingPacks(true);
+    try {
+      const packs = await OfflineManager.getPacks();
+      const items: OfflineMapPack[] = await Promise.all(
+        packs.map(async (p) => {
+          const meta = (p.metadata ?? {}) as Record<string, unknown>;
+          let sizeMB = 0;
+          try {
+            const status = await p.status();
+            sizeMB = status.completedResourceSize / (1024 * 1024);
+          } catch {
+            // size unavailable — still show the pack
+          }
+          return {
+            id: p.id,
+            trailId: typeof meta.trailId === "string" ? meta.trailId : undefined,
+            trailTitle: typeof meta.trailTitle === "string" ? meta.trailTitle : "Saved Map Area",
+            lat: typeof meta.lat === "number" ? meta.lat : undefined,
+            lng: typeof meta.lng === "number" ? meta.lng : undefined,
+            sizeMB,
+          };
+        })
+      );
+      setOfflinePacks(items);
+    } catch {
+      setOfflinePacks([]);
+    } finally {
+      setLoadingPacks(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "maps") loadOfflinePacks();
+  }, [activeSection, loadOfflinePacks]);
+
+  const viewOfflinePackOnMap = useCallback((pack: OfflineMapPack) => {
+    if (pack.lat == null || pack.lng == null) {
+      Alert.alert("Unavailable", "This saved map doesn't have location data.");
+      return;
+    }
+    router.push({
+      pathname: "/(tabs)/map",
+      params: {
+        focusLat: String(pack.lat),
+        focusLng: String(pack.lng),
+        ...(pack.trailId ? { focusTrailId: pack.trailId } : {}),
+      },
+    });
+  }, [router]);
+
+  const deleteOfflinePack = useCallback((pack: OfflineMapPack) => {
+    Alert.alert(
+      "Remove offline map?",
+      `This deletes the downloaded map tiles for "${pack.trailTitle}". You can download it again anytime.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await OfflineManager.deletePack(pack.id);
+              setOfflinePacks((prev) => prev.filter((p) => p.id !== pack.id));
+            } catch {
+              Alert.alert("Error", "Could not delete offline map. Try again.");
+            }
+          },
+        },
+      ]
+    );
+  }, []);
 
   const togglePrivacy = useCallback(async (value: boolean) => {
     if (!user) return;
@@ -472,7 +557,7 @@ export default function ProfileScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Feather
-              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : "award"}
+              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : s === "maps" ? "map" : "award"}
               size={16}
               color={activeSection === s ? colors.accent : colors.mutedForeground}
             />
@@ -728,6 +813,71 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
 
+      {/* OFFLINE MAPS */}
+      {activeSection === "maps" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.ridesContainer, { paddingBottom: insets.bottom + 20 }]}
+        >
+          {loadingPacks ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : offlinePacks.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="map" size={40} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved maps yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Open a trail on the map and tap Download to save it for offline use
+              </Text>
+            </View>
+          ) : (
+            offlinePacks.map((pack) => (
+              <View key={pack.id} style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={styles.rideCardHeader}
+                  activeOpacity={0.7}
+                  onPress={() => viewOfflinePackOnMap(pack)}
+                >
+                  <View style={[styles.rideIconWrap, { backgroundColor: colors.accent + "22" }]}>
+                    <Feather name="map" size={18} color={colors.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rideDate, { color: colors.foreground }]} numberOfLines={1}>
+                      {pack.trailTitle}
+                    </Text>
+                    <Text style={[styles.rideTime, { color: colors.mutedForeground }]}>
+                      {pack.sizeMB > 0 ? `${pack.sizeMB.toFixed(1)} MB saved` : "Saved offline"}
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+
+                <View style={[styles.mapCardActions, { borderTopColor: colors.border }]}>
+                  <TouchableOpacity
+                    style={styles.mapActionBtn}
+                    onPress={() => viewOfflinePackOnMap(pack)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="navigation" size={14} color={colors.accent} />
+                    <Text style={[styles.mapActionText, { color: colors.accent }]}>VIEW ON MAP</Text>
+                  </TouchableOpacity>
+                  <View style={[styles.rideStatDivider, { backgroundColor: colors.border }]} />
+                  <TouchableOpacity
+                    style={styles.mapActionBtn}
+                    onPress={() => deleteOfflinePack(pack)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="trash-2" size={14} color={colors.destructive} />
+                    <Text style={[styles.mapActionText, { color: colors.destructive }]}>DELETE</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
+        </ScrollView>
+      )}
+
       {/* FOOTER */}
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.push("/privacy")} activeOpacity={0.7}>
@@ -945,4 +1095,14 @@ const styles = StyleSheet.create({
   rideStatValue: { fontSize: 17, fontWeight: "900" },
   rideStatLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
   rideStatDivider: { width: 1 },
+  mapCardActions: { flexDirection: "row", borderTopWidth: 1 },
+  mapActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+  },
+  mapActionText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
 });
