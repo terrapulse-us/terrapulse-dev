@@ -56,6 +56,10 @@ export default function RootLayout() {
   const [otaError, setOtaError] = React.useState<string | null>(null);
   useEffect(() => {
     if (!Updates.isEnabled) return;
+    // channel is only embedded when built via EAS with a profile that has a channel
+    // configured (e.g. preview for Android, production for iOS). Without it the
+    // server returns 400 "channel-name: Required" — skip the check silently.
+    if (!Updates.channel) return;
     Updates.checkForUpdateAsync()
       .then(async ({ isAvailable }) => {
         if (isAvailable) {
