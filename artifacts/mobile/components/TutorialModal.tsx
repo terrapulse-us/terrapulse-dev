@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
-const TUTORIAL_KEY = "tp_tutorial_v2_seen";
+const TUTORIAL_KEY = "tp_tutorial_v3_seen";
 const { width: SCREEN_W } = Dimensions.get("window");
 
 interface Slide {
@@ -84,6 +84,14 @@ const SLIDES: Slide[] = [
   },
   {
     iconLib: "material",
+    icon: "flag",
+    tag: "OSM TRAILS",
+    title: "Spot Trailheads Instantly",
+    body: "OpenStreetMap trails now show a checkered flag at both the start and end point, so you can see exactly where a track begins and ends. Tap anywhere along the trail line — not just the flags — to pull up its full info.",
+    accent: "#4CAF50",
+  },
+  {
+    iconLib: "material",
     icon: "navigation",
     tag: "TRAIL GUIDE",
     title: "Guided Trail Navigation",
@@ -97,6 +105,14 @@ const SLIDES: Slide[] = [
     title: "Lock to Your Position",
     body: "Tap the locate button (bottom-right) to enable GPS follow mode. The map locks on to your position and rotates with your direction of travel. Tap again to disengage.",
     accent: "#FF5500",
+  },
+  {
+    iconLib: "material",
+    icon: "report-problem",
+    tag: "COMMUNITY NOTES",
+    title: "Report Trail Conditions",
+    body: "Hit a hazard, closure, flooding, or washout? Drop a Community Note right on the map while you navigate. Other riders on the same trail see it instantly, can confirm it's still accurate, and it auto-expires after 48 hours.",
+    accent: "#F44336",
   },
   {
     iconLib: "feather",
