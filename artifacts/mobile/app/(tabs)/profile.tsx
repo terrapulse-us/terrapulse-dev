@@ -170,6 +170,12 @@ export default function ProfileScreen() {
       if (data.photoURL) setAvatarUrl(data.photoURL as string);
 
       const earned: string[] = data.achievements || [];
+
+      // Auto-grant beta_explorer to every signed-in user on each profile load
+      if (!earned.includes("beta_explorer")) {
+        grantBadge(user.uid, "beta_explorer").catch(console.warn);
+      }
+
       const mapped: Achievement[] = ALL_ACHIEVEMENTS.map((a) => ({
         ...a,
         unlocked: earned.includes(a.id),
@@ -178,11 +184,6 @@ export default function ProfileScreen() {
       setAchievements(mapped);
     });
     return unsub;
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    grantBadge(user.uid, "beta_explorer").catch(() => {});
   }, [user]);
 
   useEffect(() => {
