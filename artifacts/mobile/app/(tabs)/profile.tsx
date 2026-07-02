@@ -162,8 +162,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) return;
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
+      const data = snap.exists() ? snap.data() : {};
       if (data.vehicleSpecs) setSpecs(data.vehicleSpecs);
       if (typeof data.isPublic === "boolean") setIsPublic(data.isPublic);
       if (data.displayName) setDisplayName(data.displayName as string);
@@ -171,7 +170,9 @@ export default function ProfileScreen() {
 
       const earned: string[] = data.achievements || [];
 
-      // Auto-grant beta_explorer to every signed-in user on each profile load
+      // Auto-grant beta_explorer to every signed-in user on each profile load.
+      // Runs even when the doc doesn't exist yet (new users) — grantBadge
+      // creates the doc, which triggers a second snapshot with the badge included.
       if (!earned.includes("beta_explorer")) {
         grantBadge(user.uid, "beta_explorer").catch(console.warn);
       }
