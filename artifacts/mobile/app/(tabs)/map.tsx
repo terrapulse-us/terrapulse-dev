@@ -9,12 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from "react-native";
 import {
   Map as MapLibreMap,
   Camera,
   type CameraRef,
   UserLocation,
+  NativeUserLocation,
   Marker,
   GeoJSONSource,
   RasterSource,
@@ -36,6 +38,9 @@ import {
   addDoc,
   serverTimestamp,
   getDoc,
+  deleteDoc,
+  updateDoc,
+  arrayUnion,
   query,
   where,
 } from "firebase/firestore";
@@ -186,6 +191,29 @@ const KEYPOINT_CONFIGS: KeypointConfig[] = [
   { id: "danger",    label: "Danger",     icon: "warning",     color: "#E65100" },
   { id: "custom",    label: "Custom",     icon: "edit",        color: "#5A9A5A" },
 ];
+
+// Community Notes — live, shared reports posted by anyone navigating a trail.
+// Stored at trails/{trailId}/community_notes and auto-expire after 48h.
+const NOTE_EXPIRY_MS = 48 * 60 * 60 * 1000;
+interface NoteTypeConfig { id: string; label: string; icon: string; color: string; }
+const NOTE_TYPE_CONFIGS: NoteTypeConfig[] = [
+  { id: "hazard",     label: "Hazard",     icon: "warning",       color: "#E65100" },
+  { id: "closed",     label: "Closed",     icon: "block",         color: "#C0392B" },
+  { id: "flooded",    label: "Flooded",    icon: "water",         color: "#1565C0" },
+  { id: "washed_out", label: "Washed Out", icon: "waves",         color: "#795548" },
+  { id: "custom",     label: "Custom",     icon: "edit",          color: "#5A9A5A" },
+];
+interface CommunityNote {
+  id: string;
+  type: string;
+  message: string;
+  lat: number;
+  lng: number;
+  createdBy: string;
+  createdByName: string;
+  createdAtMs: number;
+  confirmedBy: string[];
+}
 
 const MAPTILER_KEY: string =
   (Constants.expoConfig?.extra as Record<string, string> | undefined)
@@ -401,6 +429,14 @@ export default function MapScreen() {
   const [keypointSelectedType, setKeypointSelectedType] = useState<string | null>(null);
   const [keypointCustomText, setKeypointCustomText] = useState("");
 
+  const [communityNotes, setCommunityNotes] = useState<CommunityNote[]>([]);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteSelectedType, setNoteSelectedType] = useState<string | null>(null);
+  const [noteCustomText, setNoteCustomText] = useState("");
+  const [submittingNote, setSubmittingNote] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<CommunityNote | null>(null);
+  const [confirmingNote, setConfirmingNote] = useState(false);
+
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -485,6 +521,8 @@ export default function MapScreen() {
     setNavDistCovered(0);
     setNavDistTotal(0);
     setFollowUser(false);
+    setShowNoteModal(false);
+    setSelectedNote(null);
   }, []);
 
   // ── NFS overlay fetch ───────────────────────────────────────────────────────
@@ -679,6 +717,44 @@ export default function MapScreen() {
     );
     return unsub;
   }, []);
+
+  // Community Notes — live for whichever trail is currently being navigated.
+  // Notes older than NOTE_EXPIRY_MS are hidden and opportunistically deleted
+  // by whichever client next observes them (no backend cleanup job exists).
+  useEffect(() => {
+    if (!isNavigating || !navTrail) {
+      setCommunityNotes([]);
+      return;
+    }
+    const unsub = onSnapshot(
+      collection(db, "trails", navTrail.id, "community_notes"),
+      (snap) => {
+        const now = Date.now();
+        const fresh: CommunityNote[] = [];
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          const createdAtMs = (data.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? (data.createdAtFallback as number | undefined) ?? 0;
+          if (now - createdAtMs > NOTE_EXPIRY_MS) {
+            deleteDoc(doc(db, "trails", navTrail.id, "community_notes", d.id)).catch(() => {});
+            return;
+          }
+          fresh.push({
+            id: d.id,
+            type: data.type as string,
+            message: (data.message as string) ?? "",
+            lat: data.lat as number,
+            lng: data.lng as number,
+            createdBy: data.createdBy as string,
+            createdByName: (data.createdByName as string) ?? "Rider",
+            createdAtMs,
+            confirmedBy: (data.confirmedBy as string[]) ?? [],
+          });
+        });
+        setCommunityNotes(fresh);
+      }
+    );
+    return unsub;
+  }, [isNavigating, navTrail]);
 
   useEffect(() => {
     if (selectedState === "All States") {
@@ -974,6 +1050,68 @@ export default function MapScreen() {
     setKeypointCustomText("");
   }, [keypointSelectedType, keypointCustomText, userLocation]);
 
+  const addCommunityNote = useCallback(async () => {
+    if (!noteSelectedType || !navTrail || !user) return;
+    if (noteSelectedType === "custom" && !noteCustomText.trim()) {
+      Alert.alert("Add a Message", "Please describe the custom note before posting.");
+      return;
+    }
+    const loc = userLocation;
+    if (!loc) {
+      Alert.alert("No Location", "Enable location to post a note.");
+      return;
+    }
+    setSubmittingNote(true);
+    try {
+      await addDoc(collection(db, "trails", navTrail.id, "community_notes"), {
+        type: noteSelectedType,
+        message: noteSelectedType === "custom" ? noteCustomText.trim() : "",
+        lat: loc.latitude,
+        lng: loc.longitude,
+        createdBy: user.uid,
+        createdByName: user.displayName ?? "Rider",
+        createdAt: serverTimestamp(),
+        createdAtFallback: Date.now(),
+        confirmedBy: [],
+      });
+      setShowNoteModal(false);
+      setNoteSelectedType(null);
+      setNoteCustomText("");
+    } catch {
+      Alert.alert("Couldn't Post Note", "Please check your connection and try again.");
+    } finally {
+      setSubmittingNote(false);
+    }
+  }, [noteSelectedType, noteCustomText, navTrail, user, userLocation]);
+
+  const confirmNote = useCallback(async (note: CommunityNote) => {
+    if (!navTrail || !user || note.confirmedBy.includes(user.uid)) return;
+    setConfirmingNote(true);
+    try {
+      const noteRef = doc(db, "trails", navTrail.id, "community_notes", note.id);
+      await updateDoc(noteRef, { confirmedBy: arrayUnion(user.uid) });
+      setSelectedNote((prev) =>
+        prev && prev.id === note.id
+          ? { ...prev, confirmedBy: [...prev.confirmedBy, user.uid] }
+          : prev
+      );
+    } catch {
+      Alert.alert("Couldn't Confirm", "Please check your connection and try again.");
+    } finally {
+      setConfirmingNote(false);
+    }
+  }, [navTrail, user]);
+
+  const deleteNote = useCallback(async (note: CommunityNote) => {
+    if (!navTrail || !user || note.createdBy !== user.uid) return;
+    try {
+      await deleteDoc(doc(db, "trails", navTrail.id, "community_notes", note.id));
+      setSelectedNote(null);
+    } catch {
+      Alert.alert("Couldn't Delete", "Please check your connection and try again.");
+    }
+  }, [navTrail, user]);
+
   const startTrailRecording = useCallback(async () => {
     if (isRecording) {
       Alert.alert("Already Recording", "Stop your ride recording first.");
@@ -1163,10 +1301,11 @@ export default function MapScreen() {
           trackUserLocation={followUser ? "course" : undefined}
         />
 
-        <UserLocation
-          renderMode={Platform.OS === 'ios' ? "native" : "normal"}
-          visible={true}
-        />
+        {Platform.OS === "ios" ? (
+          <NativeUserLocation />
+        ) : (
+          <UserLocation />
+        )}
 
         {filteredTrails.map((trail) => (
           <Marker
@@ -1401,6 +1540,21 @@ export default function MapScreen() {
             <Marker key={`keypoint-${i}`} lngLat={[kp.lng, kp.lat]}>
               <View style={[styles.keypointMarker, { backgroundColor: kpConfig?.color ?? "#999" }]}>
                 <MaterialIcons name={(kpConfig?.icon ?? "place") as never} size={12} color="#fff" />
+              </View>
+            </Marker>
+          );
+        })}
+
+        {isNavigating && navTrail && communityNotes.map((note) => {
+          const noteConfig = NOTE_TYPE_CONFIGS.find(n => n.id === note.type);
+          return (
+            <Marker
+              key={`note-${note.id}`}
+              lngLat={[note.lng, note.lat]}
+              onPress={() => setSelectedNote(note)}
+            >
+              <View style={[styles.noteMarker, { backgroundColor: noteConfig?.color ?? "#999" }]}>
+                <MaterialIcons name={(noteConfig?.icon ?? "place") as never} size={13} color="#fff" />
               </View>
             </Marker>
           );
@@ -1946,6 +2100,13 @@ export default function MapScreen() {
               {navDistTotal > 0 ? `  ·  ${Math.round((navDistCovered / navDistTotal) * 100)}%` : ""}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => setShowNoteModal(true)}
+            style={[styles.navNoteBtn, { backgroundColor: "#E65100" }]}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="add-alert" size={18} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
             <Feather name="x" size={18} color="#fff" />
           </TouchableOpacity>
@@ -2165,6 +2326,188 @@ export default function MapScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* ADD COMMUNITY NOTE MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showNoteModal}
+        onRequestClose={() => {
+          setShowNoteModal(false);
+          setNoteSelectedType(null);
+          setNoteCustomText("");
+        }}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E65100", borderTopWidth: 2 }]}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={styles.modalHandle} />
+              <Text style={[styles.layerTitle, { color: colors.foreground, marginBottom: 4 }]}>
+                POST A NOTE
+              </Text>
+              <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 16 }]}>
+                Let other riders on this trail know what's ahead. Visible for 48 hours.
+              </Text>
+
+              {NOTE_TYPE_CONFIGS.map((nt) => {
+                const isActive = noteSelectedType === nt.id;
+                return (
+                  <TouchableOpacity
+                    key={nt.id}
+                    style={[
+                      styles.keypointTypeBtn,
+                      {
+                        backgroundColor: isActive ? nt.color : "rgba(0,0,0,0.04)",
+                        borderColor: isActive ? nt.color : colors.border,
+                        marginBottom: 8,
+                      },
+                    ]}
+                    onPress={() => {
+                      setNoteSelectedType(nt.id);
+                      if (nt.id !== "custom") setNoteCustomText("");
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons
+                      name={nt.icon as never}
+                      size={20}
+                      color={isActive ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text style={[styles.keypointTypeBtnText, { color: isActive ? "#fff" : colors.foreground }]}>
+                      {nt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {noteSelectedType === "custom" && (
+                <TextInput
+                  style={[
+                    styles.trailNameInput,
+                    { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background, marginBottom: 4 },
+                  ]}
+                  placeholder="Describe what's happening..."
+                  placeholderTextColor={colors.mutedForeground}
+                  value={noteCustomText}
+                  onChangeText={setNoteCustomText}
+                  maxLength={120}
+                />
+              )}
+
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
+                  onPress={() => {
+                    setShowNoteModal(false);
+                    setNoteSelectedType(null);
+                    setNoteCustomText("");
+                  }}
+                >
+                  <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.completeBtn,
+                    {
+                      flex: 1,
+                      marginTop: 0,
+                      backgroundColor: noteSelectedType
+                        ? (NOTE_TYPE_CONFIGS.find(n => n.id === noteSelectedType)?.color ?? colors.success)
+                        : colors.border,
+                      opacity: noteSelectedType ? 1 : 0.5,
+                    },
+                  ]}
+                  onPress={addCommunityNote}
+                  disabled={!noteSelectedType || submittingNote}
+                >
+                  {submittingNote ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={[styles.completeBtnText, { color: "#fff" }]}>POST NOTE</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* COMMUNITY NOTE DETAIL MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={!!selectedNote}
+        onRequestClose={() => setSelectedNote(null)}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedNote(null)}>
+          {selectedNote && (() => {
+            const noteConfig = NOTE_TYPE_CONFIGS.find(n => n.id === selectedNote.type);
+            const isAuthor = user?.uid === selectedNote.createdBy;
+            const alreadyConfirmed = !!user && selectedNote.confirmedBy.includes(user.uid);
+            const ageMs = Date.now() - selectedNote.createdAtMs;
+            const ageMins = Math.max(0, Math.floor(ageMs / 60000));
+            const ageLabel = ageMins < 60 ? `${ageMins}m ago` : `${Math.floor(ageMins / 60)}h ago`;
+            return (
+              <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: noteConfig?.color ?? colors.accent, borderTopWidth: 2 }]}>
+                <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+                  <View style={styles.modalHandle} />
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <View style={[styles.noteMarker, { backgroundColor: noteConfig?.color ?? "#999", width: 26, height: 26, borderRadius: 13 }]}>
+                      <MaterialIcons name={(noteConfig?.icon ?? "place") as never} size={14} color="#fff" />
+                    </View>
+                    <Text style={[styles.layerTitle, { color: colors.foreground }]}>
+                      {noteConfig?.label.toUpperCase() ?? "NOTE"}
+                    </Text>
+                  </View>
+                  <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 12 }]}>
+                    Posted by {selectedNote.createdByName} · {ageLabel}
+                  </Text>
+                  {!!selectedNote.message && (
+                    <Text style={[styles.noteMessage, { color: colors.foreground }]}>
+                      {selectedNote.message}
+                    </Text>
+                  )}
+
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
+                    <TouchableOpacity
+                      style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
+                      onPress={() => setSelectedNote(null)}
+                    >
+                      <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CLOSE</Text>
+                    </TouchableOpacity>
+                    {isAuthor ? (
+                      <TouchableOpacity
+                        style={[styles.completeBtn, { flex: 1, marginTop: 0, backgroundColor: colors.destructive }]}
+                        onPress={() => deleteNote(selectedNote)}
+                      >
+                        <Text style={[styles.completeBtnText, { color: "#fff" }]}>DELETE</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[
+                          styles.completeBtn,
+                          { flex: 1, marginTop: 0, backgroundColor: alreadyConfirmed ? colors.border : colors.success, opacity: alreadyConfirmed || confirmingNote ? 0.6 : 1 },
+                        ]}
+                        onPress={() => confirmNote(selectedNote)}
+                        disabled={alreadyConfirmed || confirmingNote}
+                      >
+                        {confirmingNote ? (
+                          <ActivityIndicator color="#000" />
+                        ) : (
+                          <Text style={[styles.completeBtnText, { color: alreadyConfirmed ? colors.mutedForeground : "#000" }]}>
+                            {alreadyConfirmed ? "CONFIRMED" : "STILL ACCURATE"}
+                            {selectedNote.confirmedBy.length > 0 ? ` (${selectedNote.confirmedBy.length})` : ""}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          })()}
+        </TouchableOpacity>
+      </Modal>
+
       {/* OTA update badge — confirms which bundle is running */}
       <View style={styles.updateBadge} pointerEvents="none">
         <Text style={styles.updateBadgeText}>
@@ -2200,6 +2543,7 @@ const styles = StyleSheet.create({
   navProgressFill: { height: 4, borderRadius: 2 },
   navProgressText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   navStopBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  navNoteBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   updateBadge: {
     position: "absolute",
     bottom: 8,
@@ -2672,6 +3016,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.4,
     shadowRadius: 2,
+  },
+  noteMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+  },
+  noteMessage: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   keypointTypeBtn: {
     flexDirection: "row",

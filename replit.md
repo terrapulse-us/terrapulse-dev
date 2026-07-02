@@ -22,15 +22,20 @@ California off-road trail finder mobile app with live streaming, GPS telemetry, 
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/mobile/app/(tabs)/map.tsx` — main map screen: trails, navigation, keypoints, and Community Notes (hazard/closed/flooded/washed-out/custom trail reports with 48h expiry + upvote confirmation), stored in Firestore at `trails/{trailId}/community_notes/{noteId}`.
+- `artifacts/mobile/lib/firebase.ts` — Firebase app/auth/firestore/storage init.
+- `artifacts/mobile/firestore.rules.community_notes.txt` — source-of-truth security rules for the `community_notes` subcollection; **not deployed automatically** — must be merged into the live rules manually via Firebase Console or CLI.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Community Notes use a client-side `createdAtFallback: Date.now()` field alongside Firestore's `serverTimestamp()` so the 48h-expiry filter doesn't misfire while the server timestamp is still resolving.
+- Firestore security rules are not managed in this repo's deploy flow — they must be applied manually (Console or `firebase deploy --only firestore:rules`) whenever `firestore.rules.community_notes.txt` changes.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- California off-road trail discovery with an interactive map (MapLibre), turn-by-turn navigation, GPS telemetry, and live streaming.
+- Community features: keypoints, and Community Notes — riders report trail hazards/closures in real time while navigating, visible to others on the same trail, with 48h auto-expiry, author-only delete, and an upvote-style "still accurate" confirmation.
+- Leaderboard for community engagement.
 
 ## User preferences
 

@@ -19,7 +19,7 @@ even with `setAccessToken(null)`. v11 is a full New Architecture rewrite targeti
 | Camera `zoomLevel` prop | `zoom` |
 | `cameraRef.current?.setCamera({centerCoordinate, zoomLevel, animationDuration})` | `flyTo({center, zoom, duration})` |
 | `fitBounds([ne],[sw], padding, dur)` | `fitBounds([w,s,e,n], {padding:{top,right,bottom,left}, duration})` |
-| `MapLibreGL.UserLocation visible={bool}` | `UserLocation` (no visible prop) |
+| `MapLibreGL.UserLocation visible={bool} renderMode="normal"/"native"` | `UserLocation` (no `visible`/`renderMode` props — only `animated`, `accuracy`, `heading`, `minDisplacement`, `onPress`, `children`); for native-puck rendering use the separate `NativeUserLocation` component (`mode="default"/"heading"/"course"`), e.g. `Platform.OS === "ios" ? <NativeUserLocation/> : <UserLocation/>` |
 | `MapLibreGL.PointAnnotation coordinate onSelected` | `Marker lngLat onPress` |
 | `MapLibreGL.ShapeSource shape={...}` | `GeoJSONSource data={...}` |
 | `MapLibreGL.LineLayer style={{lineColor,...}}` | `Layer type="line" paint={{"line-color",...}}` |
