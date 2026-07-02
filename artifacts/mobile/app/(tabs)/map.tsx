@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  type NativeSyntheticEvent,
 } from "react-native";
 import {
   Map as MapLibreMap,
@@ -22,11 +23,12 @@ import {
   RasterSource,
   Layer,
   OfflineManager,
+  type PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -78,6 +80,7 @@ import {
 import {
   fetchOsmTrailsNear,
   osmFeatureStartCoord,
+  osmFeatureEndCoord,
   type OsmFeature,
   type OsmCollection,
 } from "@/lib/osm-api";
@@ -650,6 +653,18 @@ export default function MapScreen() {
     // Update OSM fetch center to real location so OSM re-fetches for user's area
     setOsmFetchCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
   }, [userLocation]);
+
+  // Tapping anywhere along an OSM trail line opens that trail's info sheet.
+  // Match the pressed feature back to our full OsmFeature (with geometry) by id.
+  const handleOsmTrailPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      const pressedId = e.nativeEvent.features?.[0]?.properties?.id;
+      if (pressedId == null || !osmGeoJSON) return;
+      const match = osmGeoJSON.features.find((f) => f.properties.id === pressedId);
+      if (match) setSelectedGuide(fromOsmFeature(match));
+    },
+    [osmGeoJSON],
+  );
 
   useEffect(() => {
     if (!isNavigating) {
@@ -1421,8 +1436,9 @@ export default function MapScreen() {
         )}
 
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
+        {/* Tapping anywhere on the line (not just the endpoint pins) opens the trail info sheet. */}
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
-          <GeoJSONSource id="osm-trails" data={osmGeoJSON as never}>
+          <GeoJSONSource id="osm-trails" data={osmGeoJSON as never} onPress={handleOsmTrailPress}>
             <Layer
               id="osm-trails-casing"
               type="line"
@@ -1436,14 +1452,27 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {/* ── Tappable OSM pins (cap 120) ────────────────────────────────── */}
+        {/* ── Start/stop checkered-flag markers (cap 120) ───────────────── */}
         {mapStyleLoaded && showOsmOverlay && osmGeoJSON && osmGeoJSON.features.slice(0, 120).map((f, i) => {
-          const coord = osmFeatureStartCoord(f);
-          if (!coord) return null;
+          const start = osmFeatureStartCoord(f);
+          const end = osmFeatureEndCoord(f);
           return (
-            <Marker key={`osm-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
-              <View style={styles.osmMarker} />
-            </Marker>
+            <React.Fragment key={`osm-${i}`}>
+              {start && (
+                <Marker lngLat={start} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
+                  <View style={[styles.osmFlagMarker, styles.osmFlagMarkerStart]}>
+                    <MaterialCommunityIcons name="flag-checkered" size={11} color="#1B5E20" />
+                  </View>
+                </Marker>
+              )}
+              {end && (
+                <Marker lngLat={end} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
+                  <View style={[styles.osmFlagMarker, styles.osmFlagMarkerEnd]}>
+                    <MaterialCommunityIcons name="flag-checkered" size={11} color="#B71C1C" />
+                  </View>
+                </Marker>
+              )}
+            </React.Fragment>
           );
         })}
 
@@ -2558,13 +2587,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter_400Regular",
   },
-  osmMarker: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#4CAF50",
-    borderWidth: 2,
-    borderColor: "#fff",
+  osmFlagMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  osmFlagMarkerStart: {
+    borderColor: "#1B5E20",
+  },
+  osmFlagMarkerEnd: {
+    borderColor: "#B71C1C",
   },
   usfsMarker: {
     width: 10,

@@ -215,6 +215,12 @@ export function osmFeatureStartCoord(f: OsmFeature): [number, number] | null {
   return c ? [c[0], c[1]] : null;
 }
 
+export function osmFeatureEndCoord(f: OsmFeature): [number, number] | null {
+  const coords = f.geometry.coordinates;
+  const c = coords[coords.length - 1];
+  return c ? [c[0], c[1]] : null;
+}
+
 export function osmExtractRoute(f: OsmFeature): Array<{ lat: number; lng: number }> {
   return f.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
 }
