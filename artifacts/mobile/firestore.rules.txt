@@ -1,0 +1,116 @@
+// TerraPulse — Firestore Security Rules
+//
+// This is the SOURCE OF TRUTH for this project's Firestore rules. It is
+// NOT deployed automatically — Replit cannot publish Firestore rules on
+// your behalf. To apply it:
+//   1. Firebase Console → Build → Firestore Database → Rules tab
+//   2. Select all existing text and replace it with the contents below
+//   3. Click "Publish"
+// Rules take effect within ~1 minute. No app rebuild or OTA update needed.
+//
+// This replaces the default "test mode" rule (open read/write to everyone,
+// expiring 2026-07-20) with rules scoped to how the TerraPulse app actually
+// reads and writes data, covering every collection currently in use:
+// trails (+ photos/events/community_notes subcollections), users (+
+// gallery/rides subcollections), and live_streams.
+//
+// Known limitation (not fixed here, flagging for awareness): profile
+// privacy (`isPublic`) is enforced client-side only — any signed-in user
+// can technically read another user's doc/gallery directly via the SDK,
+// the app just chooses not to display it when isPublic is false. Locking
+// that down further would need a design decision (e.g. splitting private
+// fields into a subcollection) — out of scope for this pass.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── users/{uid} ──────────────────────────────────────────────────────
+    // Profile doc: displayName, photoURL, email, isPublic, vehicleSpecs,
+    // achievements, achievementDates, completedTrails. Read broadly because
+    // leaderboard/community screens list all users; write restricted to
+    // the owner.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+
+      // users/{uid}/gallery/{itemId} — photo/video gallery items
+      match /gallery/{itemId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasAll(['url', 'type', 'uploadedAt']);
+      }
+
+      // users/{uid}/rides/{rideId} — private ride history, owner-only
+      match /rides/{rideId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── trails/{trailId} ─────────────────────────────────────────────────
+    // Built-in trails are hardcoded client-side and have no Firestore doc;
+    // this only governs user-submitted trails and the subcollections that
+    // hang off any trail id (built-in or user-submitted).
+    match /trails/{trailId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.isUserSubmitted == true;
+
+      // trails/{trailId}/photos/{photoId}
+      match /photos/{photoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uploadedBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['url', 'uploadedBy', 'createdAt']);
+      }
+
+      // trails/{trailId}/events/{eventId}
+      match /events/{eventId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['title', 'eventType', 'dateStr', 'time', 'visibility', 'createdBy', 'createdByName', 'attendees', 'description', 'createdAt']);
+        // RSVP join/leave: only the `attendees` array may change, and only
+        // by exactly one entry at a time (join = +1, leave = -1). This does
+        // not verify WHICH entry changed (Firestore rules can't easily
+        // inspect array-of-map diffs) — a known, low-severity gap.
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees'])
+          && (
+               request.resource.data.attendees.size() == resource.data.attendees.size() + 1
+               || request.resource.data.attendees.size() == resource.data.attendees.size() - 1
+             );
+      }
+
+      // trails/{trailId}/community_notes/{noteId}
+      match /community_notes/{noteId} {
+        allow read: if request.auth != null;
+
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['type', 'message', 'lat', 'lng', 'createdBy', 'createdByName', 'createdAt', 'createdAtFallback', 'confirmedBy'])
+          && request.resource.data.confirmedBy == [];
+
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmedBy'])
+          && request.resource.data.confirmedBy == resource.data.confirmedBy.concat([request.auth.uid]);
+
+        allow delete: if request.auth != null
+          && (resource.data.createdBy == request.auth.uid
+              || request.time > resource.data.createdAt + duration.value(48, 'h'));
+      }
+    }
+
+    // ── live_streams/{uid} ───────────────────────────────────────────────
+    // One doc per streamer, keyed by their own uid.
+    match /live_streams/{uid} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

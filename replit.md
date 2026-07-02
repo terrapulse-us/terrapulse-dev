@@ -24,7 +24,7 @@ California off-road trail finder mobile app with live streaming, GPS telemetry, 
 
 - `artifacts/mobile/app/(tabs)/map.tsx` — main map screen: trails, navigation, keypoints, and Community Notes (hazard/closed/flooded/washed-out/custom trail reports with 48h expiry + upvote confirmation), stored in Firestore at `trails/{trailId}/community_notes/{noteId}`.
 - `artifacts/mobile/lib/firebase.ts` — Firebase app/auth/firestore/storage init.
-- `artifacts/mobile/firestore.rules.community_notes.txt` — source-of-truth security rules for the `community_notes` subcollection; **not deployed automatically** — must be merged into the live rules manually via Firebase Console or CLI.
+- `artifacts/mobile/firestore.rules.txt` — full source-of-truth Firestore security rules (users, trails, photos, events, community_notes, live_streams); **not deployed automatically** — must be pasted into the live rules manually via Firebase Console (Build > Firestore Database > Rules) or the Firebase CLI.
 
 ## Architecture decisions
 
