@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
-  Platform,
 } from "react-native";
 import {
   Map as MapLibreMap,
@@ -1164,13 +1163,9 @@ export default function MapScreen() {
           trackUserLocation={followUser ? "course" : undefined}
         />
 
-        {Platform.OS === "ios" ? (
-          <UserLocation>
-            <View style={styles.userLocationDot} />
-          </UserLocation>
-        ) : (
-          <UserLocation />
-        )}
+        <UserLocation>
+          <View style={styles.userLocationDot} />
+        </UserLocation>
 
         {filteredTrails.map((trail) => (
           <Marker

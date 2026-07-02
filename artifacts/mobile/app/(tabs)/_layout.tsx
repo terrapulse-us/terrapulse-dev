@@ -1,7 +1,9 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Image, Platform, View } from "react-native";
+import { Image, Platform, StyleSheet, View } from "react-native";
+import { BlurView } from "expo-blur";
+import { useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import TutorialModal from "@/components/TutorialModal";
 
@@ -11,6 +13,9 @@ const profileIcon   = require("@/assets/icons/profile.png");
 
 export default function TabLayout() {
   const colors = useColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
   return (
@@ -22,15 +27,22 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
+          position: "absolute",
+          backgroundColor: isIOS ? "transparent" : colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
         tabBarBackground: () =>
-          isWeb ? (
-            <View style={[{ flex: 1, backgroundColor: colors.card }]} />
+          isIOS ? (
+            <BlurView
+              intensity={80}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : isWeb ? (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
           ) : null,
         tabBarLabelStyle: {
           fontWeight: "700" as const,
