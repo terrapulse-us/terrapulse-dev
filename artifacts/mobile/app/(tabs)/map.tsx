@@ -1158,7 +1158,7 @@ export default function MapScreen() {
       >
         <Camera
           ref={cameraRef}
-          defaultSettings={{
+          initialViewState={{
             center: [-119.4179, 36.7783],
             zoom: 7,
           }}
