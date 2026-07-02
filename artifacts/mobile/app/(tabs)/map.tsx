@@ -1163,9 +1163,10 @@ export default function MapScreen() {
           trackUserLocation={followUser ? "course" : undefined}
         />
 
-        <UserLocation>
-          <View style={styles.userLocationDot} />
-        </UserLocation>
+        <UserLocation
+          renderMode="normal"
+          visible={true}
+        />
 
         {filteredTrails.map((trail) => (
           <Marker
