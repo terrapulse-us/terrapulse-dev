@@ -1,8 +1,29 @@
 name: EAS OTA Update
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "EAS channel to publish to (preview = Android, production = iOS)"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+      platform:
+        description: "Platform to update"
+        required: true
+        default: "android"
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      message:
+        description: "Update message"
+        required: false
+        default: "Manual OTA update"
 
 jobs:
   update:
@@ -34,15 +55,16 @@ jobs:
       - name: Install hermesc class-syntax wrapper
         run: bash scripts/install-hermesc-wrapper.sh --force
 
-      - name: Publish OTA update to preview channel
+      - name: Publish OTA update
         working-directory: artifacts/mobile
-        continue-on-error: true
         env:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.MAPTILER_API_KEY }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
           NODE_PATH: ${{ github.workspace }}/node_modules
         run: |
-          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
-          eas update --channel preview --message "$SUBJECT" --non-interactive
+          if [ "${{ github.event.inputs.platform }}" = "all" ]; then
+            eas update --channel ${{ github.event.inputs.channel }} --message "${{ github.event.inputs.message }}" --non-interactive
+          else
+            eas update --channel ${{ github.event.inputs.channel }} --platform ${{ github.event.inputs.platform }} --message "${{ github.event.inputs.message }}" --non-interactive
+          fi
