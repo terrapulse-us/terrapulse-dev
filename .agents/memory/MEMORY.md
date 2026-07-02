@@ -23,3 +23,4 @@
 - [iOS hermesc uses pod hermesc, not node_modules osx-bin](ios-hermesc-pod-path.md) — react-native-xcode.sh uses $PODS_ROOT/hermes-engine/destroot/bin/hermesc; withHermescWrapper plugin sets HERMES_CLI_PATH; plugin must be registered in app.config.js or iOS gets no wrapper at all
 - [EAS macOS sandbox blocks /tmp/ writes in hermesc wrapper](eas-macos-tmp-sandbox.md) — 2>>/tmp/file in hermesc-ios-wrapper.sh causes bash to abort the entire node command; use 2>&1 instead; never redirect to /tmp/ from within the wrapper
 - [Platform-specific layout files for iOS/Android isolation](platform-specific-layout-files.md) — BlurView removal in _layout.tsx crashes Android OTA; iOS-only changes go in _layout.ios.tsx, Android's _layout.tsx stays frozen
+- [Duplicated ALL_ACHIEVEMENTS list](duplicated-achievements-list.md) — profile.tsx and user/[uid].tsx each hardcode their own badge catalog; adding a badge to one doesn't propagate to the other

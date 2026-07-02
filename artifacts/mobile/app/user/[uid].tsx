@@ -36,6 +36,7 @@ const ALL_ACHIEVEMENTS = [
   { id: "regional_desert", title: "Desert Demon",        description: "Complete all desert trails",      icon: "thermometer" },
   { id: "dunes_king",      title: "Dunes King",          description: "Hit both Pismo & Dumont Dunes",   icon: "wind" },
   // Special
+  { id: "beta_explorer",   title: "Beta Explorer",       description: "Founding beta tester of TerraPulse", icon: "cpu" },
   { id: "went_live",       title: "Broadcaster",         description: "Go live from a trail",            icon: "radio" },
   // Per-trail
   { id: "trail_rubicon",        title: "Rubicon Conqueror",      description: "Conquer the legendary Rubicon Trail",       icon: "shield" },
