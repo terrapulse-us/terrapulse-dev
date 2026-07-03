@@ -564,8 +564,8 @@ export default function TrailDetailScreen({
                 onPress={() => { resetCreateForm(); setShowCreateEvent(true); }}
                 activeOpacity={0.85}
               >
-                <Feather name="plus" size={16} color="#000" />
-                <Text style={[s.createEventBtnText, { color: "#000" }]}>CREATE EVENT</Text>
+                <Feather name="plus" size={16} color="#fff" />
+                <Text style={[s.createEventBtnText, { color: "#fff" }]}>CREATE EVENT</Text>
               </TouchableOpacity>
 
               {/* Calendar */}
