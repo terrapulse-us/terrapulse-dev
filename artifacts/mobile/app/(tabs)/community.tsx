@@ -18,6 +18,7 @@ import { router } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { ALL_TRAILS } from "@/lib/trails";
 
 interface PublicUser {
   uid: string;
@@ -34,14 +35,9 @@ interface PublicUser {
   };
 }
 
-const TRAIL_NAMES: Record<string, string> = {
-  "1": "Rubicon Trail",
-  "2": "Hungry Valley SVRA",
-  "3": "Johnson Valley",
-  "4": "Big Bear OHV",
-  "5": "Ocotillo Wells",
-  "6": "Fordyce Lake",
-};
+const TRAIL_NAMES: Record<string, string> = Object.fromEntries(
+  ALL_TRAILS.map((t) => [t.id, t.title])
+);
 
 export default function CommunityScreen() {
   const colors = useColors();

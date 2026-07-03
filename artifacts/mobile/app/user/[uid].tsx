@@ -17,86 +17,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot, collection } from "firebase/firestore";
 import { router, useLocalSearchParams } from "expo-router";
 import { db } from "@/lib/firebase";
+import { ALL_ACHIEVEMENTS } from "@/lib/achievements-catalog";
+import { ALL_TRAILS } from "@/lib/trails";
 import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 4) / 3;
 
-const ALL_ACHIEVEMENTS = [
-  // Milestones
-  { id: "first_trail",   title: "Trail Breaker",         description: "Complete your first trail",       icon: "flag" },
-  { id: "trails_3",      title: "Trail Veteran",          description: "Complete 3 trails",               icon: "trending-up" },
-  { id: "trails_6",      title: "Half Dozen Hero",        description: "Complete 6 trails",               icon: "layers" },
-  { id: "trails_10",     title: "Trail Addict",           description: "Complete 10 trails",              icon: "zap" },
-  { id: "trails_20",     title: "CA Trail Legend",        description: "Complete 20 trails",              icon: "star" },
-  { id: "trails_27",     title: "Ultimate OHV Master",    description: "Conquer all 27 CA trails",        icon: "award" },
-  // Regional
-  { id: "regional_nocal",  title: "NorCal Dominator",    description: "Complete all NorCal trails",      icon: "triangle" },
-  { id: "regional_socal",  title: "SoCal Dominator",     description: "Complete all SoCal trails",       icon: "sun" },
-  { id: "regional_desert", title: "Desert Demon",        description: "Complete all desert trails",      icon: "thermometer" },
-  { id: "dunes_king",      title: "Dunes King",          description: "Hit both Pismo & Dumont Dunes",   icon: "wind" },
-  // Special
-  { id: "beta_explorer",   title: "Beta Explorer",       description: "Founding beta tester of TerraPulse", icon: "cpu" },
-  { id: "went_live",       title: "Broadcaster",         description: "Go live from a trail",            icon: "radio" },
-  // Per-trail
-  { id: "trail_rubicon",        title: "Rubicon Conqueror",      description: "Conquer the legendary Rubicon Trail",       icon: "shield" },
-  { id: "trail_hungry_valley",  title: "Hungry Valley Crusher",  description: "Tear up Hungry Valley SVRA",                icon: "activity" },
-  { id: "trail_johnson_valley", title: "Hammertown Hero",        description: "King of the Hammers — Johnson Valley",      icon: "shield" },
-  { id: "trail_big_bear",       title: "Big Bear Bandit",        description: "Shred the Big Bear OHV trails",             icon: "activity" },
-  { id: "trail_ocotillo",       title: "Desert Rat",             description: "Conquer Ocotillo Wells SVRA",               icon: "sun" },
-  { id: "trail_fordyce",        title: "Fordyce Legend",         description: "Tackle the gnarly Fordyce Lake Trail",      icon: "star" },
-  { id: "trail_hollister",      title: "Hollister Hills Handler",description: "Rip through Hollister Hills SVRA",          icon: "zap" },
-  { id: "trail_pismo",          title: "Dune Runner",            description: "Cruise Oceano Dunes at Pismo Beach",        icon: "wind" },
-  { id: "trail_dumont",         title: "Sand Dune King",         description: "Conquer the massive Dumont Dunes",          icon: "wind" },
-  { id: "trail_stoddard",       title: "Stoddard Slayer",        description: "Dominate Stoddard Valley OHV",              icon: "activity" },
-  { id: "trail_dove_springs",   title: "Jawbone Warrior",        description: "Battle through Dove Springs / Jawbone",     icon: "zap" },
-  { id: "trail_carnegie",       title: "Bay Area Brawler",       description: "Rip Carnegie SVRA",                         icon: "activity" },
-  { id: "trail_prairie_city",   title: "Capital Crusher",        description: "Tear up Prairie City SVRA",                 icon: "flag" },
-  { id: "trail_el_mirage",      title: "Mirage Maker",           description: "Blast across El Mirage OHV",               icon: "sun" },
-  { id: "trail_ballinger",      title: "Central Coast Crusher",  description: "Conquer Ballinger Canyon OHV",              icon: "map-pin" },
-  { id: "trail_rowher",         title: "LA Hills Shredder",      description: "Rip Rowher Flats OHV",                      icon: "activity" },
-  { id: "trail_corral_canyon",  title: "Canyon Carver",          description: "Carve through Corral Canyon OHV",           icon: "scissors" },
-  { id: "trail_cleghorn",       title: "Ridge Runner",           description: "Conquer Cleghorn Ridge OHV",                icon: "trending-up" },
-  { id: "trail_saline_valley",  title: "Death Valley Drifter",   description: "Traverse the remote Saline Valley Road",    icon: "thermometer" },
-  { id: "trail_mojave_road",    title: "Mojave Pioneer",         description: "Follow the historic Mojave Road",           icon: "compass" },
-  { id: "trail_mammoth_bar",    title: "Mammoth Masher",         description: "Tackle Mammoth Bar OHV trails",             icon: "layers" },
-  { id: "trail_alamo",          title: "Alamo Maverick",         description: "Summit Alamo Mountain OHV",                 icon: "triangle" },
-  { id: "trail_surprise_canyon",title: "Panamint Pioneer",       description: "Explore the legendary Surprise Canyon",     icon: "star" },
-  { id: "trail_picacho",        title: "Imperial Explorer",      description: "Ride Picacho State Recreation Area",        icon: "compass" },
-  { id: "trail_randsburg",      title: "Ghost Town Raider",      description: "Raid the trails around Randsburg OHV",      icon: "anchor" },
-  { id: "trail_bodie",          title: "High Desert Drifter",    description: "Drift through Bodie Hills OHV",             icon: "wind" },
-  { id: "trail_plumas",         title: "Sierra Norte Shredder",  description: "Shred Plumas Eureka OHV trails",            icon: "triangle" },
-];
-
-const TRAIL_NAMES: Record<string, string> = {
-  "1":  "Rubicon Trail",
-  "2":  "Hungry Valley SVRA",
-  "3":  "Johnson Valley (KOH)",
-  "4":  "Big Bear OHV",
-  "5":  "Ocotillo Wells",
-  "6":  "Fordyce Lake",
-  "7":  "Hollister Hills SVRA",
-  "8":  "Oceano Dunes (Pismo)",
-  "9":  "Dumont Dunes",
-  "10": "Stoddard Valley",
-  "11": "Dove Springs / Jawbone",
-  "12": "Carnegie SVRA",
-  "13": "Prairie City SVRA",
-  "14": "El Mirage OHV",
-  "15": "Ballinger Canyon",
-  "16": "Rowher Flats",
-  "17": "Corral Canyon",
-  "18": "Cleghorn Ridge",
-  "19": "Saline Valley Road",
-  "20": "Mojave Road",
-  "21": "Mammoth Bar OHV",
-  "22": "Alamo Mountain",
-  "23": "Surprise Canyon",
-  "24": "Picacho SRA",
-  "25": "Randsburg OHV",
-  "26": "Bodie Hills OHV",
-  "27": "Plumas Eureka OHV",
-};
+const TRAIL_NAMES: Record<string, string> = Object.fromEntries(
+  ALL_TRAILS.map((t) => [t.id, t.title])
+);
 
 type Section = "gallery" | "trails" | "achievements" | "specs";
 
