@@ -699,7 +699,7 @@ export default function MapScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted" || cancelled) return;
       navWatchRef.current = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 15 },
+        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 2000, distanceInterval: 5 },
         (loc) => {
           setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
         }
