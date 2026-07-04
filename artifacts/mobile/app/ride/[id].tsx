@@ -283,7 +283,7 @@ export default function RideDetailScreen() {
   };
 
   const deleteRide = () => {
-    if (!rideRef) return;
+    if (!rideRef || !user || !id) return;
     Alert.alert("Delete Ride", "This will permanently delete this ride and all its segments.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -292,6 +292,7 @@ export default function RideDetailScreen() {
         onPress: async () => {
           deletingRef.current = true;
           try {
+            await deleteDoc(doc(db, "users", user.uid, "rides", id, "track", "data"));
             await deleteDoc(rideRef);
             router.back();
           } catch {

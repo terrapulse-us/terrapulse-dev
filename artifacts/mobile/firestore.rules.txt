@@ -56,7 +56,7 @@ service cloud.firestore {
         // don't have to download the full track on every snapshot.
         match /track/{trackDocId} {
           allow read: if request.auth != null && request.auth.uid == uid;
-          allow create: if request.auth != null && request.auth.uid == uid;
+          allow create, delete: if request.auth != null && request.auth.uid == uid;
         }
       }
     }
