@@ -97,37 +97,22 @@ export default function CommunityScreen() {
     const badgesEarned = item.achievements?.length ?? 0;
     const isMe = item.uid === user?.uid;
 
-    const rankColors = ["#D4AF37", "#A9A9A9", "#B5722C"];
-    const rankLabels = ["Gold", "Silver", "Bronze"];
-    const isTop3 = index < 3;
-
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card, borderColor: isTop3 ? "#000" : colors.border, borderWidth: isTop3 ? 2 : 1 }]}
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
         onPress={() => router.push(`/user/${item.uid}`)}
         activeOpacity={0.85}
       >
-        {item.photoURL && !isTop3 ? (
+        {item.photoURL ? (
           <Image
             source={{ uri: item.photoURL }}
             style={[styles.avatar, { borderColor: colors.border, borderWidth: 2 }]}
           />
         ) : (
-          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: isTop3 ? "#000" : colors.border }]}>
-            {isTop3 ? (
-              <Text
-                style={[styles.rankText, { color: rankColors[index] }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-              >
-                {rankLabels[index]}
-              </Text>
-            ) : (
-              <Text style={[styles.avatarText, { color: colors.accent }]}>
-                {handle[0].toUpperCase()}
-              </Text>
-            )}
+          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Text style={[styles.avatarText, { color: colors.accent }]}>
+              {handle[0].toUpperCase()}
+            </Text>
           </View>
         )}
 
@@ -280,7 +265,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: { fontSize: 18, fontWeight: "900" },
-  rankText: { fontSize: 9, fontWeight: "900", paddingHorizontal: 2 },
   cardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   handle: { fontWeight: "900", fontSize: 13, letterSpacing: 1, flex: 1 },
   rig: { fontSize: 11, fontWeight: "700", marginTop: 2 },
