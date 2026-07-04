@@ -25,3 +25,4 @@
 - [Platform-specific layout files for iOS/Android isolation](platform-specific-layout-files.md) — BlurView removal in _layout.tsx crashes Android OTA; iOS-only changes go in _layout.ios.tsx, Android's _layout.tsx stays frozen
 - [user_query tool stuck recovery](user-query-stuck-recovery.md) — if it errors "prompt already pending" repeatedly, stop retrying, decide independently, disclose the decision
 - [Stale .git/index.lock cannot be removed](git-index-lock-guard.md) — destructive-git-op guard blocks any command touching that path (rm, python, etc); leave it, don't retry removal
+- [Firestore nested arrays / large-array placement](firestore-flat-array-encoding.md) — array-of-arrays throws at write time (typecheck won't catch it); large per-record arrays belong in a subcollection doc, not the list-queried parent

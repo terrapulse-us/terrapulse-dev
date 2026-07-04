@@ -77,6 +77,9 @@ interface RideRecord {
   topSpeedMph: number;
   avgSpeedMph: number;
   elevationGainFt: number;
+  name?: string | null;
+  segments?: { id: string; name: string; trailId?: string }[];
+  points?: unknown[];
 }
 
 interface OfflineMapPack {
@@ -713,17 +716,25 @@ export default function ProfileScreen() {
             </View>
           ) : (
             rides.map((ride) => (
-              <View key={ride.id} style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TouchableOpacity
+                key={ride.id}
+                style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => router.push(`/ride/${ride.id}`)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.rideCardHeader}>
                   <View style={[styles.rideIconWrap, { backgroundColor: colors.accent + "22" }]}>
                     <Feather name="activity" size={18} color={colors.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.rideDate, { color: colors.foreground }]}>
-                      {new Date(ride.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                    <Text style={[styles.rideDate, { color: colors.foreground }]} numberOfLines={1}>
+                      {ride.name || new Date(ride.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                     </Text>
                     <Text style={[styles.rideTime, { color: colors.mutedForeground }]}>
-                      {new Date(ride.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                      {ride.name
+                        ? new Date(ride.startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        : new Date(ride.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                      {ride.segments && ride.segments.length > 0 ? ` · ${ride.segments.length} segment${ride.segments.length > 1 ? "s" : ""}` : ""}
                     </Text>
                   </View>
                   <View style={[styles.rideDurationBadge, { backgroundColor: colors.secondary }]}>
@@ -731,6 +742,7 @@ export default function ProfileScreen() {
                       {formatDuration(ride.durationSecs)}
                     </Text>
                   </View>
+                  <Feather name="chevron-right" size={18} color={colors.mutedForeground} style={{ marginLeft: 6 }} />
                 </View>
 
                 <View style={[styles.rideStatsRow, { borderTopColor: colors.border }]}>
@@ -762,7 +774,7 @@ export default function ProfileScreen() {
                     <Text style={[styles.rideStatLabel, { color: colors.mutedForeground }]}>ELEV FT</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </ScrollView>

@@ -44,10 +44,20 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['url', 'type', 'uploadedAt']);
       }
 
-      // users/{uid}/rides/{rideId} — private ride history, owner-only
+      // users/{uid}/rides/{rideId} — private ride history, owner-only.
+      // update/delete allow the rider to rename/split/delete a ride after recording.
       match /rides/{rideId} {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if request.auth != null && request.auth.uid == uid;
+
+        // users/{uid}/rides/{rideId}/track/data — raw GPS breadcrumb array,
+        // stored separately from the ride doc so ride-history list queries
+        // don't have to download the full track on every snapshot.
+        match /track/{trackDocId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow create: if request.auth != null && request.auth.uid == uid;
+        }
       }
     }
 

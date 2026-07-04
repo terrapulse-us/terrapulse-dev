@@ -38,6 +38,7 @@ import {
   doc,
   onSnapshot,
   addDoc,
+  setDoc,
   serverTimestamp,
   getDoc,
   deleteDoc,
@@ -112,6 +113,7 @@ import {
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 import * as Updates from "expo-updates";
+import { downsamplePoints, encodePointsFlat } from "@/lib/ride-utils";
 
 interface TrailPhoto {
   url: string;
@@ -907,7 +909,7 @@ export default function MapScreen() {
     const elevGainFt = Math.round(rideElevRef.current);
 
     try {
-      await addDoc(collection(db, "users", user.uid, "rides"), {
+      const rideDocRef = await addDoc(collection(db, "users", user.uid, "rides"), {
         startedAt: rideStartTime,
         endedAt: Date.now(),
         durationSecs,
@@ -916,7 +918,14 @@ export default function MapScreen() {
         avgSpeedMph,
         elevationGainFt: elevGainFt,
         pointCount: pts.length,
+        hasTrack: true,
+        name: null,
+        segments: [],
         createdAt: serverTimestamp(),
+      });
+      const flatPoints = encodePointsFlat(downsamplePoints(pts));
+      await setDoc(doc(db, "users", user.uid, "rides", rideDocRef.id, "track", "data"), {
+        points: flatPoints,
       });
       Alert.alert(
         "Ride Saved!",
