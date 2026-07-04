@@ -20,7 +20,7 @@ import { useColors } from "@/hooks/useColors";
 
 const TOTAL_TRAILS = 27;
 
-const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"] as const;
+const MEDAL_COLORS = ["#D4AF37", "#A9A9A9", "#B5722C"] as const;
 const MEDAL_LABELS = ["1ST", "2ND", "3RD"] as const;
 
 interface LeaderEntry {
@@ -63,12 +63,12 @@ function PodiumCard({ entry, rank, isMe }: { entry: LeaderEntry; rank: number; i
 
   return (
     <TouchableOpacity
-      style={[styles.podiumCard, { backgroundColor: colors.card, borderColor: medalColor }]}
+      style={[styles.podiumCard, { backgroundColor: medalColor }]}
       onPress={handlePress}
       activeOpacity={entry.isPublic && !isMe ? 0.8 : 1}
     >
       {/* Medal badge */}
-      <View style={[styles.medalBadge, { backgroundColor: medalColor }]}>
+      <View style={styles.medalBadge}>
         <Text style={styles.medalLabel}>{MEDAL_LABELS[rank - 1]}</Text>
       </View>
 
@@ -79,14 +79,14 @@ function PodiumCard({ entry, rank, isMe }: { entry: LeaderEntry; rank: number; i
       )}
 
       <Avatar photoURL={entry.photoURL} displayName={name} size={52} />
-      <Text style={[styles.podiumName, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
+      <Text style={styles.podiumName} numberOfLines={1}>{name}</Text>
 
-      <Text style={[styles.podiumCount, { color: medalColor }]}>{count}</Text>
-      <Text style={[styles.podiumSub, { color: colors.mutedForeground }]}>of {TOTAL_TRAILS} trails</Text>
+      <Text style={styles.podiumCount}>{count}</Text>
+      <Text style={styles.podiumSub}>of {TOTAL_TRAILS} trails</Text>
 
       {/* Progress bar */}
-      <View style={[styles.progressBg, { backgroundColor: colors.secondary }]}>
-        <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: medalColor }]} />
+      <View style={styles.progressBg}>
+        <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
       </View>
     </TouchableOpacity>
   );
@@ -251,7 +251,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     borderRadius: 8,
-    borderWidth: 2,
     padding: 12,
     gap: 4,
     position: "relative",
@@ -262,8 +261,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.78)",
   },
-  medalLabel: { fontWeight: "900", fontSize: 10, color: "#000", letterSpacing: 1 },
+  medalLabel: { fontWeight: "900", fontSize: 10, color: "#fff", letterSpacing: 1 },
   youBadge: {
     position: "absolute",
     top: 6,
@@ -273,13 +273,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   youText: { fontWeight: "900", fontSize: 8, letterSpacing: 1 },
-  podiumName: { fontWeight: "800", fontSize: 11, textAlign: "center", marginTop: 4 },
-  podiumCount: { fontWeight: "900", fontSize: 28, lineHeight: 32 },
-  podiumSub: { fontSize: 9, fontWeight: "700", letterSpacing: 1 },
+  podiumName: { fontWeight: "800", fontSize: 11, textAlign: "center", marginTop: 4, color: "#000" },
+  podiumCount: { fontWeight: "900", fontSize: 28, lineHeight: 32, color: "#000" },
+  podiumSub: { fontSize: 9, fontWeight: "700", letterSpacing: 1, color: "rgba(0,0,0,0.65)" },
 
   // Progress bar
-  progressBg: { width: "100%", height: 4, borderRadius: 2, overflow: "hidden" },
-  progressFill: { height: 4, borderRadius: 2 },
+  progressBg: { width: "100%", height: 4, borderRadius: 2, overflow: "hidden", backgroundColor: "rgba(0,0,0,0.18)" },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: "rgba(0,0,0,0.55)" },
 
   // Rankings list
   sectionLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 3, paddingHorizontal: 20, marginBottom: 8 },
