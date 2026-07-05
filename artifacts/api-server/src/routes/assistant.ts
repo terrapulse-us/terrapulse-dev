@@ -37,6 +37,13 @@ type TextBlock = Extract<AgentResponse["content"][number], { type: "text" }>;
 
 const router: IRouter = Router();
 
+// Node/Express always lowercases incoming header names (e.g. "x-user-id"), but the
+// OpenAPI-generated Zod header schemas use the spec's original casing ("X-User-Id").
+// Normalize before validating so the schemas actually match at runtime.
+function userIdHeader(req: import("express").Request): { "X-User-Id": unknown } {
+  return { "X-User-Id": req.headers["x-user-id"] };
+}
+
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 8192;
 const MAX_TOOL_ITERATIONS = 8;
@@ -58,7 +65,7 @@ especially for anything safety-related.`;
 const TOOLS = AGENT_TOOL_DEFS as Tool[];
 
 router.get("/assistant/conversations", async (req, res): Promise<void> => {
-  const header = ListAssistantConversationsHeader.safeParse(req.headers);
+  const header = ListAssistantConversationsHeader.safeParse(userIdHeader(req));
   if (!header.success) {
     res.status(400).json({ error: header.error.message });
     return;
@@ -74,7 +81,7 @@ router.get("/assistant/conversations", async (req, res): Promise<void> => {
 });
 
 router.post("/assistant/conversations", async (req, res): Promise<void> => {
-  const header = CreateAssistantConversationHeader.safeParse(req.headers);
+  const header = CreateAssistantConversationHeader.safeParse(userIdHeader(req));
   if (!header.success) {
     res.status(400).json({ error: header.error.message });
     return;
@@ -99,7 +106,7 @@ router.post("/assistant/conversations", async (req, res): Promise<void> => {
 
 router.get("/assistant/conversations/:id", async (req, res): Promise<void> => {
   const params = GetAssistantConversationParams.safeParse(req.params);
-  const header = GetAssistantConversationHeader.safeParse(req.headers);
+  const header = GetAssistantConversationHeader.safeParse(userIdHeader(req));
   if (!params.success || !header.success) {
     res.status(400).json({ error: (params.error ?? header.error)?.message });
     return;
@@ -131,7 +138,7 @@ router.get("/assistant/conversations/:id", async (req, res): Promise<void> => {
 
 router.delete("/assistant/conversations/:id", async (req, res): Promise<void> => {
   const params = DeleteAssistantConversationParams.safeParse(req.params);
-  const header = DeleteAssistantConversationHeader.safeParse(req.headers);
+  const header = DeleteAssistantConversationHeader.safeParse(userIdHeader(req));
   if (!params.success || !header.success) {
     res.status(400).json({ error: (params.error ?? header.error)?.message });
     return;
@@ -165,7 +172,7 @@ function sleep(ms: number) {
 
 router.post("/assistant/conversations/:id/messages", async (req, res): Promise<void> => {
   const params = SendAssistantMessageParams.safeParse(req.params);
-  const header = SendAssistantMessageHeader.safeParse(req.headers);
+  const header = SendAssistantMessageHeader.safeParse(userIdHeader(req));
   if (!params.success || !header.success) {
     res.status(400).json({ error: (params.error ?? header.error)?.message });
     return;

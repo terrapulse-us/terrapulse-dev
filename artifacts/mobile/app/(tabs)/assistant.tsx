@@ -39,9 +39,9 @@ interface DisplayMessage {
 }
 
 const TOOL_LABELS: Record<string, string> = {
-  trail_briefing: "Checking trail data & weather…",
-  camping_search: "Looking up nearby campgrounds…",
-  vehicle_fit_check: "Checking your rig against this trail…",
+  get_trail_briefing: "Checking trail data & weather…",
+  find_campgrounds_near_trail: "Looking up nearby campgrounds…",
+  check_vehicle_fit: "Checking your rig against this trail…",
   web_search: "Searching the web…",
 };
 

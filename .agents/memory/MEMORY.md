@@ -26,3 +26,5 @@
 - [user_query tool stuck recovery](user-query-stuck-recovery.md) — if it errors "prompt already pending" repeatedly, stop retrying, decide independently, disclose the decision
 - [Stale .git/index.lock cannot be removed](git-index-lock-guard.md) — destructive-git-op guard blocks any command touching that path (rm, python, etc); leave it, don't retry removal
 - [Firestore nested arrays / large-array placement](firestore-flat-array-encoding.md) — array-of-arrays throws at write time (typecheck won't catch it); large per-record arrays belong in a subcollection doc, not the list-queried parent
+- [Orval header schema casing vs Express](express-header-schema-casing.md) — Express lowercases req.headers keys but Orval Zod header schemas keep spec casing; safeParse(req.headers) always silently 400s unless normalized first
+- [Mobile Expo web preview incompatible with native TurboModules](expo-web-preview-native-incompatible.md) — this app's web bundle crashes on load (TurboModuleRegistry.getEnforcing undefined); Playwright/testing-skill browser testing is not viable here, use curl/API-level e2e instead
