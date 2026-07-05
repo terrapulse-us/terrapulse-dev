@@ -534,13 +534,14 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       gap: 10,
     },
     bubbleRow: {
-      flexDirection: "row",
+      flexDirection: "column",
+      gap: 6,
     },
     bubbleRowUser: {
-      justifyContent: "flex-end",
+      alignItems: "flex-end",
     },
     bubbleRowAssistant: {
-      justifyContent: "flex-start",
+      alignItems: "flex-start",
     },
     bubble: {
       maxWidth: "85%",
