@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
@@ -56,6 +57,7 @@ const TOOL_LABELS: Record<string, string> = {
 export default function AssistantScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { user } = useAuth();
   const uid = user?.uid ?? "";
   const queryClient = useQueryClient();
@@ -418,7 +420,7 @@ export default function AssistantScreen() {
         />
       )}
 
-      <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.inputRow, { paddingBottom: 12, marginBottom: tabBarHeight }]}>
         <TextInput
           style={styles.input}
           value={input}
