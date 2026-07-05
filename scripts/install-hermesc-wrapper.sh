@@ -5,10 +5,18 @@
 #   - public class field declarations (field; / field = value;)
 #   - class declarations / class expressions (class X {}, class X extends Y {})
 #
-# The wrapper:
-#   1. Strips private class fields via perl (fast path, cross-platform)
-#   2. Converts class declarations to ES5 functions via Babel on the bundle
-#      (run AFTER Metro has fully bundled, so class-properties are already gone)
+# The wrapper converts ALL of the above to ES5-compatible syntax via a single
+# Babel AST transform run on the fully-assembled Metro bundle (see
+# transform-bundle-classes.cjs). This MUST be AST-based, not a raw text/regex
+# pass: an earlier version used a blanket `perl -pe 's/#(\w+)/___$1/g'` which
+# renamed every "#identifier" in the ENTIRE bundle text, including inside
+# string literals — e.g. hex colors like "#fff" became "___fff" (MapLibre then
+# rejected them as invalid colors), and a follow-up line-deletion pass could
+# strip real field initializers that happened to match the same shape,
+# leaving objects missing properties they need at runtime (e.g. a
+# @tanstack/react-query internal timer field, causing "Cannot read property
+# 'setTimeout' of undefined"). Babel operates on the parsed AST, so it only
+# ever touches real private-field/method syntax nodes — never string content.
 #
 # Works on both Linux (linux64-bin) and macOS (osx-bin).
 # Run automatically as part of `pnpm install` via the root postinstall script.
@@ -26,7 +34,12 @@ echo "hermesc wrapper: using node at $NODE_BIN"
 # NODE_BIN_PLACEHOLDER and TRANSFORM_SCRIPT_PLACEHOLDER are substituted below.
 HERMESC_WRAPPER='#!/bin/bash
 # Wrapper for hermesc v0.12.0 (RN 0.81) — cross-platform (Linux + macOS)
-# Strips private/public class field syntax and converts class declarations.
+# Converts private/public class field syntax and class declarations via a
+# Babel AST transform (see transform-bundle-classes.cjs). Deliberately NOT a
+# raw text/regex pass — a previous version used a blanket perl
+# `s/#(\w+)/___$1/g` which also renamed "#" occurrences inside string
+# literals (e.g. hex colors "#fff" -> "___fff") and could delete real code
+# that coincidentally matched its "field declaration" line heuristic.
 # node and transform script paths are baked in at install time (not from PATH).
 REAL_HERMESC="$(dirname "$0")/hermesc.real"
 NODE_BIN="NODE_BIN_PLACEHOLDER"
@@ -36,14 +49,8 @@ INPUT_JS=""
 for arg in "$@"; do case "$arg" in *.js|*.bundle) INPUT_JS="$arg" ;; esac; done
 
 if [ -n "$INPUT_JS" ] && [ -f "$INPUT_JS" ]; then
-  # Step 1: rename ALL #identifier → ___identifier
-  # This covers both access (this.#field → this.___field) AND method/field declarations
-  # (#executeFetch(params) { → ___executeFetch(params) {, #field; → ___field;)
-  perl -i -pe '"'"'s/#([a-zA-Z_][a-zA-Z0-9_]*)/___$1/g'"'"' "$INPUT_JS"
-  # Step 2: remove private field DECLARATIONS (now renamed to ___field)
-  # Pattern: line is only a field declaration (ends with ; or =), not a method (has "(")
-  perl -i -ne '"'"'print unless /^\s+___[a-zA-Z_][a-zA-Z0-9_]*\s*[;=]/'"'"' "$INPUT_JS"
-  # Step 3: convert class declarations to ES5 functions via Babel
+  # Convert class declarations, class fields (public/private), and private
+  # methods to ES5-compatible syntax via Babel on the fully-assembled bundle.
   # (bundle output has no class properties — they were moved to ctors by Metro)
   if [ -f "$TRANSFORM_SCRIPT" ] && [ -f "$NODE_BIN" ]; then
     "$NODE_BIN" --max-old-space-size=4096 "$TRANSFORM_SCRIPT" "$INPUT_JS" 2>>/tmp/hermesc-transform.log || echo "[hermesc-wrapper] Node exit=$? file=$INPUT_JS" >>/tmp/hermesc-transform.log
