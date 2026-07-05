@@ -67,6 +67,26 @@ export const GetAssistantConversationResponse = zod.object({
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string(),
   "toolsUsed": zod.array(zod.string()).nullish(),
+  "structuredData": zod.object({
+  "itinerary": zod.object({
+  "title": zod.string().describe('Short title for the trip (e.g. \"Weekend at Rubicon Trail\").'),
+  "days": zod.array(zod.object({
+  "day": zod.number().describe('1-indexed day number within the itinerary.'),
+  "driveTime": zod.string().optional().describe('Estimated drive time\/distance for this day (free-form, e.g. \"2.5 hrs from Sacramento\").'),
+  "trailWindow": zod.string().optional().describe('The trail segment or time window planned for this day.'),
+  "weatherNote": zod.string().optional().describe('Weather-aware note for this day (e.g. \"Clear skies, high of 78F\").'),
+  "campground": zod.string().optional().describe('Suggested campground\/lodging for the night of this day, if any.')
+}).describe('A single day of a structured trip itinerary.'))
+}).optional().describe('A structured, multi-day trip itinerary rendered as cards in the chat UI (not prose).'),
+  "coverageWarning": zod.object({
+  "trailId": zod.string(),
+  "trailTitle": zod.string(),
+  "lat": zod.number(),
+  "lng": zod.number(),
+  "level": zod.enum(['patchy', 'poor']),
+  "note": zod.string().describe('Human-readable caveat, e.g. \"Cell service is often spotty out here — this is an estimate, not a guarantee.\"')
+}).optional().describe('A best-effort cell coverage estimate for a trail, surfaced with an offer to download that trail\'s offline map.\n')
+}).describe('Optional structured payload attached to an assistant message, rendered as cards\/actions instead of plain text.').nullish(),
   "createdAt": zod.coerce.date()
 }))
 })

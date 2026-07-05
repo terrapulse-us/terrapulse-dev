@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -23,9 +24,12 @@ import {
   getGetAssistantConversationQueryKey,
   type AssistantConversationWithMessages,
   type AssistantVehicleProfile,
+  type AssistantItinerary,
+  type AssistantCoverageWarning,
 } from "@workspace/api-client-react";
 import "@/lib/api-client";
 import { streamAssistantMessage, type AssistantStreamEvent } from "@/lib/assistant-api";
+import { downloadTrailArea } from "@/lib/offline-maps";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { db } from "@/lib/firebase";
@@ -36,6 +40,8 @@ interface DisplayMessage {
   content: string;
   toolsUsed?: string[] | null;
   pending?: boolean;
+  itinerary?: AssistantItinerary | null;
+  coverageWarning?: AssistantCoverageWarning | null;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -43,6 +49,8 @@ const TOOL_LABELS: Record<string, string> = {
   find_campgrounds_near_trail: "Looking up nearby campgrounds…",
   check_vehicle_fit: "Checking your rig against this trail…",
   web_search: "Searching the web…",
+  check_cell_coverage: "Estimating cell coverage…",
+  present_itinerary: "Building your itinerary…",
 };
 
 export default function AssistantScreen() {
@@ -59,7 +67,36 @@ export default function AssistantScreen() {
   const [streamingText, setStreamingText] = useState("");
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [streamingItinerary, setStreamingItinerary] = useState<AssistantItinerary | null>(null);
+  const [streamingCoverageWarning, setStreamingCoverageWarning] =
+    useState<AssistantCoverageWarning | null>(null);
+  const [downloadingTrailId, setDownloadingTrailId] = useState<string | null>(null);
+  const [downloadedTrailIds, setDownloadedTrailIds] = useState<Set<string>>(new Set());
   const listRef = useRef<FlatList<DisplayMessage>>(null);
+
+  const handleDownloadOfflineMap = (warning: AssistantCoverageWarning) => {
+    if (downloadingTrailId) return;
+    setDownloadingTrailId(warning.trailId);
+    downloadTrailArea(
+      { id: warning.trailId, title: warning.trailTitle, lat: warning.lat, lng: warning.lng },
+      {
+        onAlreadySaved: () => {
+          setDownloadingTrailId(null);
+          setDownloadedTrailIds((prev) => new Set(prev).add(warning.trailId));
+          Alert.alert("Already saved", "This trail area is already available offline.");
+        },
+        onComplete: () => {
+          setDownloadingTrailId(null);
+          setDownloadedTrailIds((prev) => new Set(prev).add(warning.trailId));
+          Alert.alert("Saved offline!", "Trail map downloaded. Works without cell service now.");
+        },
+        onError: (message) => {
+          setDownloadingTrailId(null);
+          Alert.alert("Download failed", message);
+        },
+      },
+    );
+  };
 
   useEffect(() => {
     if (!uid) return;
@@ -133,6 +170,8 @@ export default function AssistantScreen() {
       role: m.role,
       content: m.content,
       toolsUsed: m.toolsUsed,
+      itinerary: m.structuredData?.itinerary,
+      coverageWarning: m.structuredData?.coverageWarning,
     }));
     if (sending) {
       base.push({
@@ -140,10 +179,12 @@ export default function AssistantScreen() {
         role: "assistant",
         content: streamingText,
         pending: true,
+        itinerary: streamingItinerary,
+        coverageWarning: streamingCoverageWarning,
       });
     }
     return base;
-  }, [conversation, sending, streamingText]);
+  }, [conversation, sending, streamingText, streamingItinerary, streamingCoverageWarning]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -160,6 +201,8 @@ export default function AssistantScreen() {
     setSending(true);
     setStreamingText("");
     setActiveTool(null);
+    setStreamingItinerary(null);
+    setStreamingCoverageWarning(null);
 
     queryClient.setQueryData(
       getGetAssistantConversationQueryKey(conversationId),
@@ -194,6 +237,10 @@ export default function AssistantScreen() {
           } else if (event.type === "text") {
             setActiveTool(null);
             setStreamingText((prev) => prev + event.content);
+          } else if (event.type === "coverage_warning") {
+            setStreamingCoverageWarning(event.coverageWarning);
+          } else if (event.type === "itinerary") {
+            setStreamingItinerary(event.itinerary);
           } else if (event.type === "error") {
             setErrorMsg(event.message);
           }
@@ -203,6 +250,8 @@ export default function AssistantScreen() {
       setSending(false);
       setActiveTool(null);
       setStreamingText("");
+      setStreamingItinerary(null);
+      setStreamingCoverageWarning(null);
       queryClient.invalidateQueries({
         queryKey: getGetAssistantConversationQueryKey(conversationId),
       });
@@ -236,6 +285,83 @@ export default function AssistantScreen() {
             </Text>
           )}
         </View>
+        {!!item.coverageWarning && (
+          <View style={[styles.coverageCard, styles.bubble]}>
+            <View style={styles.coverageHeader}>
+              <Feather
+                name={item.coverageWarning.level === "poor" ? "wifi-off" : "alert-triangle"}
+                size={14}
+                color={colors.destructive}
+              />
+              <Text style={styles.coverageTitle}>
+                {item.coverageWarning.level === "poor" ? "Poor" : "Patchy"} cell coverage near{" "}
+                {item.coverageWarning.trailTitle}
+              </Text>
+            </View>
+            <Text style={styles.coverageNote}>{item.coverageWarning.note}</Text>
+            {downloadedTrailIds.has(item.coverageWarning.trailId) ? (
+              <View style={styles.coverageDownloadBtnDone}>
+                <Feather name="check-circle" size={14} color={colors.mutedForeground} />
+                <Text style={styles.coverageDownloadTextDone}>Offline map saved</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.coverageDownloadBtn}
+                onPress={() => handleDownloadOfflineMap(item.coverageWarning!)}
+                disabled={downloadingTrailId === item.coverageWarning.trailId}
+              >
+                {downloadingTrailId === item.coverageWarning.trailId ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <Feather name="download" size={14} color={colors.primaryForeground} />
+                )}
+                <Text style={styles.coverageDownloadText}>
+                  {downloadingTrailId === item.coverageWarning.trailId
+                    ? "Downloading…"
+                    : "Download offline map"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+        {!!item.itinerary && (
+          <View style={[styles.itineraryCard, styles.bubble]}>
+            <View style={styles.itineraryHeader}>
+              <Feather name="map" size={15} color={colors.primary} />
+              <Text style={styles.itineraryTitle}>{item.itinerary.title}</Text>
+            </View>
+            {item.itinerary.days.map((day) => (
+              <View key={day.day} style={styles.itineraryDay}>
+                <View style={styles.itineraryDayBadge}>
+                  <Text style={styles.itineraryDayBadgeText}>D{day.day}</Text>
+                </View>
+                <View style={styles.itineraryDayBody}>
+                  {!!day.trailWindow && (
+                    <Text style={styles.itineraryDayLine}>{day.trailWindow}</Text>
+                  )}
+                  {!!day.driveTime && (
+                    <View style={styles.itineraryDayMetaRow}>
+                      <Feather name="clock" size={11} color={colors.mutedForeground} />
+                      <Text style={styles.itineraryDayMeta}>{day.driveTime}</Text>
+                    </View>
+                  )}
+                  {!!day.weatherNote && (
+                    <View style={styles.itineraryDayMetaRow}>
+                      <Feather name="cloud" size={11} color={colors.mutedForeground} />
+                      <Text style={styles.itineraryDayMeta}>{day.weatherNote}</Text>
+                    </View>
+                  )}
+                  {!!day.campground && (
+                    <View style={styles.itineraryDayMetaRow}>
+                      <Feather name="home" size={11} color={colors.mutedForeground} />
+                      <Text style={styles.itineraryDayMeta}>{day.campground}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -455,6 +581,110 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       fontSize: 10,
       color: colors.mutedForeground,
       fontWeight: "600",
+    },
+    coverageCard: {
+      marginTop: 6,
+      maxWidth: "85%",
+      backgroundColor: colors.secondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 8,
+    },
+    coverageHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    coverageTitle: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.foreground,
+    },
+    coverageNote: {
+      fontSize: 11,
+      lineHeight: 15,
+      color: colors.mutedForeground,
+    },
+    coverageDownloadBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: colors.primary,
+      borderRadius: colors.radius,
+      paddingVertical: 8,
+    },
+    coverageDownloadText: {
+      color: colors.primaryForeground,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    coverageDownloadBtnDone: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+    },
+    coverageDownloadTextDone: {
+      color: colors.mutedForeground,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    itineraryCard: {
+      marginTop: 6,
+      maxWidth: "90%",
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 10,
+    },
+    itineraryHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    itineraryTitle: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: colors.foreground,
+    },
+    itineraryDay: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    itineraryDayBadge: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    itineraryDayBadgeText: {
+      color: colors.primaryForeground,
+      fontSize: 10,
+      fontWeight: "800",
+    },
+    itineraryDayBody: {
+      flex: 1,
+      gap: 4,
+      paddingTop: 3,
+    },
+    itineraryDayLine: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.foreground,
+    },
+    itineraryDayMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    itineraryDayMeta: {
+      fontSize: 11,
+      color: colors.mutedForeground,
     },
     inputRow: {
       flexDirection: "row",

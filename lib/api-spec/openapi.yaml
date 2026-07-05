@@ -196,6 +196,10 @@ components:
           items:
             type: string
           nullable: true
+        structuredData:
+          allOf:
+            - $ref: "#/components/schemas/AssistantStructuredData"
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -248,6 +252,76 @@ components:
           $ref: "#/components/schemas/AssistantVehicleProfile"
       required:
         - content
+    AssistantItineraryDay:
+      type: object
+      description: A single day of a structured trip itinerary.
+      properties:
+        day:
+          type: integer
+          description: 1-indexed day number within the itinerary.
+        driveTime:
+          type: string
+          description: Estimated drive time/distance for this day (free-form, e.g. "2.5 hrs from Sacramento").
+        trailWindow:
+          type: string
+          description: The trail segment or time window planned for this day.
+        weatherNote:
+          type: string
+          description: Weather-aware note for this day (e.g. "Clear skies, high of 78F").
+        campground:
+          type: string
+          description: Suggested campground/lodging for the night of this day, if any.
+      required:
+        - day
+    AssistantItinerary:
+      type: object
+      description: A structured, multi-day trip itinerary rendered as cards in the chat UI (not prose).
+      properties:
+        title:
+          type: string
+          description: Short title for the trip (e.g. "Weekend at Rubicon Trail").
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantItineraryDay"
+      required:
+        - title
+        - days
+    AssistantCoverageWarning:
+      type: object
+      description: >
+        A best-effort cell coverage estimate for a trail, surfaced with an
+        offer to download that trail's offline map.
+      properties:
+        trailId:
+          type: string
+        trailTitle:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        level:
+          type: string
+          enum: [patchy, poor]
+        note:
+          type: string
+          description: Human-readable caveat, e.g. "Cell service is often spotty out here — this is an estimate, not a guarantee."
+      required:
+        - trailId
+        - trailTitle
+        - lat
+        - lng
+        - level
+        - note
+    AssistantStructuredData:
+      type: object
+      description: Optional structured payload attached to an assistant message, rendered as cards/actions instead of plain text.
+      properties:
+        itinerary:
+          $ref: "#/components/schemas/AssistantItinerary"
+        coverageWarning:
+          $ref: "#/components/schemas/AssistantCoverageWarning"
     AssistantError:
       type: object
       properties:

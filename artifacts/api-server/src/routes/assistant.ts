@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq } from "drizzle-orm";
-import { db, conversations, messages } from "@workspace/db";
+import { db, conversations, messages, type AssistantStructuredData } from "@workspace/db";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import {
   ListAssistantConversationsHeader,
@@ -50,13 +50,31 @@ const MAX_TOOL_ITERATIONS = 8;
 
 const SYSTEM_PROMPT = `You are TerraPulse's AI trip-planning assistant for off-road, overlanding, and \
 4x4 trips, focused primarily on California trails. You have tools to look up real trail data, \
-live weather forecasts, nearby campgrounds, and a deterministic vehicle-fit check.
+live weather forecasts, nearby campgrounds, a deterministic vehicle-fit check, a cell-coverage \
+estimate, and a structured itinerary presenter.
 
 Rules:
 - Always use a tool instead of guessing when the user asks about a specific trail's conditions, \
 weather, camping options, or whether their vehicle can handle a trail.
 - The vehicle-fit tool automatically applies the user's saved vehicle profile — you only need to \
 supply the trail name.
+- REQUIRED: whenever a specific trail is named in the conversation, you MUST call \
+check_cell_coverage for it before your final reply — this is mandatory, not optional, even if the \
+user didn't explicitly ask about cell service. Never answer a cell-service/signal question using \
+web_search or general knowledge — check_cell_coverage is the only source of truth for coverage on a \
+named trail, since it queries live tower-density data (web search results about "cell coverage on \
+the trail" are almost always stale/anecdotal forum posts, not authoritative). If the result comes \
+back "patchy" or "poor", mention it plainly in your reply (e.g. "cell service is often spotty out \
+here") using the tool's caveat — never state it as a guaranteed fact — the app will automatically \
+offer a "Download offline map?" action alongside your reply, so you don't need to ask the user to do \
+anything else about it yourself.
+- REQUIRED: when the user asks you to plan a trip, a weekend outing, or a day-by-day itinerary, you \
+MUST call present_itinerary as the final tool before replying — never describe the day-by-day plan \
+in prose instead of calling it. First gather facts with get_trail_briefing, find_campgrounds_near_trail, \
+and check_cell_coverage, then call present_itinerary with the structured plan built from those \
+results. Keep your accompanying text reply brief (a sentence or two) since the itinerary itself is \
+rendered as cards in the chat — do not restate the day-by-day plan as prose, and do not skip calling \
+the tool just because you already have enough information to write the plan yourself.
 - When you use web_search, always cite the returned links in your final answer.
 - Be concise, practical, and friendly. Use plain text (no markdown headers).
 - Always remind users to verify current trail and weather conditions locally before heading out, \
@@ -229,12 +247,14 @@ router.post("/assistant/conversations/:id/messages", async (req, res): Promise<v
 
   const toolsUsedAll: string[] = [];
   let finalText = "";
+  const structuredData: AssistantStructuredData = {};
 
   try {
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: MAX_TOKENS,
+        temperature: 0,
         system: SYSTEM_PROMPT,
         tools: TOOLS,
         messages: agentMessages,
@@ -250,11 +270,24 @@ router.post("/assistant/conversations/:id/messages", async (req, res): Promise<v
           sseWrite(res, { type: "tool_call", tool: block.name });
           toolsUsedAll.push(block.name);
 
-          const { result, isError } = await runTool(
+          const {
+            result,
+            isError,
+            structuredData: toolStructuredData,
+          } = await runTool(
             block.name,
             (block.input as Record<string, unknown>) ?? {},
             body.data.vehicleProfile,
           );
+
+          if (toolStructuredData?.coverageWarning) {
+            structuredData.coverageWarning = toolStructuredData.coverageWarning;
+            sseWrite(res, { type: "coverage_warning", coverageWarning: toolStructuredData.coverageWarning });
+          }
+          if (toolStructuredData?.itinerary) {
+            structuredData.itinerary = toolStructuredData.itinerary;
+            sseWrite(res, { type: "itinerary", itinerary: toolStructuredData.itinerary });
+          }
 
           toolResultBlocks.push({
             type: "tool_result",
@@ -288,11 +321,14 @@ router.post("/assistant/conversations/:id/messages", async (req, res): Promise<v
       await sleep(15);
     }
 
+    const hasStructuredData = Object.keys(structuredData).length > 0;
+
     await db.insert(messages).values({
       conversationId,
       role: "assistant",
       content: finalText,
       toolsUsed: toolsUsedAll.length > 0 ? toolsUsedAll : null,
+      structuredData: hasStructuredData ? structuredData : null,
     });
 
     sseWrite(res, { type: "done", toolsUsed: toolsUsedAll });

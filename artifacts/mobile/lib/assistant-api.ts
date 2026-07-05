@@ -1,10 +1,16 @@
 import { fetch as expoFetch } from "expo/fetch";
-import type { AssistantVehicleProfile } from "@workspace/api-client-react";
+import type {
+  AssistantVehicleProfile,
+  AssistantCoverageWarning,
+  AssistantItinerary,
+} from "@workspace/api-client-react";
 import { apiServerUrl } from "@/lib/api-client";
 
 export type AssistantStreamEvent =
   | { type: "tool_call"; tool: string }
   | { type: "text"; content: string }
+  | { type: "coverage_warning"; coverageWarning: AssistantCoverageWarning }
+  | { type: "itinerary"; itinerary: AssistantItinerary }
   | { type: "done"; toolsUsed: string[] }
   | { type: "error"; message: string };
 

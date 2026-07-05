@@ -28,12 +28,68 @@ export const AssistantMessageRole = {
   assistant: 'assistant',
 } as const;
 
+/**
+ * A single day of a structured trip itinerary.
+ */
+export interface AssistantItineraryDay {
+  /** 1-indexed day number within the itinerary. */
+  day: number;
+  /** Estimated drive time/distance for this day (free-form, e.g. "2.5 hrs from Sacramento"). */
+  driveTime?: string;
+  /** The trail segment or time window planned for this day. */
+  trailWindow?: string;
+  /** Weather-aware note for this day (e.g. "Clear skies, high of 78F"). */
+  weatherNote?: string;
+  /** Suggested campground/lodging for the night of this day, if any. */
+  campground?: string;
+}
+
+/**
+ * A structured, multi-day trip itinerary rendered as cards in the chat UI (not prose).
+ */
+export interface AssistantItinerary {
+  /** Short title for the trip (e.g. "Weekend at Rubicon Trail"). */
+  title: string;
+  days: AssistantItineraryDay[];
+}
+
+export type AssistantCoverageWarningLevel = typeof AssistantCoverageWarningLevel[keyof typeof AssistantCoverageWarningLevel];
+
+
+export const AssistantCoverageWarningLevel = {
+  patchy: 'patchy',
+  poor: 'poor',
+} as const;
+
+/**
+ * A best-effort cell coverage estimate for a trail, surfaced with an offer to download that trail's offline map.
+
+ */
+export interface AssistantCoverageWarning {
+  trailId: string;
+  trailTitle: string;
+  lat: number;
+  lng: number;
+  level: AssistantCoverageWarningLevel;
+  /** Human-readable caveat, e.g. "Cell service is often spotty out here — this is an estimate, not a guarantee." */
+  note: string;
+}
+
+/**
+ * Optional structured payload attached to an assistant message, rendered as cards/actions instead of plain text.
+ */
+export interface AssistantStructuredData {
+  itinerary?: AssistantItinerary;
+  coverageWarning?: AssistantCoverageWarning;
+}
+
 export interface AssistantMessage {
   id: number;
   conversationId: number;
   role: AssistantMessageRole;
   content: string;
   toolsUsed?: string[] | null;
+  structuredData?: AssistantStructuredData | null;
   createdAt: string;
 }
 

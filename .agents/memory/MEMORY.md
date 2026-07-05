@@ -28,3 +28,4 @@
 - [Firestore nested arrays / large-array placement](firestore-flat-array-encoding.md) — array-of-arrays throws at write time (typecheck won't catch it); large per-record arrays belong in a subcollection doc, not the list-queried parent
 - [Orval header schema casing vs Express](express-header-schema-casing.md) — Express lowercases req.headers keys but Orval Zod header schemas keep spec casing; safeParse(req.headers) always silently 400s unless normalized first
 - [Mobile Expo web preview incompatible with native TurboModules](expo-web-preview-native-incompatible.md) — this app's web bundle crashes on load (TurboModuleRegistry.getEnforcing undefined); Playwright/testing-skill browser testing is not viable here, use curl/API-level e2e instead
+- [Claude tool-calling compliance](claude-tool-call-compliance.md) — generic tool (web_search) competing with a specialized one needs temperature:0 + explicit REQUIRED language, or model picks inconsistently

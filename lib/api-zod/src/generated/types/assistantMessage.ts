@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AssistantMessageRole } from './assistantMessageRole';
+import type { AssistantStructuredData } from './assistantStructuredData';
 
 export interface AssistantMessage {
   id: number;
@@ -13,5 +14,6 @@ export interface AssistantMessage {
   role: AssistantMessageRole;
   content: string;
   toolsUsed?: string[] | null;
+  structuredData?: AssistantStructuredData | null;
   createdAt: Date;
 }

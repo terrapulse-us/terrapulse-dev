@@ -50,8 +50,6 @@ module.exports = () => ({
       permissions: [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
       ],
@@ -63,16 +61,6 @@ module.exports = () => ({
       ["expo-router", { origin: "https://replit.com/" }],
       "expo-font",
       "expo-web-browser",
-      [
-        "expo-camera",
-        {
-          cameraPermission:
-            "TerraPulse uses your camera to capture trail community photos.",
-          microphonePermission:
-            "TerraPulse uses your microphone to capture audio during community posts.",
-          recordAudioAndroid: true,
-        },
-      ],
       [
         "expo-image-picker",
         {

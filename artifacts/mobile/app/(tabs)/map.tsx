@@ -22,7 +22,6 @@ import {
   GeoJSONSource,
   RasterSource,
   Layer,
-  OfflineManager,
   type PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native";
 import Constants from "expo-constants";
@@ -114,6 +113,7 @@ import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 import * as Updates from "expo-updates";
 import { downsamplePoints, encodePointsFlat } from "@/lib/ride-utils";
+import { downloadTrailArea as downloadOfflineTrailArea } from "@/lib/offline-maps";
 
 interface TrailPhoto {
   url: string;
@@ -1008,57 +1008,34 @@ export default function MapScreen() {
   const downloadTrailArea = useCallback(async () => {
     if (!selectedTrail) return;
     setDownloading(true);
-    try {
-      const packs = await OfflineManager.getPacks();
-      const existing = packs.find(
-        (p) => (p.metadata as Record<string, unknown>)?.trailId === selectedTrail.id
-      );
-      if (existing) {
-        Alert.alert(
-          "Already saved",
-          "This trail area is already available offline."
-        );
-        setDownloading(false);
-        return;
-      }
-      const { coords } = selectedTrail;
-      const pad = 0.2;
-      await OfflineManager.createPack(
-        {
-          mapStyle: "https://tiles.openfreemap.org/styles/liberty",
-          minZoom: 8,
-          maxZoom: 16,
-          bounds: [
-            coords.longitude - pad,
-            coords.latitude - pad,
-            coords.longitude + pad,
-            coords.latitude + pad,
-          ],
-          metadata: {
-            trailId: selectedTrail.id,
-            trailTitle: selectedTrail.title,
-            lat: coords.latitude,
-            lng: coords.longitude,
-          },
-        },
-        (_pack, status) => {
-          if (status.percentage >= 100) {
-            setDownloading(false);
-            Alert.alert(
-              "Saved offline!",
-              "Trail map downloaded. Works without cell service now."
-            );
-          }
-        },
-        (_pack, err) => {
+    await downloadOfflineTrailArea(
+      {
+        id: selectedTrail.id,
+        title: selectedTrail.title,
+        lat: selectedTrail.coords.latitude,
+        lng: selectedTrail.coords.longitude,
+      },
+      {
+        onAlreadySaved: () => {
           setDownloading(false);
-          Alert.alert("Download failed", err.message ?? "Unknown error.");
-        }
-      );
-    } catch {
-      setDownloading(false);
-      Alert.alert("Error", "Could not start download.");
-    }
+          Alert.alert(
+            "Already saved",
+            "This trail area is already available offline."
+          );
+        },
+        onComplete: () => {
+          setDownloading(false);
+          Alert.alert(
+            "Saved offline!",
+            "Trail map downloaded. Works without cell service now."
+          );
+        },
+        onError: (message) => {
+          setDownloading(false);
+          Alert.alert("Download failed", message);
+        },
+      }
+    );
   }, [selectedTrail]);
 
   const locateMe = useCallback(async () => {
