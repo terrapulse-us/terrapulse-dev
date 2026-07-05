@@ -34,6 +34,7 @@ import { downloadTrailArea } from "@/lib/offline-maps";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { db } from "@/lib/firebase";
+import FormattedMessageText from "@/components/FormattedMessageText";
 
 interface DisplayMessage {
   id: string;
@@ -277,9 +278,10 @@ export default function AssistantScreen() {
               <ActivityIndicator size="small" color={colors.mutedForeground} />
             )
           ) : (
-            <Text style={isUser ? styles.bubbleTextUser : styles.bubbleTextAssistant}>
-              {item.content}
-            </Text>
+            <FormattedMessageText
+              content={item.content}
+              textStyle={isUser ? styles.bubbleTextUser : styles.bubbleTextAssistant}
+            />
           )}
           {!!item.toolsUsed?.length && (
             <Text style={styles.toolsUsedTag}>
