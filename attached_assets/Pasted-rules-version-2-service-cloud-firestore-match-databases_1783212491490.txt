@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+
+      match /gallery/{itemId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasAll(['url', 'type', 'uploadedAt']);
+      }
+
+      match /rides/{rideId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    match /trails/{trailId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.isUserSubmitted == true;
+
+      match /photos/{photoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uploadedBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['url', 'uploadedBy', 'createdAt']);
+      }
+
+      match /events/{eventId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['title', 'eventType', 'dateStr', 'time', 'visibility', 'createdBy', 'createdByName', 'attendees', 'description', 'createdAt']);
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees'])
+          && (
+               request.resource.data.attendees.size() == resource.data.attendees.size() + 1
+               || request.resource.data.attendees.size() == resource.data.attendees.size() - 1
+             );
+      }
+
+      match /community_notes/{noteId} {
+        allow read: if request.auth != null;
+
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['type', 'message', 'lat', 'lng', 'createdBy', 'createdByName', 'createdAt', 'createdAtFallback', 'confirmedBy'])
+          && request.resource.data.confirmedBy == [];
+
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmedBy'])
+          && request.resource.data.confirmedBy == resource.data.confirmedBy.concat([request.auth.uid]);
+
+        allow delete: if request.auth != null
+          && (resource.data.createdBy == request.auth.uid
+              || request.time > resource.data.createdAt + duration.value(48, 'h'));
+      }
+    }
+
+    match /live_streams/{uid} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
