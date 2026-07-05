@@ -46,7 +46,7 @@ California off-road trail finder mobile app with live streaming, GPS telemetry, 
 
 ## User preferences
 
-- After every task, push to GitHub (`git push origin main`) to trigger a new EAS APK build for testing.
+- Do NOT automatically push to GitHub `main` after a task. Ask for explicit confirmation before running `git push origin main` — a past auto-push caused confusion (2026-07-05). If the user wants an EAS build triggered, confirm first, then push.
 
 ## Building Android APKs
 
