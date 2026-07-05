@@ -32,11 +32,11 @@ module.exports = () => ({
         GIDClientID:
           "516913346465-uvejqbkgh99qd8l2rfug4tqnmlj7m101.apps.googleusercontent.com",
         NSCameraUsageDescription:
-          "TerraPulse uses your camera to broadcast live off-road streams.",
+          "TerraPulse uses your camera to capture trail community photos.",
         NSMicrophoneUsageDescription:
-          "TerraPulse uses your microphone to capture audio during live broadcasts.",
+          "TerraPulse uses your microphone to capture audio during community posts.",
         NSLocationWhenInUseUsageDescription:
-          "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
+          "TerraPulse uses your location to show nearby trails and GPS telemetry during navigation.",
         NSPhotoLibraryUsageDescription:
           "TerraPulse needs photo library access to upload trail community photos.",
         CFBundleURLTypes: [
@@ -67,9 +67,9 @@ module.exports = () => ({
         "expo-camera",
         {
           cameraPermission:
-            "TerraPulse uses your camera to broadcast live off-road streams.",
+            "TerraPulse uses your camera to capture trail community photos.",
           microphonePermission:
-            "TerraPulse uses your microphone to capture audio during live broadcasts.",
+            "TerraPulse uses your microphone to capture audio during community posts.",
           recordAudioAndroid: true,
         },
       ],
@@ -84,7 +84,7 @@ module.exports = () => ({
         "expo-location",
         {
           locationWhenInUsePermission:
-            "TerraPulse uses your location to show nearby trails and GPS telemetry during live streams.",
+            "TerraPulse uses your location to show nearby trails and GPS telemetry during navigation.",
         },
       ],
       "@maplibre/maplibre-react-native",

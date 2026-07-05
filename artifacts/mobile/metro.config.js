@@ -20,12 +20,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
         type: "sourceFile",
       };
     }
-    if (moduleName === "@api.video/react-native-livestream") {
-      return {
-        filePath: path.resolve(__dirname, "stubs/apivideo-livestream.web.js"),
-        type: "sourceFile",
-      };
-    }
   }
   return context.resolveRequest(context, moduleName, platform);
 };

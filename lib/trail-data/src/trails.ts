@@ -667,6 +667,54 @@ export function getTrailById(id: string): Trail | undefined {
   return ALL_TRAILS.find(t => t.id === id);
 }
 
+/**
+ * Resolve a trail from a free-text name (as typed by a user in chat) or an
+ * exact trail ID. Used by server-side tools that only have a natural-language
+ * reference to work with. Returns `undefined` when nothing reasonably matches.
+ */
+export function findTrailByNameOrId(query: string): Trail | undefined {
+  const q = query.trim().toLowerCase();
+  if (!q) return undefined;
+
+  const byId = ALL_TRAILS.find(t => t.id.toLowerCase() === q);
+  if (byId) return byId;
+
+  const exactTitle = ALL_TRAILS.find(t => t.title.toLowerCase() === q);
+  if (exactTitle) return exactTitle;
+
+  const substringMatches = ALL_TRAILS.filter(t => t.title.toLowerCase().includes(q));
+  if (substringMatches.length > 0) {
+    substringMatches.sort((a, b) => a.title.length - b.title.length);
+    return substringMatches[0];
+  }
+
+  return undefined;
+}
+
+/**
+ * Best-effort fuzzy search across trail titles, used to suggest alternatives
+ * when `findTrailByNameOrId` finds no confident match.
+ */
+export function searchTrails(query: string, limit = 5): Trail[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+
+  const scored = ALL_TRAILS
+    .map(t => {
+      const title = t.title.toLowerCase();
+      const region = t.region.toLowerCase();
+      const score = words.reduce(
+        (acc, w) => acc + (title.includes(w) ? 2 : 0) + (region.includes(w) ? 1 : 0),
+        0,
+      );
+      return { trail: t, score };
+    })
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, limit).map(s => s.trail);
+}
+
 export const US_STATES: string[] = [
   "All States",
   ...Array.from(new Set(ALL_TRAILS.map((t) => t.state))).sort(),

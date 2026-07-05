@@ -32,25 +32,23 @@ export default function PrivacyScreen() {
 
         <Section title="Data We Collect" colors={colors}>
           <BulletItem colors={colors} label="Account data">Your email address and authentication credentials, stored securely via Firebase Authentication.</BulletItem>
-          <BulletItem colors={colors} label="Location data">GPS coordinates, speed, and altitude while the app is in use — used for trail navigation, telemetry overlay, and community stream markers. We do not store location history.</BulletItem>
-          <BulletItem colors={colors} label="Camera & microphone">Used only during live broadcasts you initiate. We do not record, store, or transmit any video or audio except the live stream you send directly to Twitch.</BulletItem>
-          <BulletItem colors={colors} label="Stream key">Stored locally on your device only using encrypted AsyncStorage. Never transmitted to our servers.</BulletItem>
-          <BulletItem colors={colors} label="Twitch account">If you connect Twitch, we store your Twitch display name and channel (not your password). Your Twitch OAuth token is used only to update your stream title on Twitch's servers.</BulletItem>
+          <BulletItem colors={colors} label="Location data">GPS coordinates, speed, and altitude while the app is in use — used for trail navigation and telemetry overlay. We do not store location history.</BulletItem>
+          <BulletItem colors={colors} label="Camera & microphone">Used only for capturing photos or videos for trail community posts you initiate. We do not record, store, or transmit any video or audio in the background.</BulletItem>
           <BulletItem colors={colors} label="Community posts">Trail posts, photos, and comments you submit are stored in Firebase Firestore and visible to other users.</BulletItem>
-          <BulletItem colors={colors} label="Rig specs">Vehicle model, tire size, and lift height you enter are stored per-session and optionally shown on your public stream.</BulletItem>
+          <BulletItem colors={colors} label="Rig specs">Vehicle model, tire size, and lift height you enter are stored per-session.</BulletItem>
         </Section>
 
         <Section title="How We Use Your Data" colors={colors}>
-          {"• Authenticate your account and persist your session\n• Show your GPS telemetry during live streams\n• Display nearby active streams on the community map\n• Update your Twitch stream title when you go live\n• Show your posts and rig info to the community\n• Operate the leaderboard and RIDERS features"}
+          {"• Authenticate your account and persist your session\n• Show your GPS telemetry during navigation\n• Show your posts and rig info to the community\n• Operate the leaderboard and RIDERS features"}
         </Section>
 
         <Section title="Data Sharing" colors={colors}>
           We do not sell your personal data. We share data only with:{"\n\n"}
-          {"• Firebase (Google) — authentication, database, and storage infrastructure\n• Twitch — only when you explicitly connect your account\n• No advertising networks or third-party analytics"}
+          {"• Firebase (Google) — authentication, database, and storage infrastructure\n• No advertising networks or third-party analytics"}
         </Section>
 
         <Section title="Data Retention" colors={colors}>
-          Your account data is retained until you delete your account. Live stream session data is deleted when you end your broadcast. Community posts remain until you delete them. You may request full data deletion by contacting us.
+          Your account data is retained until you delete your account. Community posts remain until you delete them. You may request full data deletion by contacting us.
         </Section>
 
         <Section title="Your Rights" colors={colors}>

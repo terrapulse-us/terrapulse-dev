@@ -7,7 +7,6 @@ import { useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import TutorialModal from "@/components/TutorialModal";
 
-const broadcastIcon = require("@/assets/icons/broadcast.png");
 const helmetIcon    = require("@/assets/icons/helmet.png");
 const profileIcon   = require("@/assets/icons/profile.png");
 
@@ -63,23 +62,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="stream"
-        options={{
-          title: "BROADCAST",
-          tabBarIcon: ({ color }) => (
-            <Image
-              source={broadcastIcon}
-              style={{ width: 24, height: 24, tintColor: color }}
-              resizeMode="contain"
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="leaderboard"
         options={{
           title: "RANKS",
           tabBarIcon: ({ color }) => <Feather name="award" size={34} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="assistant"
+        options={{
+          title: "ASK",
+          tabBarIcon: ({ color }) => <Feather name="message-square" size={22} color={color} />,
         }}
       />
       <Tabs.Screen

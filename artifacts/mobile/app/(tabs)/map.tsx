@@ -1924,6 +1924,9 @@ export default function MapScreen() {
             state: "US",
             vehicleTypes: ["4x4"],
             routeCoordinates: coords,
+            minLiftIn: 0,
+            lockersRecommended: false,
+            longTravel: false,
           };
           navigateTrail(trail);
         }}
@@ -1959,14 +1962,6 @@ export default function MapScreen() {
           >
             {isRecording ? "STOP" : "RECORD"}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.liveBtn, { backgroundColor: "#5A9A5A" }]}
-          onPress={() => router.push("/(tabs)/stream")}
-          activeOpacity={0.85}
-        >
-          <Feather name="radio" size={14} color="#FFFFFF" />
-          <Text style={styles.liveBtnText}>GO LIVE</Text>
         </TouchableOpacity>
       </View>
 
@@ -2806,26 +2801,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   recordBtnText: { fontWeight: "900", letterSpacing: 2, fontSize: 13 },
-  liveBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 14,
-    borderRadius: 4,
-    elevation: 8,
-    shadowColor: "#FF5500",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-  },
-  liveBtnText: {
-    fontWeight: "900",
-    letterSpacing: 2,
-    color: "#FFFFFF",
-    fontSize: 13,
-  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",

@@ -51,6 +51,10 @@ interface VehicleSpecs {
   tireSize: string;
   suspension: string;
   mods: string;
+  liftIn: number;
+  tireDiameterIn: number;
+  hasLockers: boolean;
+  hasLowRange: boolean;
 }
 
 interface MediaItem {
@@ -113,7 +117,18 @@ export default function ProfileScreen() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [specs, setSpecs] = useState<VehicleSpecs>({ make: "", model: "", year: "", tireSize: "", suspension: "", mods: "" });
+  const [specs, setSpecs] = useState<VehicleSpecs>({
+    make: "",
+    model: "",
+    year: "",
+    tireSize: "",
+    suspension: "",
+    mods: "",
+    liftIn: 0,
+    tireDiameterIn: 0,
+    hasLockers: false,
+    hasLowRange: false
+  });
   const [savingSpecs, setSavingSpecs] = useState(false);
   const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -606,13 +621,79 @@ export default function ProfileScreen() {
                     style={[styles.fieldInput, { color: colors.foreground }]}
                     placeholder={placeholder}
                     placeholderTextColor={colors.mutedForeground}
-                    value={specs[key]}
+                    value={String(specs[key] ?? "")}
                     onChangeText={(t) => setSpecs((s) => ({ ...s, [key]: t }))}
                   />
                 </View>
               </View>
             ))}
 
+            <View style={styles.specsDivider} />
+            <View style={styles.specsCardHeader}>
+              <Feather name="bar-chart-2" size={18} color={colors.accent} />
+              <Text style={[styles.specsCardTitle, { color: colors.foreground }]}>DETERMINISTIC SPECS (FOR ASSISTANT)</Text>
+            </View>
+            <Text style={[styles.specsSub, { color: colors.mutedForeground, marginBottom: 12 }]}>
+              These help the AI Trip Assistant check if your vehicle fits specific trails.
+            </Text>
+
+            <View style={styles.fieldWrap}>
+              <Text style={[styles.fieldLabel, { color: colors.accent }]}>LIFT (INCHES)</Text>
+              <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <Feather name="arrow-up" size={14} color={colors.mutedForeground} />
+                <TextInput
+                  style={[styles.fieldInput, { color: colors.foreground }]}
+                  placeholder="e.g. 2.5"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  value={String(specs.liftIn || "")}
+                  onChangeText={(t) => setSpecs((s) => ({ ...s, liftIn: parseFloat(t) || 0 }))}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldWrap}>
+              <Text style={[styles.fieldLabel, { color: colors.accent }]}>TIRE DIAMETER (INCHES)</Text>
+              <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <Feather name="circle" size={14} color={colors.mutedForeground} />
+                <TextInput
+                  style={[styles.fieldInput, { color: colors.foreground }]}
+                  placeholder="e.g. 33"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  value={String(specs.tireDiameterIn || "")}
+                  onChangeText={(t) => setSpecs((s) => ({ ...s, tireDiameterIn: parseFloat(t) || 0 }))}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.switchField, { marginVertical: 8 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.accent, marginBottom: 2 }]}>HAS LOCKERS</Text>
+                <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>Front or rear locking differentials</Text>
+              </View>
+              <Switch
+                value={specs.hasLockers}
+                onValueChange={(v) => setSpecs((s) => ({ ...s, hasLockers: v }))}
+                thumbColor={specs.hasLockers ? colors.success : colors.mutedForeground}
+                trackColor={{ false: colors.border, true: "#004D26" }}
+              />
+            </View>
+
+            <View style={[styles.switchField, { marginVertical: 8 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.accent, marginBottom: 2 }]}>HAS LOW RANGE</Text>
+                <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>2-speed transfer case (4LO)</Text>
+              </View>
+              <Switch
+                value={specs.hasLowRange}
+                onValueChange={(v) => setSpecs((s) => ({ ...s, hasLowRange: v }))}
+                thumbColor={specs.hasLowRange ? colors.success : colors.mutedForeground}
+                trackColor={{ false: colors.border, true: "#004D26" }}
+              />
+            </View>
+
+            <View style={styles.specsDivider} />
             <View style={styles.fieldWrap}>
               <Text style={[styles.fieldLabel, { color: colors.accent }]}>MODS & BUILD NOTES</Text>
               <TextInput
@@ -981,6 +1062,9 @@ const styles = StyleSheet.create({
     height: 46,
   },
   fieldInput: { flex: 1, fontSize: 13, fontWeight: "600" },
+  switchField: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  specsDivider: { height: 1, marginVertical: 8, opacity: 0.1, backgroundColor: "#fff" },
+  specsSub: { fontSize: 11, fontWeight: "500", lineHeight: 16 },
   modsInput: {
     borderWidth: 1,
     borderRadius: 4,

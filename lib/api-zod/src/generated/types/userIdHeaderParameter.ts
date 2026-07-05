@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * Firebase UID of the requesting user (trusted at face value in Phase 1)
+ */
+export type UserIdHeaderParameter = string;
