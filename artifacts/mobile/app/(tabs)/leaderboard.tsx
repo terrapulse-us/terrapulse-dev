@@ -73,8 +73,8 @@ function PodiumCard({ entry, rank, isMe }: { entry: LeaderEntry; rank: number; i
       </View>
 
       {isMe && (
-        <View style={[styles.youBadge, { backgroundColor: colors.accent }]}>
-          <Text style={[styles.youText, { color: "#000" }]}>YOU</Text>
+        <View style={[styles.youBadge, { backgroundColor: "#00E676" }]}>
+          <Text style={[styles.youText, { color: "#fff" }]}>YOU</Text>
         </View>
       )}
 
@@ -119,8 +119,8 @@ function RankRow({ entry, rank, isMe }: { entry: LeaderEntry; rank: number; isMe
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={[styles.rankName, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
           {isMe && (
-            <View style={[styles.youBadgeSmall, { backgroundColor: colors.accent }]}>
-              <Text style={[styles.youTextSmall, { color: "#000" }]}>YOU</Text>
+            <View style={[styles.youBadgeSmall, { backgroundColor: "#00E676" }]}>
+              <Text style={[styles.youTextSmall, { color: "#fff" }]}>YOU</Text>
             </View>
           )}
         </View>

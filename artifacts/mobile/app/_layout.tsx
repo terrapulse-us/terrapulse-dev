@@ -22,6 +22,9 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+// Hidden for now — flip back to true if we need to debug OTA update status again.
+const SHOW_OTA_PILL = false;
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -106,7 +109,7 @@ export default function RootLayout() {
               </Stack>
             </AuthProvider>
 
-            <OtaPill label={label} badgeColor={badgeColor} />
+            {SHOW_OTA_PILL && <OtaPill label={label} badgeColor={badgeColor} />}
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>
