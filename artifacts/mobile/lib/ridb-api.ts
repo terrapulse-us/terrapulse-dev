@@ -6,7 +6,7 @@ import Constants from "expo-constants";
 // Provides official trailheads, campgrounds, and recreation facilities across
 // all federal public lands (USFS, BLM, NPS, COE, etc.)
 //
-// To enable: add EXPO_PUBLIC_RIDB_API_KEY to your environment secrets.
+// To enable: add a RIDB_API_KEY secret (or EXPO_PUBLIC_RIDB_API_KEY for EAS builds).
 
 const RIDB_BASE = "https://ridb.recreation.gov/api/v1";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h

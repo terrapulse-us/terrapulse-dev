@@ -102,7 +102,9 @@ module.exports = () => ({
       firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
       googleWebClientId: "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
       npsApiKey: process.env.EXPO_PUBLIC_NPS_API_KEY ?? "",
-      ridbApiKey: process.env.EXPO_PUBLIC_RIDB_API_KEY ?? "",
+      // ridbApiKey comes from RIDB_API_KEY secret (Replit) or
+      // EXPO_PUBLIC_RIDB_API_KEY (EAS secret).
+      ridbApiKey: process.env.RIDB_API_KEY ?? process.env.EXPO_PUBLIC_RIDB_API_KEY ?? "",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",
