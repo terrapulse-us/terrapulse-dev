@@ -13,8 +13,21 @@ export const BLM_SMA_TILES = [
   `${BLM_BASE}/lands/BLM_Natl_SMA_Limited_Areas/MapServer/tile/{z}/{y}/{x}`,
 ];
 
-// OHV designated areas polygon layer
-const BLM_OHV_AREAS_URL = `${BLM_BASE}/recreation/BLM_Natl_OHV_Areas/MapServer/0/query`;
+// OHV designated areas polygon layer.
+// NOTE: the original BLM_Natl_OHV_Areas/MapServer service has been fully retired from BLM's
+// ArcGIS catalog (404, and absent from the `recreation` folder's service listing) as of 2026-07.
+// Its replacement is `recreation/BLM_Natl_Recs_poly` layer 0 ("Recreation Sites"), a general
+// recreation-area polygon layer whose OHV areas are identified by FET_SUBTYPE = "OHV Designated
+// Area" (field names FET_NAME/FET_SUBTYPE/ADMIN_ST, not the old AREANAME/AREATYPE/ADMINST — mapped
+// back to the old names below so callers/UI don't need to change). Confirmed against a known area
+// (Dumont Dunes, CA).
+const BLM_OHV_AREAS_URL = `${BLM_BASE}/recreation/BLM_Natl_Recs_poly/MapServer/0/query`;
+
+interface BlmRecsRawFeature {
+  type: "Feature";
+  geometry: { type: "Polygon" | "MultiPolygon"; coordinates: number[][][] | number[][][][] } | null;
+  properties: { FET_NAME?: string; FET_SUBTYPE?: string; ADMIN_ST?: string; GIS_ACRES?: number };
+}
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -81,11 +94,11 @@ export async function fetchBlmOhvAreas(
     geometry: envelope,
     geometryType: "esriGeometryEnvelope",
     spatialRel: "esriSpatialRelIntersects",
-    outFields: "AREANAME,AREATYPE,ADMINST,GIS_ACRES",
+    outFields: "FET_NAME,FET_SUBTYPE,ADMIN_ST,GIS_ACRES",
     f: "geojson",
     outSR: "4326",
     returnGeometry: "true",
-    where: "1=1",
+    where: "FET_SUBTYPE = 'OHV Designated Area'",
     resultRecordCount: "200",
   });
 
@@ -94,7 +107,22 @@ export async function fetchBlmOhvAreas(
   });
   if (!resp.ok) throw new Error(`BLM API error ${resp.status}`);
 
-  const json = (await resp.json()) as BlmOhvCollection;
+  const raw = (await resp.json()) as { type: "FeatureCollection"; features: BlmRecsRawFeature[] };
+  const json: BlmOhvCollection = {
+    type: "FeatureCollection",
+    features: (raw.features ?? [])
+      .filter((f): f is BlmRecsRawFeature & { geometry: NonNullable<BlmRecsRawFeature["geometry"]> } => f.geometry != null)
+      .map((f) => ({
+        type: "Feature",
+        geometry: f.geometry,
+        properties: {
+          AREANAME: f.properties.FET_NAME,
+          AREATYPE: f.properties.FET_SUBTYPE,
+          ADMINST: f.properties.ADMIN_ST,
+          GIS_ACRES: f.properties.GIS_ACRES,
+        },
+      })),
+  };
   await setCached(key, json);
   return json;
 }

@@ -671,6 +671,10 @@ importers:
   lib/trail-data: {}
 
   scripts:
+    dependencies:
+      '@workspace/trail-data':
+        specifier: workspace:*
+        version: link:../lib/trail-data
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

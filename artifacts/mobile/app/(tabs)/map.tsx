@@ -594,18 +594,21 @@ export default function MapScreen() {
   }, [showOsmOverlay, osmFetchCenter]);
 
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
+  // Centers on the selected trail (so its area boundary shows even when browsing
+  // remotely, not just when physically on-site), falling back to GPS, then a
+  // statewide default.
   useEffect(() => {
     if (!showBlmOverlay) { setBlmOhvData(null); return; }
     let cancelled = false;
     setBlmLoading(true);
-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    const center = selectedTrail?.coords ?? userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
     fetchBlmOhvNear(center.latitude, center.longitude, 25)
       .then(data => { if (!cancelled) setBlmOhvData(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setBlmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showBlmOverlay]);
+  }, [showBlmOverlay, selectedTrail]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
