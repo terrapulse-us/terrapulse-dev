@@ -160,13 +160,17 @@ export function extractBestRoute(
     const { geometry } = f;
     if (!geometry) continue;
 
-    let segments: number[][] = [];
     if (geometry.type === "LineString") {
-      segments = geometry.coordinates as number[][];
+      const segment = geometry.coordinates as number[][];
+      if (segment.length > best.length) best = segment;
     } else if (geometry.type === "MultiLineString") {
-      segments = (geometry.coordinates as number[][][]).flat();
+      // A MultiLineString is a set of *disconnected* parts (gaps, road crossings,
+      // etc.) — never flatten them into one array, or a straight line gets drawn
+      // between unrelated endpoints. Pick the single longest continuous part instead.
+      for (const segment of geometry.coordinates as number[][][]) {
+        if (segment.length > best.length) best = segment;
+      }
     }
-    if (segments.length > best.length) best = segments;
   }
 
   if (best.length < 2) return null;
@@ -330,7 +334,13 @@ export function nfsExtractRoute(f: UsfsNfsFeature): Array<{ lat: number; lng: nu
     return (geometry.coordinates as number[][]).map(([lng, lat]) => ({ lat, lng }));
   }
   if (geometry.type === "MultiLineString") {
-    return (geometry.coordinates as number[][][]).flat().map(([lng, lat]) => ({ lat, lng }));
+    // Same rule as extractBestRoute: parts of a MultiLineString are disconnected —
+    // flattening them would draw a straight line across the gap. Use the longest part.
+    let best: number[][] = [];
+    for (const segment of geometry.coordinates as number[][][]) {
+      if (segment.length > best.length) best = segment;
+    }
+    return best.map(([lng, lat]) => ({ lat, lng }));
   }
   return [];
 }
