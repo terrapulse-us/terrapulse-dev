@@ -27,7 +27,7 @@ export default function PrivacyScreen() {
         <Text style={[styles.updated, { color: colors.mutedForeground }]}>Last updated: June 2025</Text>
 
         <Section title="Overview" colors={colors}>
-          TerraPulse ("we", "us", or "our") is a California off-road trail finder app. This policy explains what data we collect, how we use it, and your rights. By using TerraPulse, you agree to this policy.
+          TerraPulse ("we", "us", or "our") is a nationwide off-road trail finder app. This policy explains what data we collect, how we use it, and your rights. By using TerraPulse, you agree to this policy.
         </Section>
 
         <Section title="Data We Collect" colors={colors}>

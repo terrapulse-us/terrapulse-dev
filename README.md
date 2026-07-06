@@ -1,6 +1,6 @@
 # TerraPulse
 
-California off-road trail finder mobile app with live streaming, GPS telemetry, community features, and a leaderboard.
+Nationwide off-road trail finder mobile app with live streaming, GPS telemetry, community features, and a leaderboard.
 
 [![EAS Android APK Build](https://github.com/mclaporteterrapulses-team/terrapulse/actions/workflows/eas-build-android.yml/badge.svg)](https://github.com/mclaporteterrapulses-team/terrapulse/actions/workflows/eas-build-android.yml)
 
