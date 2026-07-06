@@ -1,86 +1,63 @@
 ---
 name: EAS OTA update workflow
-description: How to correctly publish OTA updates from the Codespace, and why Replit code changes don't reach GitHub builds.
+description: How to correctly publish OTA updates, and why Replit code changes don't reach GitHub builds automatically.
 ---
 
 ## Replit ↔ GitHub git divergence
 
-Replit checkpoint commits are pushed to Replit's own git remote. The Codespace tracks a **different** `origin/main` (GitHub). The two histories diverge silently — Replit commits never appear in the Codespace's `git log`, and vice versa.
+Replit checkpoint commits are pushed to Replit's own git remote. If a Codespace or other clone tracks a **different** `origin/main` (GitHub), the two histories can diverge silently. However, when Replit's `origin` remote is configured to point directly at the GitHub repo (check with `git remote -v`), pushing `git push origin main` from Replit itself DOES reach GitHub directly — verify with `git ls-remote origin main` rather than assuming a Codespace round-trip is required.
 
-**Why it matters:** `eas build` and `eas update` both run from the Codespace and bundle from the Codespace's local files. Code changes made only in Replit are invisible to EAS builds.
+**Why it matters:** `eas build` and `eas update` both run from GitHub Actions and bundle from whatever is on `main` at trigger time. Code changes not yet pushed to GitHub `main` are invisible to them, regardless of which machine does the pushing.
 
-**Rule:** All code changes that must reach EAS (builds or OTA) must be committed and pushed from the Codespace, or manually applied there before running `eas update`.
+## OTA update is NOT auto-triggered by push — workflow_dispatch only
 
-## Correct OTA delivery flow — ALWAYS commit and push
+The repo's OTA workflow (`.github/workflows/eas-update.yml`, named "EAS OTA Update") is defined with `on: workflow_dispatch` only — **pushing to `main` does not publish an OTA update.** Only the native APK/IPA build workflows (`eas-build-android.yml`, `eas-build-ios.yml`) auto-trigger on push to `main`/`release/**`.
 
-**The only reliable way to publish OTA updates is: commit in Codespace → `git push origin main` → GitHub Actions delivers the OTA.**
+**Why it matters:** it's easy to assume (as a past session did, incorrectly) that "push to main → GitHub Actions delivers the OTA" the same way it does for builds. It doesn't. After pushing a JS-only fix, you must separately trigger the OTA workflow:
+- GitHub UI: repo → Actions → "EAS OTA Update" → Run workflow → choose `channel` (preview=Android, production=iOS) and `platform`.
+- Or via GitHub API: `POST /repos/{owner}/{repo}/actions/workflows/eas-update.yml/dispatches` with `{"ref":"main","inputs":{"channel":"preview","platform":"android","message":"..."}}`, authenticated with a token that has `actions:write` (a token embedded in the repo's own `origin` remote URL, if present, already has this scope — extract it from `git remote -v` without printing it, don't hardcode/log the token value).
 
-Manual `eas update` from the Codespace working tree silently produces corrupted hermesc bundles. The OTA publishes successfully (visible in `update:list`) but crashes on-device and expo-updates rolls back to the embedded bundle with no visible error. The badge stays gray.
+**How to apply:** whenever a JS/TS-only mobile fix needs to reach an already-installed EAS build, the flow is: (1) commit + push to GitHub main, (2) confirm with the user, then manually dispatch "EAS OTA Update" for the right channel/platform — do not tell the user "it will update automatically" after just a push.
 
-```bash
-# In Codespace — make your changes, then:
-cd /workspaces/terrapulse-dev
-git add artifacts/mobile/app/whatever-you-changed.tsx
-git commit -m "Your change description"
-git push origin main
-# GitHub Actions eas-ota-update.yml handles the rest (~2-3 min)
-```
+## Channel vs branch flag — this repo's workflow uses `--channel`
 
-The GitHub Actions workflow (`eas-ota-update.yml`) installs the hermesc wrapper cleanly on a fresh checkout, sets `MAPTILER_API_KEY` from secrets, and runs `eas update --branch preview` reliably.
+An earlier version of this note claimed `--channel` was removed from `eas update` and `--branch` must always be used. That does not match the current `eas-update.yml`, which calls `eas update --channel <channel>` successfully (confirmed via multiple successful past Action runs). Don't assume the old `--branch`-only claim still holds — check the actual workflow YAML in `.github/workflows/eas-update.yml` for the current invocation before giving instructions, since this has changed at least once.
 
-**Manual `eas update` is unreliable** — even with `install-hermesc-wrapper.sh --force` and `MAPTILER_API_KEY` set, the interactive Codespace shell doesn't reproduce the clean transform pipeline that Actions gets. Do not use it as the primary delivery mechanism.
+## Channel ↔ Branch linking (critical one-time setup, if using --branch)
 
-**Why `--branch` not `--channel`:** The `--channel` flag was removed from `eas update` in newer eas-cli versions (confirmed broken in eas-cli ≥ 10.x). Always use `--branch <branchname>`. The branch must be linked to the channel (see Channel ↔ Branch linking section below).
+EAS channels and branches are separate concepts. A channel (what the APK subscribes to) must be explicitly mapped to a branch. Without this link, `checkForUpdateAsync()` always returns `isAvailable: false` even when updates exist.
 
-## Channel ↔ Branch linking (critical one-time setup)
-
-EAS channels and branches are separate concepts. A channel (what the APK subscribes to) must be explicitly mapped to a branch (where OTAs are published). Without this link, `checkForUpdateAsync()` always returns `isAvailable: false` even when updates exist on the branch.
-
-**Fix:** Run once per channel:
 ```bash
 npx eas-cli channel:edit preview --branch preview
 npx eas-cli channel:edit production --branch production
 ```
 
-**Why this isn't automatic:** EAS creates the channel/branch pair when you first build, but the link can get broken or was never set for channels created before EAS CLI enforced it. Symptoms: badge shows `APK | enabled:true` indefinitely, no ERR in badge, `checkForUpdateAsync()` returns `isAvailable: false`.
+Symptoms of a broken link: OTA badge shows enabled indefinitely with no update ever detected.
 
-## Hermesc wrapper — critical for Codespace OTA
+## Hermesc wrapper — critical for CI/Codespace OTA builds
 
-Linux hermesc v0.12.0 rejects ALL `class` syntax (declarations, expressions, inside functions). The wrapper installs a shell shim + Babel transform that converts class syntax to ES5 before hermesc sees it.
-
-**The wrapper is installed in `node_modules/.pnpm/` — NOT git-tracked.** After any `pnpm install` in the Codespace, re-run:
-```bash
-bash scripts/install-hermesc-wrapper.sh --force
-```
-
-If classes still fail, check `/tmp/hermesc-transform.log` for `[hermesc-wrapper] Missing required Babel deps` — this means `STORE_DIR` is wrong or Babel packages are missing.
+Linux hermesc v0.12.0 rejects ALL `class` syntax (declarations, expressions, inside functions). `eas-update.yml` runs `scripts/install-hermesc-wrapper.sh --force` as a step for this reason — if a custom workflow/build skips this, class syntax will crash on-device with no visible error (expo-updates silently rolls back to the embedded bundle).
 
 ## OTA update application (two-open rule)
 
-With `checkAutomatically: "ON_LOAD"` and the explicit JS-side `checkForUpdateAsync()` in `_layout.tsx`:
-1. First open after `eas update` publishes: app checks, downloads, and calls `reloadAsync()` automatically
-2. App restarts with the new bundle — badge turns green immediately in one open cycle
-
-If auto-reload doesn't fire (isUpdatePending never becomes true), the fallback is:
-1. First open: OTA downloads in background
-2. Kill app completely (swipe from app switcher)
-3. Second open: new bundle is applied
+With `checkAutomatically: "ON_LOAD"` and an explicit JS-side `checkForUpdateAsync()`:
+1. First open after publish: app checks, downloads, and calls `reloadAsync()` automatically — usually applies in one open.
+2. If auto-reload doesn't fire, fallback: first open downloads in background, fully kill the app (swipe from app switcher), second open applies the new bundle.
 
 ## Badge visibility in _layout.tsx
 
-The OTA badge (`_layout.tsx`) uses both passive (`useUpdates()` hook) and active (`checkForUpdateAsync()`) approaches:
-- Gray `APK | en:true` = embedded build, enabled, no update available
+- Gray `APK | en:true` = embedded build, enabled, no update available (or the workflow was never dispatched)
 - Gray `APK | en:false` = expo-updates disabled (check channel config + eas.json)
 - Red `ERR: ...` = `checkForUpdateAsync()` threw — message tells you why
 - Green `OTA-v2: xxxxxxxx` = running OTA bundle successfully
 
 ## Diagnosing "isAvailable always false"
 
-1. Run `npx eas-cli channel:view preview` — confirm the channel is linked to the `preview` branch
-2. If not linked: `npx eas-cli channel:edit preview --branch preview`
-3. Confirm `eas.json` preview profile has `"channel": "preview"` explicitly
-4. Confirm OTAs exist: `npx eas-cli update:list --branch preview --limit 3`
+1. Confirm the OTA workflow was actually dispatched for the right channel — check GitHub Actions run history for `eas-update.yml`, not just that `main` was pushed.
+2. `npx eas-cli channel:view preview` — confirm the channel is linked to the right branch (if using branch-based publish).
+3. Confirm `eas.json` preview profile has the matching `"channel"` value.
+4. Confirm OTAs exist: `npx eas-cli update:list --branch preview --limit 3` (or check the Actions run logs directly).
 
 ## Working APK vs new native builds
 
-The working APK was an **old native build + OTA-applied JS**. New native APK builds triggered from GitHub Actions may crash if EAS secrets aren't properly set or if the native module combination differs. Prefer OTA updates for JS-only changes over new APK builds when the current APK is stable.
+A stable installed APK is often an **old native build + OTA-applied JS**. New native APK builds triggered from GitHub Actions may crash if EAS secrets aren't properly set or the native module combination differs. Prefer an OTA update for JS-only changes over a new APK build when the current APK is stable — but remember the OTA still needs its own manual dispatch.
