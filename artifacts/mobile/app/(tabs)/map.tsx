@@ -111,6 +111,7 @@ import {
 } from "@/lib/trail-guide";
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
+import UserLocationPulse from "@/components/UserLocationPulse";
 import * as Updates from "expo-updates";
 import { downsamplePoints, encodePointsFlat } from "@/lib/ride-utils";
 import { downloadTrailArea as downloadOfflineTrailArea } from "@/lib/offline-maps";
@@ -1334,6 +1335,13 @@ export default function MapScreen() {
 
         {Platform.OS === "ios" ? (
           <NativeUserLocation />
+        ) : userLocation ? (
+          <Marker
+            lngLat={[userLocation.longitude, userLocation.latitude]}
+            anchor="center"
+          >
+            <UserLocationPulse />
+          </Marker>
         ) : (
           <UserLocation />
         )}

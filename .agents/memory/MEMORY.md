@@ -32,3 +32,4 @@
 - [pnpm catalog @types/react must match react version](pnpm-catalog-types-react-mismatch.md) — catalog react pinned exact but @types/react left at a newer range causes duplicate installs + confusing ref-type tsc errors
 - [explore tool only searches the local codebase](explore-tool-web-research-scope.md) — asking it to "research real coordinates" just echoes existing repo data back as if freshly researched; use webSearch/webFetch instead
 - [Sourcing real trail line geometry](usfs-trail-geometry-sourcing.md) — USFS EDW ArcGIS services have real surveyed centerlines; BLM/State Parks OHV areas generally don't, use landmark waypoints instead
+- [MapLibre RN v11 Android UserLocation has no pulse](maplibre-v11-android-userlocation-pulse.md) — JS UserLocation puck lacks the animated pulse iOS gets natively; fix with a custom Marker + Animated.loop
