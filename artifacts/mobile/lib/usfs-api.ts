@@ -3,9 +3,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // ─── USFS ArcGIS REST API ──────────────────────────────────────────────────────
 // Motor Vehicle Use Map (MVUM) — free, public US Forest Service data
 // Contains thousands of miles of motorized OHV/4x4/ATV/moto trails & roads
+//
+// NOTE: USFS retired the old EDW_MotorVehicleUse_01 / EDW_TrailNFS_01 services.
+// Current service names (verified against the live EDW catalog): EDW_MVUM_02
+// (roads = layer 1, trails = layer 2) and EDW_TrailNFSPublish_01 (layer 0).
+// The new services also renamed every field to lowercase and, for MVUM, replaced
+// the old single ALLOWED_TERRA_USE code with per-vehicle-type status fields
+// (e.g. `atv: "open"`, `motorcycle: "closed"`). `queryLayer`/`queryNfsLayer`
+// below translate the new schema back into the old UPPER_CASE property names
+// the rest of the app (trail-guide.ts) already expects.
 const USFS_BASE = "https://apps.fs.usda.gov/arcx/rest/services/EDW";
-const MVUM_TRAILS = `${USFS_BASE}/EDW_MotorVehicleUse_01/MapServer/1/query`; // Non-road motorized trails
-const MVUM_ROADS  = `${USFS_BASE}/EDW_MotorVehicleUse_01/MapServer/0/query`; // 4x4-accessible forest roads
+const MVUM_TRAILS = `${USFS_BASE}/EDW_MVUM_02/MapServer/2/query`; // Non-road motorized trails
+const MVUM_ROADS  = `${USFS_BASE}/EDW_MVUM_02/MapServer/1/query`; // 4x4-accessible forest roads
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -53,6 +62,50 @@ export function formatTerraUse(code: string | undefined): string {
     .join(" · ");
 }
 
+// ─── New-schema → old-schema property translation ──────────────────────────────
+// The current MVUM services (EDW_MVUM_02) dropped ALLOWED_TERRA_USE in favor of
+// per-vehicle status fields like `atv: "open"`/`atv: "closed"`. We derive a
+// human-readable summary here, preferring the API's own `mvum_symbol_name`
+// (e.g. "Wheeled OHV <50\", Yearlong") when present since it's authoritative.
+function isOpen(v: unknown): boolean {
+  return typeof v === "string" && v.trim().toLowerCase() === "open";
+}
+
+function deriveMvumUse(p: Record<string, unknown>): string {
+  if (typeof p.mvum_symbol_name === "string" && p.mvum_symbol_name) {
+    return p.mvum_symbol_name;
+  }
+  const uses: string[] = [];
+  if (isOpen(p.atv)) uses.push("ATV");
+  if (isOpen(p.motorcycle)) uses.push("Motorcycle");
+  if (isOpen(p.fourwd_gt50inches)) uses.push("4WD");
+  if (isOpen(p.twowd_gt50inches)) uses.push("2WD >50in");
+  if (isOpen(p.tracked_ohv_gt50inches) || isOpen(p.tracked_ohv_lt50inches)) uses.push("Tracked OHV");
+  if (isOpen(p.other_ohv_gt50inches) || isOpen(p.other_ohv_lt50inches) || isOpen(p.otherwheeled_ohv)) uses.push("Other OHV");
+  if (isOpen(p.passengervehicle)) uses.push("Passenger Vehicle");
+  if (isOpen(p.highclearancevehicle)) uses.push("High-Clearance Vehicle");
+  if (isOpen(p.truck)) uses.push("Truck");
+  return uses.length ? uses.join(", ") : "Motorized";
+}
+
+// Translate a raw MVUM (EDW_MVUM_02) feature's lowercase properties into the
+// old UPPER_CASE shape the rest of the app expects, without touching geometry.
+function translateMvumFeature(raw: UsfsFeature): UsfsFeature {
+  const p = raw.properties as Record<string, unknown>;
+  return {
+    ...raw,
+    properties: {
+      ...p,
+      TRAIL_NO: (p.id as string) ?? undefined,
+      TRAIL_NAME: (p.name as string) ?? undefined,
+      ALLOWED_TERRA_USE: deriveMvumUse(p),
+      SURFACE_TYPE: (p.surfacetype as string) ?? undefined,
+      RTE_SY_GRP_NM: (p.forestname as string) ?? (p.districtname as string) ?? undefined,
+      GIS_MILES: typeof p.gis_miles === "number" ? p.gis_miles : undefined,
+    },
+  };
+}
+
 // ─── Cache helpers ─────────────────────────────────────────────────────────────
 
 async function getCached<T>(key: string): Promise<T | null> {
@@ -91,7 +144,10 @@ async function queryLayer(
     geometry: envelope,
     geometryType: "esriGeometryEnvelope",
     spatialRel: "esriSpatialRelIntersects",
-    outFields: "TRAIL_NO,TRAIL_NAME,ALLOWED_TERRA_USE,SURFACE_TYPE,RTE_SY_GRP_NM,GIS_MILES",
+    // Roads (layer 1) and trails (layer 2) have different field sets on the new
+    // EDW_MVUM_02 service, so request everything and translate afterwards
+    // rather than maintaining two per-layer outFields lists.
+    outFields: "*",
     f: "geojson",
     outSR: "4326",
     returnGeometry: "true",
@@ -103,7 +159,7 @@ async function queryLayer(
   });
   if (!resp.ok) throw new Error(`USFS API error ${resp.status}`);
   const json = await resp.json() as UsfsCollection;
-  return json;
+  return { type: "FeatureCollection", features: json.features.map(translateMvumFeature) };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -210,8 +266,13 @@ export function featureDisplayName(f: UsfsFeature): string {
 // ─── USFS National Forest System (NFS) Trail Database ─────────────────────────
 // Covers ALL national forest trails (motorized + non-motorized), not just MVUM.
 // Vastly larger dataset — 158,000+ miles of named, classified trails.
-
-const NFS_TRAIL_URL = `${USFS_BASE}/EDW_TrailNFS_01/MapServer/0/query`;
+//
+// EDW_TrailNFS_01 was retired; EDW_TrailNFSPublish_01 (layer 0) is the current
+// replacement. Its `allowed_terra_use` is a numeric code (e.g. "321") with no
+// published decode table, so we no longer trust it directly — we derive a
+// best-effort human summary from the per-vehicle *_managed fields instead
+// (see `deriveNfsUse` below).
+const NFS_TRAIL_URL = `${USFS_BASE}/EDW_TrailNFSPublish_01/MapServer/0/query`;
 
 export interface UsfsNfsFeature {
   type: "Feature";
@@ -239,6 +300,49 @@ export interface UsfsNfsCollection {
   features: UsfsNfsFeature[];
 }
 
+// Best-effort human summary of NFS allowed use, derived from the per-vehicle
+// `*_managed` fields (presence = the use is actively managed/accepted on this
+// segment). `allowed_terra_use` itself is now an undocumented numeric code
+// (e.g. "321"), so we don't attempt to decode it.
+function deriveNfsUse(p: Record<string, unknown>): string | undefined {
+  const vehicles: Array<[string, string]> = [
+    ["motorcycle_managed", "Motorcycle"],
+    ["atv_managed", "ATV"],
+    ["fourwd_managed", "4WD"],
+    ["bicycle_managed", "Bicycle"],
+    ["pack_saddle_managed", "Pack/Saddle"],
+    ["hiker_pedestrian_managed", "Hiker"],
+    ["snowmobile_managed", "Snowmobile"],
+  ];
+  const uses = vehicles.filter(([field]) => p[field]).map(([, label]) => label);
+  if (uses.length) return uses.join(", ");
+  if (p.terra_motorized === "Y") return "Motorized";
+  if (p.terra_motorized === "N") return "Non-Motorized";
+  return undefined;
+}
+
+// Translate a raw EDW_TrailNFSPublish_01 feature's lowercase properties into
+// the old UPPER_CASE shape the rest of the app expects, without touching geometry.
+function translateNfsFeature(raw: UsfsNfsFeature): UsfsNfsFeature {
+  const p = raw.properties as Record<string, unknown>;
+  return {
+    ...raw,
+    properties: {
+      ...p,
+      TRAIL_CN: (p.trail_cn as string) ?? undefined,
+      TRAIL_NAME: (p.trail_name as string) ?? undefined,
+      TRAIL_NO: (p.trail_no as string) ?? undefined,
+      TRAIL_TYPE: (p.trail_type as string) ?? undefined,
+      SURFACE_TYPE: (p.trail_surface as string) ?? undefined,
+      TRAIL_CLASS: (p.trail_class as string) ?? undefined,
+      ALLOWED_TERRA_USE: deriveNfsUse(p),
+      MANAGING_ORG: (p.managing_org as string) ?? undefined,
+      GIS_MILES: typeof p.gis_miles === "number" ? p.gis_miles : undefined,
+      ACCESSIBILITY_STATUS: (p.accessibility_status as string) ?? undefined,
+    },
+  };
+}
+
 async function queryNfsLayer(
   minLng: number, minLat: number, maxLng: number, maxLat: number,
   where = "1=1",
@@ -251,7 +355,9 @@ async function queryNfsLayer(
     geometry: envelope,
     geometryType: "esriGeometryEnvelope",
     spatialRel: "esriSpatialRelIntersects",
-    outFields: "TRAIL_CN,TRAIL_NAME,TRAIL_NO,TRAIL_TYPE,SURFACE_TYPE,TRAIL_CLASS,ALLOWED_TERRA_USE,MANAGING_ORG,GIS_MILES,ACCESSIBILITY_STATUS",
+    // Field set is large and varies by attributesubset; request everything and
+    // translate afterwards (see translateNfsFeature).
+    outFields: "*",
     f: "geojson",
     outSR: "4326",
     returnGeometry: "true",
@@ -262,7 +368,8 @@ async function queryNfsLayer(
     headers: { Accept: "application/json" },
   });
   if (!resp.ok) throw new Error(`USFS NFS API error ${resp.status}`);
-  return (await resp.json()) as UsfsNfsCollection;
+  const json = (await resp.json()) as UsfsNfsCollection;
+  return { type: "FeatureCollection", features: json.features.map(translateNfsFeature) };
 }
 
 /**
@@ -278,8 +385,8 @@ export async function fetchUsfsNfsInBounds(
   if (cached) return cached;
 
   const where = motorizedOnly
-    ? "TRAIL_TYPE='TERRA' AND ALLOWED_TERRA_USE IS NOT NULL"
-    : "TRAIL_TYPE='TERRA'";
+    ? "trail_type='TERRA' AND allowed_terra_use IS NOT NULL"
+    : "trail_type='TERRA'";
 
   const data = await queryNfsLayer(minLng, minLat, maxLng, maxLat, where);
   await setCached(key, data);

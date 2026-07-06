@@ -30,3 +30,5 @@
 - [Mobile Expo web preview incompatible with native TurboModules](expo-web-preview-native-incompatible.md) — this app's web bundle crashes on load (TurboModuleRegistry.getEnforcing undefined); Playwright/testing-skill browser testing is not viable here, use curl/API-level e2e instead
 - [Claude tool-calling compliance](claude-tool-call-compliance.md) — generic tool (web_search) competing with a specialized one needs temperature:0 + explicit REQUIRED language, or model picks inconsistently
 - [pnpm catalog @types/react must match react version](pnpm-catalog-types-react-mismatch.md) — catalog react pinned exact but @types/react left at a newer range causes duplicate installs + confusing ref-type tsc errors
+- [explore tool only searches the local codebase](explore-tool-web-research-scope.md) — asking it to "research real coordinates" just echoes existing repo data back as if freshly researched; use webSearch/webFetch instead
+- [Sourcing real trail line geometry](usfs-trail-geometry-sourcing.md) — USFS EDW ArcGIS services have real surveyed centerlines; BLM/State Parks OHV areas generally don't, use landmark waypoints instead
