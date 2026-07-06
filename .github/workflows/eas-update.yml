@@ -61,6 +61,8 @@ jobs:
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.MAPTILER_API_KEY }}
+          EXPO_PUBLIC_NPS_API_KEY: ${{ secrets.EXPO_PUBLIC_NPS_API_KEY }}
+          EXPO_PUBLIC_RIDB_API_KEY: ${{ secrets.EXPO_PUBLIC_RIDB_API_KEY }}
           NODE_PATH: ${{ github.workspace }}/node_modules
         run: |
           if [ "${{ github.event.inputs.platform }}" = "all" ]; then

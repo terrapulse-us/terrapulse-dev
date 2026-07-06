@@ -5,6 +5,8 @@ name: EAS Build iOS
 #   MAPTILER_API_KEY       — your MapTiler key
 #   GOOGLE_WEB_CLIENT_ID   — Google OAuth client ID
 #   MAPBOX_PUBLIC_TOKEN    — Mapbox public token
+#   EXPO_PUBLIC_NPS_API_KEY  — National Park Service API key (optional, enables NPS layer)
+#   EXPO_PUBLIC_RIDB_API_KEY — Recreation.gov RIDB API key (optional, enables campground lookups)
 #
 # Required for automatic TestFlight submission (step below):
 #   ASC_API_KEY_ID         — App Store Connect → Users → Integrations → API Keys → Key ID
@@ -77,6 +79,8 @@ jobs:
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+          EXPO_PUBLIC_NPS_API_KEY: ${{ secrets.EXPO_PUBLIC_NPS_API_KEY }}
+          EXPO_PUBLIC_RIDB_API_KEY: ${{ secrets.EXPO_PUBLIC_RIDB_API_KEY }}
         run: eas build --platform ios --profile ${{ inputs.profile || 'preview' }} --non-interactive
 
       # ── Automatic TestFlight submission ────────────────────────────────────

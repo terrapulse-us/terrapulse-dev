@@ -67,5 +67,7 @@ jobs:
         working-directory: artifacts/mobile
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+          EXPO_PUBLIC_NPS_API_KEY: ${{ secrets.EXPO_PUBLIC_NPS_API_KEY }}
+          EXPO_PUBLIC_RIDB_API_KEY: ${{ secrets.EXPO_PUBLIC_RIDB_API_KEY }}
           NODE_PATH: ${{ github.workspace }}/node_modules
         run: eas build --platform android --profile ${{ inputs.profile || 'preview' }} --non-interactive
