@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "516913346465",
+    "project_id": "california-offroad-explorer",
+    "storage_bucket": "california-offroad-explorer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:516913346465:android:3c536bebee67b3a511bde0",
+        "android_client_info": {
+          "package_name": "com.terrapulse.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaryaX-yHno-qRb51WNeI0N14TszeQ6UU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "516913346465-jkr2r18jq6imrukupvg5u1uolbo09pp4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.terrapulse.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

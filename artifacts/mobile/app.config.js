@@ -47,6 +47,7 @@ module.exports = () => ({
     },
     android: {
       package: "com.terrapulse.app",
+      googleServicesFile: "./google-services.json",
       permissions: [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
