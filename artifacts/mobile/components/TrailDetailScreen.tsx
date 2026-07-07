@@ -193,13 +193,13 @@ function MiniCalendar({
             >
               <Text style={[
                 cal.dayNum,
-                { color: isSel ? "#000" : isToday ? colors.accent : colors.foreground },
+                { color: isSel ? colors.accentForeground : isToday ? colors.accent : colors.foreground },
                 isToday && { fontWeight: "900" },
               ]}>
                 {day}
               </Text>
               {hasEvent && (
-                <View style={[cal.dot, { backgroundColor: isSel ? "#000" : colors.accent }]} />
+                <View style={[cal.dot, { backgroundColor: isSel ? colors.accentForeground : colors.accent }]} />
               )}
             </TouchableOpacity>
           );
@@ -257,6 +257,7 @@ export default function TrailDetailScreen({
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(new Date());
+  const [attendeesEvent, setAttendeesEvent] = useState<TrailEvent | null>(null);
 
   // Load events for this trail
   useEffect(() => {
@@ -653,7 +654,7 @@ export default function TrailDetailScreen({
                             onPress={() => joinOrLeaveEvent(event)}
                             activeOpacity={0.8}
                           >
-                            <Text style={[s.joinBtnText, { color: joined ? colors.foreground : "#000" }]}>
+                            <Text style={[s.joinBtnText, { color: joined ? colors.foreground : colors.accentForeground }]}>
                               {joined ? "LEAVE" : "JOIN"}
                             </Text>
                           </TouchableOpacity>
@@ -661,12 +662,19 @@ export default function TrailDetailScreen({
                       </View>
 
                       {(event.attendees?.length ?? 0) > 0 && (
-                        <View style={[s.attendeesList, { borderTopColor: colors.border }]}>
-                          <Text style={[s.attendeesLabel, { color: colors.mutedForeground }]}>ATTENDEES</Text>
-                          <Text style={[s.attendeesNames, { color: colors.foreground }]}>
-                            {event.attendees.map((a) => a.name).join(", ")}
-                          </Text>
-                        </View>
+                        <TouchableOpacity
+                          style={[s.attendeesList, { borderTopColor: colors.border }]}
+                          onPress={() => setAttendeesEvent(event)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={s.attendeesBtnRow}>
+                            <Feather name="users" size={13} color={colors.mutedForeground} />
+                            <Text style={[s.attendeesLabel, { color: colors.mutedForeground }]}>
+                              {event.attendees.length} ATTENDEE{event.attendees.length !== 1 ? "S" : ""} — TAP TO VIEW
+                            </Text>
+                          </View>
+                          <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+                        </TouchableOpacity>
                       )}
                     </View>
                   );
@@ -676,6 +684,57 @@ export default function TrailDetailScreen({
           )}
         </ScrollView>
       </View>
+
+      {/* ── ATTENDEES MODAL ── */}
+      <Modal
+        visible={!!attendeesEvent}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAttendeesEvent(null)}
+      >
+        <View style={[s.root, { backgroundColor: colors.background }]}>
+          <View style={[s.createHeader, { paddingTop: insets.top + 8, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={() => setAttendeesEvent(null)}>
+              <Feather name="x" size={22} color={colors.foreground} />
+            </TouchableOpacity>
+            <Text style={[s.createHeaderTitle, { color: colors.foreground }]}>
+              {attendeesEvent?.attendees?.length ?? 0} ATTENDING
+            </Text>
+            <View style={{ width: 22 }} />
+          </View>
+          <ScrollView
+            style={s.scroll}
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {attendeesEvent && (
+              <>
+                <Text style={[s.attendeesEventTitle, { color: colors.mutedForeground }]}>
+                  {attendeesEvent.eventType.toUpperCase()} · {attendeesEvent.dateStr}
+                </Text>
+                <Text style={[s.fieldLabel, { color: colors.foreground, fontSize: 15, marginBottom: 12 }]}>
+                  {attendeesEvent.title}
+                </Text>
+                {attendeesEvent.attendees.map((a, i) => (
+                  <View key={a.uid} style={[s.attendeeItem, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+                    <View style={[s.attendeeAvatar, { backgroundColor: colors.accent }]}>
+                      <Text style={[s.attendeeAvatarText, { color: colors.accentForeground }]}>
+                        {a.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={[s.attendeeItemName, { color: colors.foreground }]}>{a.name}</Text>
+                    {i === 0 && (
+                      <View style={[s.organizerBadge, { backgroundColor: colors.muted }]}>
+                        <Text style={[s.organizerBadgeText, { color: colors.mutedForeground }]}>ORGANIZER</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* ── CREATE EVENT MODAL ── */}
       <Modal
@@ -739,7 +798,7 @@ export default function TrailDetailScreen({
                     ]}
                     onPress={() => setEvType(t)}
                   >
-                    <Text style={[s.typePillText, { color: active ? "#000" : colors.foreground }]}>{t}</Text>
+                    <Text style={[s.typePillText, { color: active ? colors.accentForeground : colors.foreground }]}>{t}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -786,7 +845,7 @@ export default function TrailDetailScreen({
                         style={[cal.cell, sel && { backgroundColor: colors.accent, borderRadius: 20 }]}
                         onPress={() => { setEvDateStr(ds); setShowDatePicker(false); }}
                       >
-                        <Text style={[cal.dayNum, { color: sel ? "#000" : colors.foreground }]}>{day}</Text>
+                        <Text style={[cal.dayNum, { color: sel ? colors.accentForeground : colors.foreground }]}>{day}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -826,13 +885,13 @@ export default function TrailDetailScreen({
                     <Feather
                       name={v === "open" ? "unlock" : "lock"}
                       size={14}
-                      color={active ? "#000" : colors.mutedForeground}
+                      color={active ? colors.accentForeground : colors.mutedForeground}
                     />
                     <View>
-                      <Text style={[s.visBtnTitle, { color: active ? "#000" : colors.foreground }]}>
+                      <Text style={[s.visBtnTitle, { color: active ? colors.accentForeground : colors.foreground }]}>
                         {v === "open" ? "OPEN" : "CLOSED"}
                       </Text>
-                      <Text style={[s.visBtnSub, { color: active ? "rgba(0,0,0,0.6)" : colors.mutedForeground }]}>
+                      <Text style={[s.visBtnSub, { color: active ? "rgba(235,228,209,0.75)" : colors.mutedForeground }]}>
                         {v === "open" ? "Anyone can join" : "Invite only"}
                       </Text>
                     </View>
@@ -863,9 +922,9 @@ export default function TrailDetailScreen({
               activeOpacity={0.85}
             >
               {creatingEvent ? (
-                <ActivityIndicator color="#000" />
+                <ActivityIndicator color={colors.accentForeground} />
               ) : (
-                <Text style={[s.saveBtnText, { color: "#000" }]}>CREATE EVENT</Text>
+                <Text style={[s.saveBtnText, { color: colors.accentForeground }]}>CREATE EVENT</Text>
               )}
             </TouchableOpacity>
           </ScrollView>
@@ -1002,9 +1061,17 @@ const s = StyleSheet.create({
   attendeeCount: { fontSize: 12, fontWeight: "600" },
   joinBtn: { borderRadius: 6, paddingHorizontal: 16, paddingVertical: 7, borderWidth: 1 },
   joinBtnText: { fontWeight: "900", fontSize: 11, letterSpacing: 1.5 },
-  attendeesList: { marginTop: 10, paddingTop: 10, borderTopWidth: 1 },
-  attendeesLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginBottom: 4 },
+  attendeesList: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  attendeesBtnRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  attendeesLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 1 },
   attendeesNames: { fontSize: 12, fontWeight: "600", lineHeight: 18 },
+  attendeesEventTitle: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 4 },
+  attendeeItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderRadius: 10, marginBottom: 8 },
+  attendeeAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  attendeeAvatarText: { fontWeight: "900", fontSize: 15 },
+  attendeeItemName: { flex: 1, fontSize: 14, fontWeight: "700" },
+  organizerBadge: { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
+  organizerBadgeText: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8 },
   // Create event form
   createHeader: {
     flexDirection: "row",
