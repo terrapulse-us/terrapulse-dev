@@ -87,8 +87,10 @@ import {
 } from "@/lib/osm-api";
 import {
   fetchBlmOhvNear,
+  fetchBlmCampgrounds,
   BLM_SMA_TILES,
   type BlmOhvCollection,
+  type BlmCampground,
 } from "@/lib/blm-api";
 import {
   fetchRidbTrailheadsNear,
@@ -514,6 +516,10 @@ export default function MapScreen() {
 
   const [showBlmOverlay, setShowBlmOverlay] = useState(false);
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
+  const [showBlmCampgrounds, setShowBlmCampgrounds] = useState(false);
+  const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
+  const [blmCampgroundsLoading, setBlmCampgroundsLoading] = useState(false);
+  const [selectedCampground, setSelectedCampground] = useState<BlmCampground | null>(null);
   const [blmLoading, setBlmLoading] = useState(false);
 
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
@@ -682,6 +688,21 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBlmOverlay, selectedTrail, userLocation]);
+
+  // ── BLM Campgrounds fetch ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showBlmCampgrounds) { setBlmCampgrounds([]); return; }
+    if (userLocation && blmCampgrounds.length > 0) return;
+    let cancelled = false;
+    setBlmCampgroundsLoading(true);
+    const center = userLocation ?? selectedTrail?.coords ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchBlmCampgrounds(center.latitude, center.longitude, 40)
+      .then(data => { if (!cancelled) setBlmCampgrounds(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBlmCampgroundsLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBlmCampgrounds, selectedTrail, userLocation]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
@@ -1584,6 +1605,20 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
+        {/* ── BLM Campground markers ─────────────────────────────────────── */}
+        {showBlmCampgrounds && blmCampgrounds.map((camp) => (
+          <Marker
+            key={`blm-camp-${camp.id}`}
+            lngLat={[camp.lng, camp.lat]}
+            anchor="center"
+            onPress={() => setSelectedCampground(camp)}
+          >
+            <View style={styles.blmCampMarker}>
+              <MaterialCommunityIcons name="tent" size={13} color="#fff" />
+            </View>
+          </Marker>
+        ))}
+
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
         {/* Tapping anywhere on the line (not just the endpoint pins) opens the trail info sheet. */}
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
@@ -2334,6 +2369,73 @@ export default function MapScreen() {
         )}
       </Modal>
 
+      {/* ── BLM CAMPGROUND DETAIL SHEET ─────────────────────────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={!!selectedCampground}
+        onRequestClose={() => setSelectedCampground(null)}
+      >
+        {selectedCampground && (
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setSelectedCampground(null)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#795548", borderTopWidth: 3 }]}
+              onPress={() => {}}
+            >
+              <View style={styles.modalHandle} />
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <View style={[styles.blmCampHeaderIcon]}>
+                  <MaterialCommunityIcons name="tent" size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.blmCampDetailTitle, { color: "#795548" }]}>BLM CAMPGROUND</Text>
+                  <Text style={[{ fontSize: 16, fontWeight: "800", color: colors.foreground }]} numberOfLines={2}>
+                    {selectedCampground.name}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+                <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                  <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>TYPE</Text>
+                  <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                    {selectedCampground.subtype.replace("Campsite - ", "").replace(" - Non Reservable - Fee", " (Fee)").replace(" - Non Reservable", "")}
+                  </Text>
+                </View>
+                <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                  <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>MANAGED BY</Text>
+                  <Text style={[styles.blmCampStatValue, { color: colors.foreground }]}>
+                    BLM — {selectedCampground.state || "Federal"}
+                  </Text>
+                </View>
+              </View>
+
+              {selectedCampground.description ? (
+                <View style={[styles.blmCampDesc, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <Text style={[{ fontSize: 13, lineHeight: 19, color: colors.foreground }]}>
+                    {selectedCampground.description}
+                  </Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                onPress={() => setSelectedCampground(null)}
+                activeOpacity={0.8}
+              >
+                <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: colors.foreground }]}>CLOSE</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+      </Modal>
+
       {/* LAYER PICKER MODAL */}
       <Modal
         animationType="slide"
@@ -2444,6 +2546,26 @@ export default function MapScreen() {
                 </Text>
               </View>
               {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : "#A8A89A"} />}
+            </TouchableOpacity>
+
+            {/* BLM Campgrounds toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, showBlmCampgrounds ? styles.overlayToggleBlmCampActive : styles.overlayToggleInactive, { borderColor: showBlmCampgrounds ? "#795548" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowBlmCampgrounds((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="tent" size={20} color={showBlmCampgrounds ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showBlmCampgrounds ? "#fff" : "#2A2A1E" }]}>
+                  BLM CAMPGROUNDS{blmCampgroundsLoading ? "  ⏳" : blmCampgrounds.length > 0 ? `  (${blmCampgrounds.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showBlmCampgrounds ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  Federal campgrounds &amp; developed campsites within 40 mi (brown)
+                </Text>
+              </View>
+              {blmCampgroundsLoading
+                ? <ActivityIndicator size="small" color={showBlmCampgrounds ? "#fff" : "#795548"} />
+                : <MaterialIcons name={showBlmCampgrounds ? "toggle-on" : "toggle-off"} size={28} color={showBlmCampgrounds ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
             {/* NFS Trail System toggle */}
@@ -3376,9 +3498,68 @@ const styles = StyleSheet.create({
   overlayToggleInactive: { backgroundColor: "#F5F0E6" },
   overlayToggleActive:     { backgroundColor: "#5A9A5A" },
   overlayToggleOsmActive:  { backgroundColor: "#3DAA5C" },
-  overlayToggleBlmActive:  { backgroundColor: "#D4860A" },
-  overlayToggleNfsActive:  { backgroundColor: "#2D6A4F" },
-  overlayToggleRidbActive: { backgroundColor: "#7B3F9E" },
+  overlayToggleBlmActive:     { backgroundColor: "#D4860A" },
+  overlayToggleBlmCampActive: { backgroundColor: "#795548" },
+  overlayToggleNfsActive:     { backgroundColor: "#2D6A4F" },
+  overlayToggleRidbActive:    { backgroundColor: "#7B3F9E" },
+  blmCampMarker: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#795548",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
+  },
+  blmCampHeaderIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#795548",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  blmCampDetailTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  blmCampStat: {
+    padding: 10,
+    borderRadius: 8,
+    gap: 3,
+  },
+  blmCampStatLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  blmCampStatValue: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+  blmCampDesc: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  blmCampCloseBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginTop: 4,
+  },
   overlayToggleNpsActive:  { backgroundColor: "#1B5E20" },
   overlayLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   overlaySubLabel: { fontSize: 10, fontWeight: "600", marginTop: 2 },

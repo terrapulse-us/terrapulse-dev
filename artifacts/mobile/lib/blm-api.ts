@@ -144,6 +144,87 @@ export async function fetchBlmOhvNear(
   return fetchBlmOhvAreas(lng - deg, lat - deg, lng + deg, lat + deg);
 }
 
+// ─── BLM Campgrounds ──────────────────────────────────────────────────────────
+
+const BLM_RECS_PTS_BASE = `${BLM_BASE}/recreation/BLM_Natl_Recs_pts/MapServer`;
+
+export interface BlmCampground {
+  id: number;
+  name: string;
+  subtype: string;
+  state: string;
+  description: string | null;
+  webLink: string | null;
+  lat: number;
+  lng: number;
+}
+
+interface BlmCampRawFeature {
+  geometry: { coordinates: [number, number] };
+  properties: Record<string, unknown>;
+}
+
+async function fetchBlmCampLayer(
+  layer: 2 | 3,
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+): Promise<BlmCampground[]> {
+  const envelope = JSON.stringify({
+    xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
+    spatialReference: { wkid: 4326 },
+  });
+  const params = new URLSearchParams({
+    geometry: envelope,
+    geometryType: "esriGeometryEnvelope",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: "OBJECTID,FET_NAME,FET_SUBTYPE,ADMIN_ST,DESCRIPTION,WEB_LINK",
+    f: "geojson",
+    outSR: "4326",
+    returnGeometry: "true",
+    where: "1=1",
+    resultRecordCount: "200",
+  });
+  try {
+    const resp = await fetch(`${BLM_RECS_PTS_BASE}/${layer}/query?${params}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!resp.ok) return [];
+    const raw = (await resp.json()) as { features?: BlmCampRawFeature[] };
+    return (raw.features ?? []).map((f) => ({
+      id: (f.properties.OBJECTID as number) ?? 0,
+      name: (f.properties.FET_NAME as string) ?? "BLM Campground",
+      subtype: (f.properties.FET_SUBTYPE as string) ?? "Campground",
+      state: (f.properties.ADMIN_ST as string) ?? "",
+      description: (f.properties.DESCRIPTION as string | null) ?? null,
+      webLink: (f.properties.WEB_LINK as string | null) ?? null,
+      lng: f.geometry.coordinates[0],
+      lat: f.geometry.coordinates[1],
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch BLM campgrounds (developed + primitive) within `radiusMiles` of a point.
+ * Queries layers 2 (Campground) and 3 (Campsite - Developed) from BLM_Natl_Recs_pts.
+ */
+export async function fetchBlmCampgrounds(
+  lat: number, lng: number, radiusMiles = 40,
+): Promise<BlmCampground[]> {
+  const deg = radiusMiles / 69.0;
+  const [minLng, minLat, maxLng, maxLat] = [lng - deg, lat - deg, lng + deg, lat + deg];
+  const key = `blm_camps_v1_${minLng.toFixed(2)}_${minLat.toFixed(2)}_${maxLng.toFixed(2)}_${maxLat.toFixed(2)}`;
+  const cached = await getCached<BlmCampground[]>(key);
+  if (cached) return cached;
+  const [layer2, layer3] = await Promise.all([
+    fetchBlmCampLayer(2, minLng, minLat, maxLng, maxLat),
+    fetchBlmCampLayer(3, minLng, minLat, maxLng, maxLat),
+  ]);
+  const combined = [...layer2, ...layer3];
+  if (combined.length > 0) await setCached(key, combined);
+  return combined;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function blmAreaDisplayName(f: BlmOhvFeature): string {
