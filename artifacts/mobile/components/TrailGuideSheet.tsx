@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialIcons, Feather } from "@expo/vector-icons";
+import { MaterialIcons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import type { TrailGuide } from "@/lib/trail-guide";
 import { SOURCE_CONFIG } from "@/lib/trail-guide";
@@ -21,6 +21,8 @@ interface TrailGuideSheetProps {
     name: string,
     difficultyRating?: number,
   ) => void;
+  onGroupRide?: (action: "start" | "join") => void;
+  activeRideInfo?: { memberCount: number } | null;
 }
 
 function StatChip({ icon, label, value, color }: {
@@ -57,7 +59,7 @@ const chipStyles = StyleSheet.create({
   chipValue: { fontSize: 12, fontWeight: "700", marginTop: 1 },
 });
 
-export default function TrailGuideSheet({ guide, onClose, onNavigate }: TrailGuideSheetProps) {
+export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRide, activeRideInfo }: TrailGuideSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -241,6 +243,24 @@ export default function TrailGuideSheet({ guide, onClose, onNavigate }: TrailGui
             {hasRoute ? "FOLLOW THIS TRAIL" : "NO GPS ROUTE AVAILABLE"}
           </Text>
         </TouchableOpacity>
+
+        {!!onGroupRide && (
+          <TouchableOpacity
+            style={[styles.navBtn, {
+              backgroundColor: activeRideInfo ? "#1E88E5" : "#43A047",
+              marginTop: 8,
+            }]}
+            onPress={() => onGroupRide(activeRideInfo ? "join" : "start")}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="account-group" size={17} color="#fff" />
+            <Text style={[styles.navBtnText, { color: "#fff" }]}>
+              {activeRideInfo
+                ? `JOIN GROUP RIDE  (${activeRideInfo.memberCount} RIDER${activeRideInfo.memberCount !== 1 ? "S" : ""})`
+                : "START GROUP RIDE"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Modal>
   );
