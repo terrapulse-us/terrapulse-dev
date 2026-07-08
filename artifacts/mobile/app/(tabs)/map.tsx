@@ -657,8 +657,11 @@ export default function MapScreen() {
       } as GroupRide;
       setActiveRide(ride);
       setActiveRideInfo(null);
-    } catch {
-      Alert.alert("Error", "Could not create group ride. Please try again.");
+      setSelectedTrail(null);
+      Alert.alert("Group Ride Started 🚙", `Share the trail with friends — they can join from ${selectedTrail.title}'s trail page.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet. Check the Rules tab in your Firebase Console." : "An error occurred. Please try again.");
     }
   }, [user, selectedTrail, userLocation]);
 
@@ -672,8 +675,10 @@ export default function MapScreen() {
       await joinGroupRide(result.ride.id, user.uid, user.displayName ?? "Unknown Rider", lat, lng);
       setActiveRide(result.ride);
       setActiveRideInfo(null);
-    } catch {
-      Alert.alert("Error", "Could not join group ride. Please try again.");
+      setSelectedTrail(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("Could Not Join Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
     }
   }, [user, selectedTrail, userLocation]);
 
