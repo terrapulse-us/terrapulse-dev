@@ -82,7 +82,8 @@ async function setCached<T>(key: string, data: T): Promise<void> {
 export async function fetchBlmOhvAreas(
   minLng: number, minLat: number, maxLng: number, maxLat: number,
 ): Promise<BlmOhvCollection> {
-  const key = `blm_ohv_${minLng.toFixed(2)}_${minLat.toFixed(2)}_${maxLng.toFixed(2)}_${maxLat.toFixed(2)}`;
+  // v2 prefix busts any stale empty-result entries written by the previous cache logic
+  const key = `blm_ohv_v2_${minLng.toFixed(2)}_${minLat.toFixed(2)}_${maxLng.toFixed(2)}_${maxLat.toFixed(2)}`;
   const cached = await getCached<BlmOhvCollection>(key);
   if (cached) return cached;
 
