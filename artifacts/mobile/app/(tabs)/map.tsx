@@ -2994,7 +2994,7 @@ export default function MapScreen() {
 
       {/* ── GROUP RIDE HUD ──────────────────────────────────────────────── */}
       {activeRide && (
-        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border, bottom: tabBarHeight + 80 }]}>
           <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
