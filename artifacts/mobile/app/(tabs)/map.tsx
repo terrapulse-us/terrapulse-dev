@@ -572,8 +572,9 @@ export default function MapScreen() {
       setSosActive(true);
       setShowSosModal(false);
       setSosNoteInput("");
-    } catch {
-      Alert.alert("Error", "Could not activate beacon. Check your connection.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("Beacon Error", msg || "Could not activate beacon. Check your connection.");
     } finally {
       setSosActivating(false);
     }
