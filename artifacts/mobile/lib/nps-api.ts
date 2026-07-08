@@ -27,8 +27,13 @@ const OHV_ACTIVITY_KEYWORDS = [
 ];
 
 function getApiKey(): string {
+  // process.env.EXPO_PUBLIC_* is inlined by Metro at bundle time (works in OTA).
+  // Constants.expoConfig.extra is a fallback for dev builds where Metro inlining
+  // may not have run (e.g. running directly via Expo Go without a full bundle).
   return (
-    (Constants.expoConfig?.extra?.npsApiKey as string | undefined) ?? ""
+    process.env.EXPO_PUBLIC_NPS_API_KEY ||
+    (Constants.expoConfig?.extra?.npsApiKey as string | undefined) ||
+    ""
   );
 }
 
