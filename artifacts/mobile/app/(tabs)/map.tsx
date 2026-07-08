@@ -2488,7 +2488,7 @@ export default function MapScreen() {
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3 }]}
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHandle} />
@@ -2583,7 +2583,7 @@ export default function MapScreen() {
           >
             <TouchableOpacity
               activeOpacity={1}
-              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3 }]}
+              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
               onPress={() => {}}
             >
               <View style={styles.modalHandle} />
