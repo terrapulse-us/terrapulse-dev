@@ -52,7 +52,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { markTrailComplete } from "@/lib/achievements";
+import { markTrailComplete, markTrailContributed } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -1251,6 +1251,11 @@ export default function MapScreen() {
         `"${trailName.trim()}" is now visible to everyone on TerraPulse!`,
         [{ text: "LET'S RIDE!" }]
       );
+      // Grant contributor badges based on the user's total submitted count.
+      // userTrails reflects the snapshot before this submission, so +1 is correct.
+      if (user) {
+        markTrailContributed(user.uid, userTrails.length + 1).catch(() => {});
+      }
       setShowAddTrailModal(false);
       setTrailName("");
       setTrailDifficultyRating(5);

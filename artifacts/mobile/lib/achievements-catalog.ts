@@ -1,4 +1,4 @@
-import { ALL_TRAILS, STATE_NAMES, getTrailsByState } from "./trails";
+import { ALL_TRAILS } from "./trails";
 
 export interface AchievementDef {
   id: string;
@@ -37,10 +37,17 @@ const MILESTONES: AchievementDef[] = [
 ];
 
 const REGIONAL_CA: AchievementDef[] = [
-  { id: "regional_nocal",  title: "NorCal Dominator", description: "Complete all NorCal trails",    icon: "triangle" },
-  { id: "regional_socal",  title: "SoCal Dominator",  description: "Complete all SoCal trails",     icon: "sun" },
-  { id: "regional_desert", title: "Desert Demon",     description: "Complete all desert trails",    icon: "thermometer" },
-  { id: "dunes_king",      title: "Dunes King",       description: "Hit both Pismo & Dumont Dunes", icon: "wind" },
+  { id: "regional_nocal",  title: "NorCal Dominator", description: "Complete all NorCal route trails",    icon: "triangle" },
+  { id: "regional_socal",  title: "SoCal Dominator",  description: "Complete all SoCal route trails",     icon: "sun" },
+  { id: "regional_desert", title: "Desert Demon",     description: "Complete all desert route trails",    icon: "thermometer" },
+];
+
+const CONTRIBUTOR_BADGES: AchievementDef[] = [
+  { id: "contributor_1",  title: "Trail Scout",     description: "Submit your first trail to the community", icon: "plus-circle" },
+  { id: "contributor_5",  title: "Trail Mapper",    description: "Submit 5 trails to the community",         icon: "map-pin" },
+  { id: "contributor_10", title: "Trail Builder",   description: "Submit 10 trails to the community",        icon: "tool" },
+  { id: "contributor_25", title: "Trail Architect", description: "Submit 25 trails to the community",        icon: "layers" },
+  { id: "contributor_50", title: "Trail Authority", description: "Submit 50 trails to the community",        icon: "award" },
 ];
 
 const SPECIAL: AchievementDef[] = [
@@ -80,28 +87,6 @@ const CA_TRAIL_BADGES: AchievementDef[] = [
   { id: "trail_plumas",          title: "Sierra Norte Shredder",   description: "Shred Plumas Eureka OHV trails",            icon: "triangle" },
 ];
 
-// Two badges per state that actually has trails: one for a first visit, one
-// for clearing every trail in that state. Generated from the live trail
-// catalog so it always stays in sync as trails.ts grows.
-const STATE_BADGES: AchievementDef[] = STATES_WITH_TRAILS.flatMap((code) => {
-  const name = STATE_NAMES[code] ?? code;
-  const count = getTrailsByState(code).length;
-  return [
-    {
-      id: `state_explorer_${code}`,
-      title: `${name} Explorer`,
-      description: `Complete a trail in ${name}`,
-      icon: "map-pin",
-    },
-    {
-      id: `state_master_${code}`,
-      title: `${name} Master`,
-      description: `Complete all ${count} ${name} trail${count === 1 ? "" : "s"}`,
-      icon: "award",
-    },
-  ];
-});
-
 const REGION_BADGES: AchievementDef[] = Object.entries(REGIONS)
   .filter(([, region]) => regionStatesPresent(region.states).length > 0)
   .map(([key, region]) => ({
@@ -120,10 +105,10 @@ const MULTI_STATE_BADGES: AchievementDef[] = [
 
 export const ALL_ACHIEVEMENTS: AchievementDef[] = [
   ...MILESTONES,
+  ...CONTRIBUTOR_BADGES,
   ...REGIONAL_CA,
   ...REGION_BADGES,
   ...MULTI_STATE_BADGES,
   ...SPECIAL,
   ...CA_TRAIL_BADGES,
-  ...STATE_BADGES,
 ];
