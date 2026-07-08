@@ -55,6 +55,38 @@ const SPECIAL: AchievementDef[] = [
   { id: "went_live",     title: "Broadcaster",   description: "Go live from a trail",                icon: "radio" },
 ];
 
+// ─── Nationwide per-trail badges (non-CA route trails) ───────────────────────
+// One named badge per route-classified trail in every non-CA state.
+// Automatically gated to route trails via ROUTE_TRAIL_IDS in achievements.ts.
+const NATIONWIDE_TRAIL_BADGES: AchievementDef[] = [
+  // Arizona
+  { id: "trail_bulldog_canyon",   title: "Bulldog Canyon Crusher",      description: "Conquer Bulldog Canyon OHV in Arizona",           icon: "zap" },
+  { id: "trail_kofa_palm_canyon", title: "Desert Palm Pioneer",         description: "Navigate Kofa NWR's remote Palm Canyon Road",      icon: "sun" },
+  { id: "trail_crown_king",       title: "Crown King Conqueror",        description: "Climb Crown King Road in Prescott National Forest", icon: "award" },
+  { id: "trail_harquahala",       title: "Harquahala Highlander",       description: "Summit the rugged Harquahala Mountain Road",       icon: "triangle" },
+  // Colorado
+  { id: "trail_black_bear_road",  title: "Black Bear Survivor",         description: "Survive the infamous Black Bear Road near Telluride", icon: "shield" },
+  { id: "trail_imogene_pass",     title: "Imogene Summiteer",           description: "Summit Imogene Pass in the San Juan Mountains",    icon: "trending-up" },
+  { id: "trail_medano_pass",      title: "Great Sand Dunes Drifter",    description: "Cross Medano Pass Primitive Road in Colorado",     icon: "wind" },
+  { id: "trail_ophir_pass",       title: "Ophir Overlander",            description: "Tackle Ophir Pass in the San Juan Mountains",      icon: "compass" },
+  { id: "trail_ophir_san_miguel", title: "San Juan Shredder",           description: "Shred the high-altitude San Juan trail network",   icon: "activity" },
+  { id: "trail_black_bear_pass",  title: "Telluride Titan",             description: "Conquer the extreme Black Bear Pass near Telluride", icon: "star" },
+  { id: "trail_engineer_pass",    title: "Engineer Pass Conqueror",     description: "Conquer Engineer Pass on the Alpine Loop",         icon: "tool" },
+  { id: "trail_imogene_ouray",    title: "Ouray Iron Maiden",           description: "Ride Imogene Pass from the Ouray side",            icon: "layers" },
+  // Hawaii
+  { id: "trail_mauna_kea",        title: "Mauna Kea Summit Seeker",     description: "Climb Mauna Kea Access Road to 13,000+ feet",     icon: "triangle" },
+  // Minnesota
+  { id: "trail_remer_ohv",        title: "Northwoods Navigator",        description: "Navigate the Remer OHV Trail System in Minnesota", icon: "map-pin" },
+  // South Carolina
+  { id: "trail_wambaw",           title: "Swamp Fox Rider",             description: "Ride the Wambaw Cycle Trail in Francis Marion NF", icon: "activity" },
+  // Utah
+  { id: "trail_white_rim_road",   title: "White Rim Road Warrior",      description: "Complete the legendary White Rim Road in Canyonlands", icon: "flag" },
+  { id: "trail_white_rim_trail",  title: "Canyonlands Conqueror",       description: "Conquer the White Rim Trail in Canyonlands NP",   icon: "compass" },
+  { id: "trail_elephant_hill",    title: "Elephant Hill Crusher",       description: "Crush the technical Elephant Hill 4WD route",     icon: "zap" },
+  { id: "trail_onion_creek",      title: "Castle Valley Adventurer",    description: "Ride Onion Creek Trail through Castle Valley",     icon: "map" },
+];
+
+// ─── California per-trail badges ─────────────────────────────────────────────
 // Per-trail badges for the original 27 CA trails. IDs are unchanged from the
 // legacy CA-only catalog so existing users keep their earned badges.
 const CA_TRAIL_BADGES: AchievementDef[] = [
@@ -111,4 +143,5 @@ export const ALL_ACHIEVEMENTS: AchievementDef[] = [
   ...MULTI_STATE_BADGES,
   ...SPECIAL,
   ...CA_TRAIL_BADGES,
+  ...NATIONWIDE_TRAIL_BADGES,
 ];

@@ -13,10 +13,11 @@ const ROUTE_TRAIL_IDS = new Set(
     .map(([id]) => id)
 );
 
-// Per-trail badges for the original 27 CA trails. IDs are unchanged so
-// existing users keep their earned badges after the nationwide expansion.
-// Only route-classified CA trails can earn per-trail badges.
+// Per-trail badges. CA IDs are unchanged so existing users keep their badges.
+// Non-CA entries cover every other state with a route-classified trail.
+// Only entries whose trail ID is in ROUTE_TRAIL_IDS will ever fire.
 const TRAIL_ACHIEVEMENT_MAP: Record<string, string> = {
+  // ── California ─────────────────────────────────────────────────────────────
   "ca-1":  "trail_rubicon",
   "ca-2":  "trail_hungry_valley",
   "ca-3":  "trail_johnson_valley",
@@ -44,6 +45,31 @@ const TRAIL_ACHIEVEMENT_MAP: Record<string, string> = {
   "ca-25": "trail_randsburg",
   "ca-26": "trail_bodie",
   "ca-27": "trail_plumas",
+  // ── Arizona ────────────────────────────────────────────────────────────────
+  "az-3":  "trail_bulldog_canyon",
+  "az-8":  "trail_kofa_palm_canyon",
+  "az-10": "trail_crown_king",
+  "az-14": "trail_harquahala",
+  // ── Colorado ───────────────────────────────────────────────────────────────
+  "co-1":  "trail_black_bear_road",
+  "co-3":  "trail_imogene_pass",
+  "co-4":  "trail_medano_pass",
+  "co-8":  "trail_ophir_pass",
+  "co-11": "trail_ophir_san_miguel",
+  "co-12": "trail_black_bear_pass",
+  "co-13": "trail_engineer_pass",
+  "co-14": "trail_imogene_ouray",
+  // ── Hawaii ─────────────────────────────────────────────────────────────────
+  "hi-2":  "trail_mauna_kea",
+  // ── Minnesota ──────────────────────────────────────────────────────────────
+  "mn-4":  "trail_remer_ohv",
+  // ── South Carolina ─────────────────────────────────────────────────────────
+  "sc-4":  "trail_wambaw",
+  // ── Utah ───────────────────────────────────────────────────────────────────
+  "ut-3":  "trail_white_rim_road",
+  "ut-11": "trail_white_rim_trail",
+  "ut-14": "trail_elephant_hill",
+  "ut-15": "trail_onion_creek",
 };
 
 // CA regional groups — filtered to only route trails so the badge requires
