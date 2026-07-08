@@ -660,6 +660,8 @@ export default function MapScreen() {
       setActiveRide(ride);
       setActiveRideInfo(null);
       setSelectedTrail(null);
+      setFollowedTrailIds(prev => prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]);
+      setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedTrail.id) }, { merge: true }).catch(() => {});
       Alert.alert("Group Ride Started 🚙", `Share the trail with friends — they can join from ${selectedTrail.title}'s trail page.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -678,6 +680,8 @@ export default function MapScreen() {
       setActiveRide(result.ride);
       setActiveRideInfo(null);
       setSelectedTrail(null);
+      setFollowedTrailIds(prev => prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]);
+      setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedTrail.id) }, { merge: true }).catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       Alert.alert("Could Not Join Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
@@ -735,6 +739,8 @@ export default function MapScreen() {
         setActiveRide(ride);
         setGuideActiveRideInfo(null);
         setSelectedGuide(null);
+        setFollowedTrailIds(prev => prev.includes(selectedGuide.id) ? prev : [...prev, selectedGuide.id]);
+        setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedGuide.id) }, { merge: true }).catch(() => {});
         Alert.alert("Group Ride Started 🚙", `Friends can join from this trail's sheet.`);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -748,6 +754,8 @@ export default function MapScreen() {
         setActiveRide(result.ride);
         setGuideActiveRideInfo(null);
         setSelectedGuide(null);
+        setFollowedTrailIds(prev => prev.includes(selectedGuide.id) ? prev : [...prev, selectedGuide.id]);
+        setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedGuide.id) }, { merge: true }).catch(() => {});
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         Alert.alert("Could Not Join Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
@@ -2994,7 +3002,7 @@ export default function MapScreen() {
 
       {/* ── GROUP RIDE HUD ──────────────────────────────────────────────── */}
       {activeRide && (
-        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border, bottom: tabBarHeight + 80 }]}>
+        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border, bottom: tabBarHeight + 80, right: 68 }]}>
           <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
