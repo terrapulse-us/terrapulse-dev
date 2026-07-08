@@ -29,6 +29,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
+import SosPulse from "@/components/SosPulse";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router, useLocalSearchParams } from "expo-router";
@@ -209,6 +210,15 @@ const NOTE_TYPE_CONFIGS: NoteTypeConfig[] = [
   { id: "washed_out", label: "Washed Out", icon: "waves",         color: "#795548" },
   { id: "custom",     label: "Custom",     icon: "edit",          color: "#5A9A5A" },
 ];
+interface SosBeacon {
+  uid: string;
+  displayName: string;
+  lat: number;
+  lng: number;
+  note: string;
+  updatedAt: number;
+}
+
 interface CommunityNote {
   id: string;
   type: string;
@@ -444,6 +454,15 @@ export default function MapScreen() {
   const [selectedNote, setSelectedNote] = useState<CommunityNote | null>(null);
   const [confirmingNote, setConfirmingNote] = useState(false);
 
+  // ── SOS Beacon ───────────────────────────────────────────────────────────────
+  const [sosActive, setSosActive] = useState(false);
+  const [sosNote, setSosNote] = useState("");
+  const [showSosModal, setShowSosModal] = useState(false);
+  const [sosNoteInput, setSosNoteInput] = useState("");
+  const [sosActivating, setSosActivating] = useState(false);
+  const [activeBeacons, setActiveBeacons] = useState<SosBeacon[]>([]);
+  const [selectedBeacon, setSelectedBeacon] = useState<SosBeacon | null>(null);
+
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -527,6 +546,46 @@ export default function MapScreen() {
       );
       setDoc(doc(db, "users", user.uid), { riddenTrailIds: arrayUnion(trail.id) }, { merge: true }).catch(() => {});
     }
+  }, [user]);
+
+  const activateSos = useCallback(async (note: string) => {
+    if (!user || !userLocation) {
+      Alert.alert("Location Required", "Enable location services to activate the SOS beacon.");
+      return;
+    }
+    setSosActivating(true);
+    try {
+      await setDoc(
+        doc(db, "sos_beacons", user.uid),
+        {
+          active: true,
+          uid: user.uid,
+          displayName: user.displayName ?? "Unknown Rider",
+          lat: userLocation.latitude,
+          lng: userLocation.longitude,
+          note,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setSosNote(note);
+      setSosActive(true);
+      setShowSosModal(false);
+      setSosNoteInput("");
+    } catch {
+      Alert.alert("Error", "Could not activate beacon. Check your connection.");
+    } finally {
+      setSosActivating(false);
+    }
+  }, [user, userLocation]);
+
+  const deactivateSos = useCallback(async () => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, "sos_beacons", user.uid), { active: false }, { merge: true });
+    } catch { /* best-effort */ }
+    setSosActive(false);
+    setSosNote("");
   }, [user]);
 
   // Wrapper used by the existing TrailDetailScreen onNavigate prop
@@ -770,6 +829,52 @@ export default function MapScreen() {
     );
     return unsub;
   }, []);
+
+  // SOS Beacons — live listener for all active distress beacons on the map.
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, "sos_beacons"), where("active", "==", true)),
+      (snap) => {
+        const beacons: SosBeacon[] = [];
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          if (typeof data.lat === "number" && typeof data.lng === "number") {
+            beacons.push({
+              uid: d.id,
+              displayName: (data.displayName as string) ?? "Unknown Rider",
+              lat: data.lat,
+              lng: data.lng,
+              note: (data.note as string) ?? "",
+              updatedAt:
+                (data.updatedAt as { toMillis?: () => number } | undefined)?.toMillis?.() ??
+                Date.now(),
+            });
+          }
+        });
+        setActiveBeacons(beacons);
+      }
+    );
+    return unsub;
+  }, []);
+
+  // While SOS is active, sync the rider's position to Firestore on every
+  // location update so nearby riders see the live beacon move.
+  useEffect(() => {
+    if (!sosActive || !user || !userLocation) return;
+    setDoc(
+      doc(db, "sos_beacons", user.uid),
+      {
+        active: true,
+        uid: user.uid,
+        displayName: user.displayName ?? "Unknown Rider",
+        lat: userLocation.latitude,
+        lng: userLocation.longitude,
+        note: sosNote,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(() => {});
+  }, [sosActive, user, userLocation, sosNote]);
 
   // Community Notes — live for whichever trail is currently being navigated.
   // Notes older than NOTE_EXPIRY_MS are hidden and opportunistically deleted
@@ -1627,6 +1732,24 @@ export default function MapScreen() {
             </Marker>
           );
         })}
+
+        {/* SOS Beacons — visible to all riders at all times */}
+        {activeBeacons.map((beacon) => (
+          <Marker
+            key={`sos-${beacon.uid}`}
+            lngLat={[beacon.lng, beacon.lat]}
+            anchor="center"
+            onPress={() => setSelectedBeacon(beacon)}
+          >
+            <SosPulse
+              label={
+                beacon.uid === user?.uid
+                  ? "YOU"
+                  : beacon.displayName.split(" ")[0]
+              }
+            />
+          </Marker>
+        ))}
       </MapLibreMap>
 
       {/* TOP BAR */}
@@ -1966,7 +2089,245 @@ export default function MapScreen() {
             {isRecording ? "STOP" : "RECORD"}
           </Text>
         </TouchableOpacity>
+
+        {/* SOS BEACON button */}
+        <TouchableOpacity
+          style={[
+            styles.sosBtn,
+            sosActive
+              ? { backgroundColor: "#E53935", borderColor: "#E53935" }
+              : { backgroundColor: colors.card, borderColor: "#E53935" },
+          ]}
+          onPress={() => {
+            if (sosActive) {
+              Alert.alert(
+                "Deactivate Beacon?",
+                "Your SOS beacon will be turned off and removed from the map.",
+                [
+                  { text: "Keep Active", style: "cancel" },
+                  {
+                    text: "Deactivate",
+                    style: "destructive",
+                    onPress: deactivateSos,
+                  },
+                ]
+              );
+            } else {
+              setSosNoteInput("");
+              setShowSosModal(true);
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <MaterialIcons
+            name="sos"
+            size={18}
+            color={sosActive ? "#fff" : "#E53935"}
+          />
+          {sosActive && (
+            <Text style={styles.sosBtnActiveText}>LIVE</Text>
+          )}
+        </TouchableOpacity>
       </View>
+
+      {/* ── SOS ACTIVATION MODAL ────────────────────────────────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showSosModal}
+        onRequestClose={() => setShowSosModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSosModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHandle} />
+
+            {/* Header */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <View style={styles.sosHeaderIcon}>
+                <MaterialIcons name="sos" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sosModalTitle, { color: "#E53935" }]}>ACTIVATE SOS BEACON</Text>
+                <Text style={[styles.sosModalSubtitle, { color: colors.mutedForeground }]}>
+                  Your live location broadcasts to all TerraPulse riders
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick-pick note chips */}
+            <Text style={[styles.sosChipHeading, { color: colors.mutedForeground }]}>SITUATION</Text>
+            <View style={styles.sosChipRow}>
+              {["Stuck", "Broken Parts", "Medical Emergency", "Need Tow", "Low Fuel", "Need Help"].map((chip) => (
+                <TouchableOpacity
+                  key={chip}
+                  style={[
+                    styles.sosChip,
+                    sosNoteInput === chip
+                      ? { backgroundColor: "#E53935", borderColor: "#E53935" }
+                      : { backgroundColor: colors.background, borderColor: colors.border },
+                  ]}
+                  onPress={() => setSosNoteInput(chip)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.sosChipText, { color: sosNoteInput === chip ? "#fff" : colors.foreground }]}>
+                    {chip}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Custom text */}
+            <TextInput
+              style={[styles.sosTextInput, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
+              placeholder="Or describe your situation…"
+              placeholderTextColor={colors.mutedForeground}
+              value={sosNoteInput}
+              onChangeText={setSosNoteInput}
+              maxLength={120}
+              returnKeyType="done"
+            />
+
+            {/* Actions */}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.sosActionBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => setShowSosModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sosActionBtn, { flex: 2, backgroundColor: "#E53935", borderColor: "#E53935" }]}
+                onPress={() => activateSos(sosNoteInput.trim() || "Need Help")}
+                activeOpacity={0.8}
+                disabled={sosActivating}
+              >
+                {sosActivating ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <MaterialIcons name="sos" size={16} color="#fff" />
+                    <Text style={[styles.sosActionBtnText, { color: "#fff" }]}>ACTIVATE BEACON</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── BEACON DETAIL SHEET ─────────────────────────────────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={!!selectedBeacon}
+        onRequestClose={() => setSelectedBeacon(null)}
+      >
+        {selectedBeacon && (
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setSelectedBeacon(null)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3 }]}
+              onPress={() => {}}
+            >
+              <View style={styles.modalHandle} />
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <View style={[styles.sosHeaderIcon, { width: 44, height: 44, borderRadius: 22 }]}>
+                  <MaterialIcons name="sos" size={22} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sosModalTitle, { color: "#E53935" }]}>
+                    {selectedBeacon.uid === user?.uid ? "YOUR BEACON" : "RIDER IN DISTRESS"}
+                  </Text>
+                  <Text style={[{ fontSize: 15, fontWeight: "700", color: colors.foreground }]}>
+                    {selectedBeacon.displayName}
+                  </Text>
+                </View>
+                <View style={styles.sosPingDot} />
+              </View>
+
+              {selectedBeacon.note ? (
+                <View style={[styles.sosDetailNote, { backgroundColor: "rgba(229,57,53,0.10)", borderColor: "rgba(229,57,53,0.3)" }]}>
+                  <MaterialIcons name="warning" size={16} color="#E53935" />
+                  <Text style={[styles.sosDetailNoteText, { color: colors.foreground }]}>{selectedBeacon.note}</Text>
+                </View>
+              ) : null}
+
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                <View style={[styles.sosDetailStat, { backgroundColor: colors.background, flex: 1 }]}>
+                  <Text style={[styles.sosDetailStatLabel, { color: colors.mutedForeground }]}>STATUS</Text>
+                  <Text style={[styles.sosDetailStatValue, { color: "#E53935" }]}>● LIVE</Text>
+                </View>
+                <View style={[styles.sosDetailStat, { backgroundColor: colors.background, flex: 1 }]}>
+                  <Text style={[styles.sosDetailStatLabel, { color: colors.mutedForeground }]}>LAST UPDATE</Text>
+                  <Text style={[styles.sosDetailStatValue, { color: colors.foreground }]}>
+                    {Math.round((Date.now() - selectedBeacon.updatedAt) / 60000) < 1
+                      ? "Just now"
+                      : `${Math.round((Date.now() - selectedBeacon.updatedAt) / 60000)}m ago`}
+                  </Text>
+                </View>
+                {userLocation ? (
+                  <View style={[styles.sosDetailStat, { backgroundColor: colors.background, flex: 1 }]}>
+                    <Text style={[styles.sosDetailStatLabel, { color: colors.mutedForeground }]}>DISTANCE</Text>
+                    <Text style={[styles.sosDetailStatValue, { color: colors.foreground }]}>
+                      {(() => {
+                        const R = 3958.8;
+                        const dLat = ((selectedBeacon.lat - userLocation.latitude) * Math.PI) / 180;
+                        const dLng = ((selectedBeacon.lng - userLocation.longitude) * Math.PI) / 180;
+                        const a = Math.sin(dLat / 2) ** 2 + Math.cos((userLocation.latitude * Math.PI) / 180) * Math.cos((selectedBeacon.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+                        const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        return d < 0.1 ? `${Math.round(d * 5280)} ft` : `${d.toFixed(1)} mi`;
+                      })()}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {selectedBeacon.uid === user?.uid ? (
+                <TouchableOpacity
+                  style={[styles.sosActionBtn, { marginTop: 16, backgroundColor: "#E53935", borderColor: "#E53935" }]}
+                  onPress={() => {
+                    setSelectedBeacon(null);
+                    Alert.alert(
+                      "Deactivate Beacon?",
+                      "Your SOS beacon will be turned off.",
+                      [
+                        { text: "Keep Active", style: "cancel" },
+                        { text: "Deactivate", style: "destructive", onPress: deactivateSos },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="cancel" size={16} color="#fff" />
+                  <Text style={[styles.sosActionBtnText, { color: "#fff" }]}>DEACTIVATE MY BEACON</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.sosActionBtn, { marginTop: 16, backgroundColor: colors.background, borderColor: colors.border }]}
+                  onPress={() => setSelectedBeacon(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>CLOSE</Text>
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+      </Modal>
 
       {/* LAYER PICKER MODAL */}
       <Modal
@@ -3113,5 +3474,126 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
+  },
+
+  // ── SOS Beacon ─────────────────────────────────────────────────────────────
+  sosBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    elevation: 4,
+    shadowColor: "#E53935",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+  },
+  sosBtnActiveText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+  },
+  sosHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E53935",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sosModalTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+  },
+  sosModalSubtitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  sosChipHeading: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  sosChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  sosChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  sosChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  sosTextInput: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 44,
+  },
+  sosActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 13,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  sosActionBtnText: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+  },
+  sosPingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#E53935",
+  },
+  sosDetailNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  sosDetailNoteText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  sosDetailStat: {
+    padding: 10,
+    borderRadius: 8,
+    gap: 3,
+  },
+  sosDetailStatLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  sosDetailStatValue: {
+    fontSize: 12,
+    fontWeight: "800",
   },
 });
