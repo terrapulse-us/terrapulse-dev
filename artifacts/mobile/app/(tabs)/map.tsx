@@ -537,6 +537,7 @@ export default function MapScreen() {
 
   const [activeRide, setActiveRide] = useState<GroupRide | null>(null);
   const [activeRideInfo, setActiveRideInfo] = useState<{ memberCount: number } | null>(null);
+  const [guideActiveRideInfo, setGuideActiveRideInfo] = useState<{ memberCount: number } | null>(null);
   const [rideMembers, setRideMembers] = useState<RideMember[]>([]);
   const [rideMessages, setRideMessages] = useState<RideMessage[]>([]);
   const [showRideChat, setShowRideChat] = useState(false);
@@ -708,6 +709,52 @@ export default function MapScreen() {
     else handleJoinGroupRide();
   }, [handleStartGroupRide, handleJoinGroupRide]);
 
+  const handleGuideGroupRide = useCallback(async (action: "start" | "join") => {
+    if (!user || !selectedGuide) return;
+    const firstCoord = selectedGuide.routeCoordinates?.[0];
+    const lat = userLocation?.latitude ?? firstCoord?.lat ?? 0;
+    const lng = userLocation?.longitude ?? firstCoord?.lng ?? 0;
+    if (action === "start") {
+      try {
+        const rideId = await createGroupRide(
+          selectedGuide.id,
+          selectedGuide.name,
+          user.uid,
+          user.displayName ?? "Unknown Rider",
+          lat,
+          lng
+        );
+        const ride = {
+          id: rideId,
+          trailId: selectedGuide.id,
+          trailName: selectedGuide.name,
+          createdBy: user.uid,
+          createdByName: user.displayName ?? "Unknown Rider",
+          active: true,
+        } as GroupRide;
+        setActiveRide(ride);
+        setGuideActiveRideInfo(null);
+        setSelectedGuide(null);
+        Alert.alert("Group Ride Started 🚙", `Friends can join from this trail's sheet.`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        Alert.alert("Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
+      }
+    } else {
+      const result = await getActiveRideForTrail(selectedGuide.id);
+      if (!result) { Alert.alert("Ride Ended", "That ride is no longer active."); return; }
+      try {
+        await joinGroupRide(result.ride.id, user.uid, user.displayName ?? "Unknown Rider", lat, lng);
+        setActiveRide(result.ride);
+        setGuideActiveRideInfo(null);
+        setSelectedGuide(null);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        Alert.alert("Could Not Join Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
+      }
+    }
+  }, [user, selectedGuide, userLocation]);
+
   // ── NFS overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showNfsOverlay) { setNfsGeoJSON(null); return; }
@@ -797,6 +844,17 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTrail?.id]);
+
+  // ── Group Ride: check for active ride on the selected guide trail ────────────
+  useEffect(() => {
+    if (!selectedGuide || activeRide) { if (!selectedGuide) setGuideActiveRideInfo(null); return; }
+    let cancelled = false;
+    getActiveRideForTrail(selectedGuide.id)
+      .then(result => { if (!cancelled) setGuideActiveRideInfo(result ? { memberCount: result.memberCount } : null); })
+      .catch(() => { if (!cancelled) setGuideActiveRideInfo(null); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGuide?.id]);
 
   // ── Group Ride: broadcast own location every 5s while in a ride ──────────────
   useEffect(() => {
@@ -2251,6 +2309,8 @@ export default function MapScreen() {
       <TrailGuideSheet
         guide={selectedGuide}
         onClose={() => setSelectedGuide(null)}
+        onGroupRide={handleGuideGroupRide}
+        activeRideInfo={guideActiveRideInfo}
         onNavigate={(coords, name) => {
           const start = coords[0];
           if (!start) return;
