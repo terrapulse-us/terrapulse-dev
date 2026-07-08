@@ -122,6 +122,9 @@ service cloud.firestore {
     // can appear as red pulsing markers on the map.
     // Writes are restricted to the document owner (uid == their own UID).
     // Deactivating is a subset update (active:false) — also owner-only.
+    //
+    // NESTING NOTE: this block must stay inside match /databases/{database}/documents.
+    // Placing it outside (after the closing brace) causes silent permission denial.
     match /sos_beacons/{uid} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == uid;
@@ -134,5 +137,6 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create, update, delete: if request.auth != null && request.auth.uid == uid;
     }
-  }
+
+  } // ← closes match /databases/{database}/documents — sos_beacons must be ABOVE this line
 }
