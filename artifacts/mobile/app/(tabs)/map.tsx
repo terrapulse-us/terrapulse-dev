@@ -30,6 +30,19 @@ import * as Location from "expo-location";
 import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
 import SosPulse from "@/components/SosPulse";
+import {
+  createGroupRide,
+  joinGroupRide,
+  leaveGroupRide,
+  broadcastLocation,
+  subscribeToMembers,
+  subscribeToMessages,
+  sendMessage,
+  getActiveRideForTrail,
+  type GroupRide,
+  type RideMember,
+  type RideMessage,
+} from "@/lib/group-ride";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router, useLocalSearchParams } from "expo-router";
@@ -520,6 +533,15 @@ export default function MapScreen() {
   const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
   const [blmCampgroundsLoading, setBlmCampgroundsLoading] = useState(false);
   const [selectedCampground, setSelectedCampground] = useState<BlmCampground | null>(null);
+
+  const [activeRide, setActiveRide] = useState<GroupRide | null>(null);
+  const [activeRideInfo, setActiveRideInfo] = useState<{ memberCount: number } | null>(null);
+  const [rideMembers, setRideMembers] = useState<RideMember[]>([]);
+  const [rideMessages, setRideMessages] = useState<RideMessage[]>([]);
+  const [showRideChat, setShowRideChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [rideCheckLoading, setRideCheckLoading] = useState(false);
+  const chatScrollRef = useRef<ScrollView>(null);
   const [blmLoading, setBlmLoading] = useState(false);
 
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
@@ -612,6 +634,74 @@ export default function MapScreen() {
     setSelectedNote(null);
   }, []);
 
+  const handleStartGroupRide = useCallback(async () => {
+    if (!user || !selectedTrail) return;
+    const lat = userLocation?.latitude ?? selectedTrail.coords.latitude;
+    const lng = userLocation?.longitude ?? selectedTrail.coords.longitude;
+    try {
+      const rideId = await createGroupRide(
+        selectedTrail.id,
+        selectedTrail.title,
+        user.uid,
+        user.displayName ?? "Unknown Rider",
+        lat,
+        lng
+      );
+      const ride = {
+        id: rideId,
+        trailId: selectedTrail.id,
+        trailName: selectedTrail.title,
+        createdBy: user.uid,
+        createdByName: user.displayName ?? "Unknown Rider",
+        active: true,
+      } as GroupRide;
+      setActiveRide(ride);
+      setActiveRideInfo(null);
+    } catch {
+      Alert.alert("Error", "Could not create group ride. Please try again.");
+    }
+  }, [user, selectedTrail, userLocation]);
+
+  const handleJoinGroupRide = useCallback(async () => {
+    if (!user || !selectedTrail) return;
+    const result = await getActiveRideForTrail(selectedTrail.id);
+    if (!result) { Alert.alert("Ride Ended", "That ride is no longer active."); return; }
+    const lat = userLocation?.latitude ?? selectedTrail.coords.latitude;
+    const lng = userLocation?.longitude ?? selectedTrail.coords.longitude;
+    try {
+      await joinGroupRide(result.ride.id, user.uid, user.displayName ?? "Unknown Rider", lat, lng);
+      setActiveRide(result.ride);
+      setActiveRideInfo(null);
+    } catch {
+      Alert.alert("Error", "Could not join group ride. Please try again.");
+    }
+  }, [user, selectedTrail, userLocation]);
+
+  const handleLeaveRide = useCallback(async () => {
+    if (!activeRide || !user) return;
+    try {
+      await leaveGroupRide(activeRide.id, user.uid, activeRide.createdBy === user.uid);
+    } catch { /* ignore */ }
+    setActiveRide(null);
+    setRideMembers([]);
+    setRideMessages([]);
+    setShowRideChat(false);
+  }, [activeRide, user]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!activeRide || !user || !chatInput.trim()) return;
+    const text = chatInput.trim();
+    setChatInput("");
+    try {
+      await sendMessage(activeRide.id, user.uid, user.displayName ?? "Rider", text);
+    } catch { /* ignore */ }
+  }, [activeRide, user, chatInput]);
+
+  const handleGroupRideAction = useCallback((action: "start" | "join") => {
+    if (action === "start") handleStartGroupRide();
+    else handleJoinGroupRide();
+  }, [handleStartGroupRide, handleJoinGroupRide]);
+
   // ── NFS overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showNfsOverlay) { setNfsGeoJSON(null); return; }
@@ -688,6 +778,47 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBlmOverlay, selectedTrail, userLocation]);
+
+  // ── Group Ride: check for active ride on the selected trail ─────────────────
+  useEffect(() => {
+    if (!selectedTrail || activeRide) { if (!selectedTrail) setActiveRideInfo(null); return; }
+    let cancelled = false;
+    setRideCheckLoading(true);
+    getActiveRideForTrail(selectedTrail.id)
+      .then(result => { if (!cancelled) setActiveRideInfo(result ? { memberCount: result.memberCount } : null); })
+      .catch(() => { if (!cancelled) setActiveRideInfo(null); })
+      .finally(() => { if (!cancelled) setRideCheckLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTrail?.id]);
+
+  // ── Group Ride: broadcast own location every 5s while in a ride ──────────────
+  useEffect(() => {
+    if (!activeRide || !user) return;
+    const interval = setInterval(() => {
+      const lat = userLocation?.latitude;
+      const lng = userLocation?.longitude;
+      if (lat !== undefined && lng !== undefined) {
+        broadcastLocation(activeRide.id, user.uid, lat, lng).catch(() => {});
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeRide, user, userLocation]);
+
+  // ── Group Ride: subscribe to member positions ─────────────────────────────────
+  useEffect(() => {
+    if (!activeRide) { setRideMembers([]); return; }
+    return subscribeToMembers(activeRide.id, setRideMembers);
+  }, [activeRide]);
+
+  // ── Group Ride: subscribe to messages when chat is open ──────────────────────
+  useEffect(() => {
+    if (!activeRide || !showRideChat) { if (!activeRide) setRideMessages([]); return; }
+    return subscribeToMessages(activeRide.id, (msgs) => {
+      setRideMessages(msgs);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+  }, [activeRide, showRideChat]);
 
   // ── BLM Campgrounds fetch ────────────────────────────────────────────────────
   useEffect(() => {
@@ -1605,6 +1736,26 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
+        {/* ── Group Ride member markers ──────────────────────────────────── */}
+        {activeRide && rideMembers.filter(m => m.uid !== user?.uid).map((member) => (
+          <Marker
+            key={`ride-member-${member.uid}`}
+            lngLat={[member.lng, member.lat]}
+            anchor="center"
+          >
+            <View>
+              <View style={[styles.rideMemberMarker, { backgroundColor: member.color, borderColor: "#fff" }]}>
+                <Text style={styles.rideMemberInitial}>
+                  {(member.displayName ?? "?")[0].toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.rideMemberLabel}>
+                <Text style={styles.rideMemberLabelText} numberOfLines={1}>{member.displayName}</Text>
+              </View>
+            </View>
+          </Marker>
+        ))}
+
         {/* ── BLM Campground markers ─────────────────────────────────────── */}
         {showBlmCampgrounds && blmCampgrounds.map((camp) => (
           <Marker
@@ -2436,6 +2587,98 @@ export default function MapScreen() {
         )}
       </Modal>
 
+      {/* ── GROUP RIDE CHAT MODAL ────────────────────────────────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showRideChat}
+        onRequestClose={() => setShowRideChat(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowRideChat(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#1E88E5", borderTopWidth: 3, maxHeight: "75%" }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHandle} />
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <View style={styles.rideChatHeaderIcon}>
+                <MaterialCommunityIcons name="account-group" size={18} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rideChatTitle, { color: "#1E88E5" }]}>GROUP RIDE CHAT</Text>
+                <Text style={[{ fontSize: 13, fontWeight: "700", color: colors.foreground }]} numberOfLines={1}>
+                  {activeRide?.trailName}  ·  {rideMembers.length} riders
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowRideChat(false)}>
+                <MaterialIcons name="close" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              ref={chatScrollRef}
+              style={[styles.rideChatMessages, { backgroundColor: colors.background, borderColor: colors.border }]}
+              contentContainerStyle={{ padding: 10, gap: 8 }}
+              onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: false })}
+            >
+              {rideMessages.length === 0 ? (
+                <Text style={[{ fontSize: 13, color: colors.mutedForeground, textAlign: "center", paddingVertical: 20 }]}>
+                  No messages yet. Say hi! 👋
+                </Text>
+              ) : rideMessages.map((msg) => {
+                const isMe = msg.uid === user?.uid;
+                return (
+                  <View key={msg.id} style={[styles.rideChatBubbleRow, isMe && { alignSelf: "flex-end" }]}>
+                    {!isMe && (
+                      <View style={[styles.rideChatAvatar, { backgroundColor: rideMembers.find(m => m.uid === msg.uid)?.color ?? "#999" }]}>
+                        <Text style={styles.rideChatAvatarText}>{(msg.displayName ?? "?")[0].toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View style={{ maxWidth: "75%" }}>
+                      {!isMe && <Text style={[styles.rideChatSender, { color: colors.mutedForeground }]}>{msg.displayName}</Text>}
+                      <View style={[styles.rideChatBubble, {
+                        backgroundColor: isMe ? "#1E88E5" : colors.card,
+                        borderColor: isMe ? "#1E88E5" : colors.border,
+                        alignSelf: isMe ? "flex-end" : "flex-start",
+                      }]}>
+                        <Text style={[styles.rideChatBubbleText, { color: isMe ? "#fff" : colors.foreground }]}>{msg.text}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={[styles.rideChatInput, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.rideChatTextField, { color: colors.foreground }]}
+                placeholder="Message the group..."
+                placeholderTextColor={colors.mutedForeground}
+                value={chatInput}
+                onChangeText={setChatInput}
+                onSubmitEditing={handleSendMessage}
+                returnKeyType="send"
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[styles.rideChatSendBtn, { backgroundColor: chatInput.trim() ? "#1E88E5" : colors.border }]}
+                onPress={handleSendMessage}
+                disabled={!chatInput.trim()}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="send" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* LAYER PICKER MODAL */}
       <Modal
         animationType="slide"
@@ -2664,6 +2907,36 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* ── GROUP RIDE HUD ──────────────────────────────────────────────── */}
+      {activeRide && (
+        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
+              GROUP RIDE  ·  {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
+            </Text>
+            <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+              {activeRide.trailName}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
+            onPress={() => setShowRideChat(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="chat" size={15} color="#fff" />
+            {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
+            onPress={handleLeaveRide}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="exit-to-app" size={15} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TrailDetailScreen
         trail={selectedTrail}
         visible={!!selectedTrail}
@@ -2678,6 +2951,8 @@ export default function MapScreen() {
         completing={completing}
         onComplete={completeTrail}
         onNavigate={startNavigation}
+        onGroupRide={handleGroupRideAction}
+        activeRideInfo={activeRideInfo}
       />
 
       {/* ADD TRAIL SUBMISSION MODAL */}
@@ -3781,5 +4056,157 @@ const styles = StyleSheet.create({
   sosDetailStatValue: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  rideHud: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 90,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  rideHudDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  rideHudTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  rideHudSub: {
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 1,
+  },
+  rideHudBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  rideHudBtnText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  rideMemberMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
+  },
+  rideMemberInitial: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  rideMemberLabel: {
+    alignSelf: "center",
+    marginTop: 3,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    maxWidth: 90,
+  },
+  rideMemberLabelText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  rideChatHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#1E88E5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rideChatTitle: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 1,
+  },
+  rideChatMessages: {
+    borderRadius: 8,
+    borderWidth: 1,
+    maxHeight: 320,
+    marginBottom: 10,
+  },
+  rideChatBubbleRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  rideChatAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  rideChatAvatarText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  rideChatSender: {
+    fontSize: 10,
+    fontWeight: "700",
+    marginBottom: 3,
+  },
+  rideChatBubble: {
+    padding: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  rideChatBubbleText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rideChatInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 6,
+  },
+  rideChatTextField: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 4,
+  },
+  rideChatSendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

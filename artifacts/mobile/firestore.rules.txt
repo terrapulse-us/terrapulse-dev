@@ -138,5 +138,36 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null && request.auth.uid == uid;
     }
 
+    // ── group_rides/{rideId} ─────────────────────────────────────────────
+    // Any signed-in user may read rides (to check for an active ride on a
+    // trail). Only the creator can mark a ride inactive (end it). Creating
+    // a new ride is open to any signed-in user.
+    match /group_rides/{rideId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      allow delete: if false;
+
+      // members/{uid} — each rider writes/deletes only their own member doc.
+      // All members can read the full member list for the ride.
+      match /members/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // messages/{messageId} — any ride member can post; all members can read.
+      // Deletion not permitted (immutable chat log for the ride duration).
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 500;
+        allow update, delete: if false;
+      }
+    }
+
   } // ← closes match /databases/{database}/documents — sos_beacons must be ABOVE this line
 }

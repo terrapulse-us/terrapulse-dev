@@ -14,7 +14,7 @@ import {
   TextInput,
   Linking,
 } from "react-native";
-import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   collection,
@@ -80,6 +80,8 @@ interface Props {
   completing: boolean;
   onComplete: () => void;
   onNavigate?: () => void;
+  onGroupRide?: (action: "start" | "join") => void;
+  activeRideInfo?: { memberCount: number } | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -238,6 +240,8 @@ export default function TrailDetailScreen({
   completing,
   onComplete,
   onNavigate,
+  onGroupRide,
+  activeRideInfo,
 }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -417,6 +421,25 @@ export default function TrailDetailScreen({
           >
             <MaterialIcons name="navigation" size={16} color={colors.primaryForeground} />
             <Text style={[s.followTrailText, { color: colors.primaryForeground }]}>FOLLOW TRAIL ON MAP</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ── GROUP RIDE ── */}
+        {!!onGroupRide && (
+          <TouchableOpacity
+            style={[s.followTrailBtn, {
+              backgroundColor: activeRideInfo ? "#1E88E5" : "#43A047",
+              borderBottomColor: colors.border,
+            }]}
+            onPress={() => onGroupRide(activeRideInfo ? "join" : "start")}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="account-group" size={18} color="#fff" />
+            <Text style={[s.followTrailText, { color: "#fff" }]}>
+              {activeRideInfo
+                ? `JOIN GROUP RIDE  (${activeRideInfo.memberCount} RIDER${activeRideInfo.memberCount !== 1 ? "S" : ""})`
+                : "START GROUP RIDE"}
+            </Text>
           </TouchableOpacity>
         )}
 
