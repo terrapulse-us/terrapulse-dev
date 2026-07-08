@@ -405,6 +405,7 @@ export default function MapScreen() {
   const [completing, setCompleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [completedTrails, setCompletedTrails] = useState<string[]>([]);
+  const [riddenTrailIds, setRiddenTrailIds] = useState<string[]>([]);
 
   const [followUser, setFollowUser] = useState(false);
 
@@ -519,7 +520,14 @@ export default function MapScreen() {
     setSelectedTrail(null);
     setSelectedGuide(null);
     setFollowUser(true);
-  }, []);
+    // Record that the user navigated this trail — gates "Mark as Complete"
+    if (user) {
+      setRiddenTrailIds((prev) =>
+        prev.includes(trail.id) ? prev : [...prev, trail.id]
+      );
+      setDoc(doc(db, "users", user.uid), { riddenTrailIds: arrayUnion(trail.id) }, { merge: true }).catch(() => {});
+    }
+  }, [user]);
 
   // Wrapper used by the existing TrailDetailScreen onNavigate prop
   const startNavigation = useCallback(() => {
@@ -634,8 +642,10 @@ export default function MapScreen() {
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
-      if (snap.exists())
+      if (snap.exists()) {
         setCompletedTrails(snap.data().completedTrails ?? []);
+        setRiddenTrailIds(snap.data().riddenTrailIds ?? []);
+      }
     });
   }, [user]);
 
@@ -2171,6 +2181,7 @@ export default function MapScreen() {
         downloading={downloading}
         onDownload={downloadTrailArea}
         completedTrails={completedTrails}
+        riddenTrailIds={riddenTrailIds}
         completing={completing}
         onComplete={completeTrail}
         onNavigate={startNavigation}

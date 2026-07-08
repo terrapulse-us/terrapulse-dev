@@ -76,6 +76,7 @@ interface Props {
   downloading: boolean;
   onDownload: () => void;
   completedTrails: string[];
+  riddenTrailIds: string[];
   completing: boolean;
   onComplete: () => void;
   onNavigate?: () => void;
@@ -233,6 +234,7 @@ export default function TrailDetailScreen({
   downloading,
   onDownload,
   completedTrails,
+  riddenTrailIds,
   completing,
   onComplete,
   onNavigate,
@@ -531,31 +533,48 @@ export default function TrailDetailScreen({
               </View>
 
               {/* Mark as Complete */}
-              <TouchableOpacity
-                style={[
-                  s.completeBtn,
-                  {
-                    backgroundColor: done ? colors.card : colors.success,
-                    borderColor: done ? colors.success : "transparent",
-                    borderWidth: done ? 1 : 0,
-                  },
-                  completing && { opacity: 0.6 },
-                ]}
-                onPress={onComplete}
-                disabled={completing}
-                activeOpacity={0.85}
-              >
-                {completing ? (
-                  <ActivityIndicator color={done ? colors.success : "#000"} />
+              {(() => {
+                const hasRoute = (trail.routeCoordinates?.length ?? 0) > 0;
+                const hasRidden = riddenTrailIds.includes(trail.id);
+                const locked = hasRoute && !hasRidden && !done;
+                return locked ? (
+                  <View style={[s.completeBtn, s.completeBtnLocked, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Feather name="lock" size={15} color={colors.mutedForeground} />
+                    <View>
+                      <Text style={[s.completeBtnText, { color: colors.mutedForeground }]}>MARK AS COMPLETE</Text>
+                      <Text style={[s.completeBtnHint, { color: colors.mutedForeground }]}>
+                        Follow this trail on the map first
+                      </Text>
+                    </View>
+                  </View>
                 ) : (
-                  <>
-                    <Feather name={done ? "check-circle" : "flag"} size={16} color={done ? colors.success : "#000"} />
-                    <Text style={[s.completeBtnText, { color: done ? colors.success : "#000" }]}>
-                      {done ? "TRAIL COMPLETED ✓" : "MARK AS COMPLETE"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      s.completeBtn,
+                      {
+                        backgroundColor: done ? colors.card : colors.success,
+                        borderColor: done ? colors.success : "transparent",
+                        borderWidth: done ? 1 : 0,
+                      },
+                      completing && { opacity: 0.6 },
+                    ]}
+                    onPress={onComplete}
+                    disabled={completing}
+                    activeOpacity={0.85}
+                  >
+                    {completing ? (
+                      <ActivityIndicator color={done ? colors.success : "#000"} />
+                    ) : (
+                      <>
+                        <Feather name={done ? "check-circle" : "flag"} size={16} color={done ? colors.success : "#000"} />
+                        <Text style={[s.completeBtnText, { color: done ? colors.success : "#000" }]}>
+                          {done ? "TRAIL COMPLETED ✓" : "MARK AS COMPLETE"}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })()}
             </>
           ) : (
             <>
@@ -1015,6 +1034,8 @@ const s = StyleSheet.create({
   emptyBox: { alignItems: "center", paddingVertical: 28, gap: 8 },
   emptyText: { fontSize: 13, fontWeight: "600" },
   emptyHint: { fontSize: 11 },
+  completeBtnLocked: { borderWidth: 1, opacity: 0.75 },
+  completeBtnHint: { fontSize: 10, fontWeight: "600", marginTop: 2 },
   completeBtn: {
     flexDirection: "row",
     alignItems: "center",
