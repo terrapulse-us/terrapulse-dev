@@ -2688,7 +2688,7 @@ export default function MapScreen() {
           >
             <TouchableOpacity
               activeOpacity={1}
-              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#795548", borderTopWidth: 3 }]}
+              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#795548", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
               onPress={() => {}}
             >
               <View style={styles.modalHandle} />
