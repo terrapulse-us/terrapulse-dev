@@ -2344,35 +2344,55 @@ export default function MapScreen() {
 
       {/* BOTTOM BUTTONS */}
       <View style={[styles.bottomBtns, { bottom: tabBarHeight + 16 }]}>
-        <TouchableOpacity
-          style={[
-            styles.recordBtn,
-            {
-              backgroundColor: isRecording
-                ? colors.destructive
-                : colors.card,
-              borderColor: isRecording
-                ? colors.destructive
-                : colors.border,
-            },
-          ]}
-          onPress={isRecording ? stopRecording : startRecording}
-          activeOpacity={0.85}
-        >
-          <Feather
-            name={isRecording ? "square" : "circle"}
-            size={14}
-            color={isRecording ? "#fff" : colors.accent}
-          />
-          <Text
+        {activeRide ? (
+          <View style={[styles.recordBtn, { backgroundColor: colors.card, borderColor: "#1E88E5", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
+            <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
+                GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
+              </Text>
+              <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {activeRide.trailName}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
+              onPress={() => setShowRideChat(true)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="chat" size={15} color="#fff" />
+              {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
+              onPress={handleLeaveRide}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="exit-to-app" size={15} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
             style={[
-              styles.recordBtnText,
-              { color: isRecording ? "#fff" : colors.accent },
+              styles.recordBtn,
+              {
+                backgroundColor: isRecording ? colors.destructive : colors.card,
+                borderColor: isRecording ? colors.destructive : colors.border,
+              },
             ]}
+            onPress={isRecording ? stopRecording : startRecording}
+            activeOpacity={0.85}
           >
-            {isRecording ? "STOP" : "RECORD"}
-          </Text>
-        </TouchableOpacity>
+            <Feather
+              name={isRecording ? "square" : "circle"}
+              size={14}
+              color={isRecording ? "#fff" : colors.accent}
+            />
+            <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : colors.accent }]}>
+              {isRecording ? "STOP" : "RECORD"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* SOS BEACON button */}
         <TouchableOpacity
@@ -2996,36 +3016,6 @@ export default function MapScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
             <Feather name="x" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* ── GROUP RIDE HUD ──────────────────────────────────────────────── */}
-      {activeRide && (
-        <View style={[styles.rideHud, { backgroundColor: colors.card, borderColor: colors.border, bottom: tabBarHeight + 80, right: 68 }]}>
-          <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
-              GROUP RIDE  ·  {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
-            </Text>
-            <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
-              {activeRide.trailName}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
-            onPress={() => setShowRideChat(true)}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="chat" size={15} color="#fff" />
-            {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
-            onPress={handleLeaveRide}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="exit-to-app" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
