@@ -123,7 +123,13 @@ export async function fetchBlmOhvAreas(
         },
       })),
   };
-  await setCached(key, json);
+  // Only cache non-empty results — an empty response usually means the bounding
+  // box happened to land on private/NPS/state land (e.g. the CA-center fallback
+  // covers the Central Valley which has no BLM OHV areas). Caching zeros would
+  // poison the 24-hour cache and hide real results once the user moves or GPS arrives.
+  if (json.features.length > 0) {
+    await setCached(key, json);
+  }
   return json;
 }
 

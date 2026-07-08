@@ -663,21 +663,25 @@ export default function MapScreen() {
   }, [showOsmOverlay, osmFetchCenter]);
 
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
-  // Centers on the selected trail (so its area boundary shows even when browsing
-  // remotely, not just when physically on-site), falling back to GPS, then a
-  // statewide default.
+  // Priority: GPS (user's physical location) → selected trail → CA-center fallback.
+  // GPS is preferred because BLM OHV coverage is highly regional; a trail browsed
+  // from 500 miles away should not anchor the fetch to a non-BLM area.
+  // Re-runs when GPS first arrives if the previous fetch returned 0 results
+  // (empty results are not cached, so a retry with real GPS will go to the network).
   useEffect(() => {
     if (!showBlmOverlay) { setBlmOhvData(null); return; }
+    // Skip the retry tick when GPS updates but we already have results
+    if (userLocation && blmOhvData && blmOhvData.features.length > 0) return;
     let cancelled = false;
     setBlmLoading(true);
-    const center = selectedTrail?.coords ?? userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
+    const center = userLocation ?? selectedTrail?.coords ?? { latitude: 36.7783, longitude: -119.4179 };
     fetchBlmOhvNear(center.latitude, center.longitude, 25)
       .then(data => { if (!cancelled) setBlmOhvData(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setBlmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showBlmOverlay, selectedTrail]);
+  }, [showBlmOverlay, selectedTrail, userLocation]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
