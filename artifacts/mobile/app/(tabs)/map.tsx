@@ -431,6 +431,7 @@ export default function MapScreen() {
   const [downloading, setDownloading] = useState(false);
   const [completedTrails, setCompletedTrails] = useState<string[]>([]);
   const [riddenTrailIds, setRiddenTrailIds] = useState<string[]>([]);
+  const [followedTrailIds, setFollowedTrailIds] = useState<string[]>([]);
 
   const [followUser, setFollowUser] = useState(false);
 
@@ -866,6 +867,7 @@ export default function MapScreen() {
       if (snap.exists()) {
         setCompletedTrails(snap.data().completedTrails ?? []);
         setRiddenTrailIds(snap.data().riddenTrailIds ?? []);
+        setFollowedTrailIds(snap.data().followedTrailIds ?? []);
       }
     });
   }, [user]);
@@ -1285,6 +1287,24 @@ export default function MapScreen() {
       setCompleting(false);
     }
   }, [user, selectedTrail]);
+
+  const toggleFollowTrail = useCallback(async () => {
+    if (!user || !selectedTrail) return;
+    const isFollowed = followedTrailIds.includes(selectedTrail.id);
+    const next = isFollowed
+      ? followedTrailIds.filter((id) => id !== selectedTrail.id)
+      : [...followedTrailIds, selectedTrail.id];
+    setFollowedTrailIds(next);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { followedTrailIds: next },
+        { merge: true }
+      );
+    } catch {
+      setFollowedTrailIds(followedTrailIds);
+    }
+  }, [user, selectedTrail, followedTrailIds]);
 
   const downloadTrailArea = useCallback(async () => {
     if (!selectedTrail) return;
@@ -2606,7 +2626,7 @@ export default function MapScreen() {
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#1E88E5", borderTopWidth: 3, maxHeight: "75%" }]}
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#1E88E5", borderTopWidth: 3, maxHeight: "75%", paddingBottom: tabBarHeight + 16 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHandle} />
@@ -2958,6 +2978,8 @@ export default function MapScreen() {
         onNavigate={startNavigation}
         onGroupRide={handleGroupRideAction}
         activeRideInfo={activeRideInfo}
+        isFollowed={!!selectedTrail && followedTrailIds.includes(selectedTrail.id)}
+        onFollow={toggleFollowTrail}
       />
 
       {/* ADD TRAIL SUBMISSION MODAL */}

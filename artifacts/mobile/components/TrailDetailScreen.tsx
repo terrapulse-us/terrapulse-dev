@@ -82,6 +82,8 @@ interface Props {
   onNavigate?: () => void;
   onGroupRide?: (action: "start" | "join") => void;
   activeRideInfo?: { memberCount: number } | null;
+  isFollowed?: boolean;
+  onFollow?: () => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -242,6 +244,8 @@ export default function TrailDetailScreen({
   onNavigate,
   onGroupRide,
   activeRideInfo,
+  isFollowed,
+  onFollow,
 }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -395,6 +399,22 @@ export default function TrailDetailScreen({
             <MaterialIcons name="directions" size={16} color="#fff" />
             <Text style={[s.actionBtnText, { color: "#fff" }]}>GET DIRECTIONS</Text>
           </TouchableOpacity>
+          {!!onFollow && (
+            <TouchableOpacity
+              style={[s.actionBtn, {
+                backgroundColor: isFollowed ? "#E53935" : colors.secondary,
+                borderColor: isFollowed ? "#E53935" : colors.border,
+                borderWidth: 1,
+              }]}
+              onPress={onFollow}
+              activeOpacity={0.85}
+            >
+              <MaterialIcons name={isFollowed ? "favorite" : "favorite-border"} size={15} color={isFollowed ? "#fff" : colors.accent} />
+              <Text style={[s.actionBtnText, { color: isFollowed ? "#fff" : colors.accent }]}>
+                {isFollowed ? "FOLLOWING" : "FOLLOW"}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
             onPress={onDownload}
