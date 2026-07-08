@@ -2342,96 +2342,136 @@ export default function MapScreen() {
         }}
       />
 
-      {/* BOTTOM BUTTONS */}
-      <View style={[styles.bottomBtns, { bottom: tabBarHeight + 16 }]}>
-        {activeRide ? (
-          <View style={[styles.recordBtn, { backgroundColor: colors.card, borderColor: "#1E88E5", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
-            <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
+      {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
+      <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
+        {isNavigating && navTrail && (
+          <View style={[styles.navHud, { backgroundColor: colors.card, borderColor: colors.accent }]}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
-                GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
-              </Text>
-              <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                {activeRide.trailName}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <MaterialIcons name="navigation" size={13} color={colors.accent} />
+                <Text style={[styles.navTrailName, { color: colors.foreground }]} numberOfLines={1}>
+                  {navTrail.title.toUpperCase()}
+                </Text>
+              </View>
+              <View style={[styles.navProgressBarBg, { backgroundColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.navProgressFill,
+                    {
+                      width: navDistTotal > 0 ? `${Math.min(100, Math.round((navDistCovered / navDistTotal) * 100))}%` : "0%",
+                      backgroundColor: colors.accent,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.navProgressText, { color: colors.mutedForeground }]}>
+                {navDistCovered.toFixed(1)} of {navDistTotal.toFixed(1)} MI
+                {navDistTotal > 0 ? `  ·  ${Math.round((navDistCovered / navDistTotal) * 100)}%` : ""}
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
-              onPress={() => setShowRideChat(true)}
+              onPress={() => setShowNoteModal(true)}
+              style={[styles.navNoteBtn, { backgroundColor: "#E65100" }]}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="chat" size={15} color="#fff" />
-              {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
+              <MaterialIcons name="add-alert" size={18} color="#fff" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
-              onPress={handleLeaveRide}
-              activeOpacity={0.8}
-            >
-              <MaterialIcons name="exit-to-app" size={15} color="#fff" />
+            <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
+              <Feather name="x" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.recordBtn,
-              {
-                backgroundColor: isRecording ? colors.destructive : colors.card,
-                borderColor: isRecording ? colors.destructive : colors.border,
-              },
-            ]}
-            onPress={isRecording ? stopRecording : startRecording}
-            activeOpacity={0.85}
-          >
-            <Feather
-              name={isRecording ? "square" : "circle"}
-              size={14}
-              color={isRecording ? "#fff" : colors.accent}
-            />
-            <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : colors.accent }]}>
-              {isRecording ? "STOP" : "RECORD"}
-            </Text>
-          </TouchableOpacity>
         )}
 
-        {/* SOS BEACON button */}
-        <TouchableOpacity
-          style={[
-            styles.sosBtn,
-            sosActive
-              ? { backgroundColor: "#E53935", borderColor: "#E53935" }
-              : { backgroundColor: colors.card, borderColor: "#E53935" },
-          ]}
-          onPress={() => {
-            if (sosActive) {
-              Alert.alert(
-                "Deactivate Beacon?",
-                "Your SOS beacon will be turned off and removed from the map.",
-                [
-                  { text: "Keep Active", style: "cancel" },
-                  {
-                    text: "Deactivate",
-                    style: "destructive",
-                    onPress: deactivateSos,
-                  },
-                ]
-              );
-            } else {
-              setSosNoteInput("");
-              setShowSosModal(true);
-            }
-          }}
-          activeOpacity={0.85}
-        >
-          <MaterialIcons
-            name="sos"
-            size={18}
-            color={sosActive ? "#fff" : "#E53935"}
-          />
-          {sosActive && (
-            <Text style={styles.sosBtnActiveText}>LIVE</Text>
+        <View style={styles.bottomBtns}>
+          {activeRide ? (
+            <View style={[styles.recordBtn, { backgroundColor: colors.card, borderColor: "#1E88E5", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
+              <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
+                  GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
+                </Text>
+                <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                  {activeRide.trailName}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
+                onPress={() => setShowRideChat(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="chat" size={15} color="#fff" />
+                {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
+                onPress={handleLeaveRide}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="exit-to-app" size={15} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.recordBtn,
+                {
+                  backgroundColor: isRecording ? colors.destructive : colors.card,
+                  borderColor: isRecording ? colors.destructive : colors.border,
+                },
+              ]}
+              onPress={isRecording ? stopRecording : startRecording}
+              activeOpacity={0.85}
+            >
+              <Feather
+                name={isRecording ? "square" : "circle"}
+                size={14}
+                color={isRecording ? "#fff" : colors.accent}
+              />
+              <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : colors.accent }]}>
+                {isRecording ? "STOP" : "RECORD"}
+              </Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+
+          {/* SOS BEACON button */}
+          <TouchableOpacity
+            style={[
+              styles.sosBtn,
+              sosActive
+                ? { backgroundColor: "#E53935", borderColor: "#E53935" }
+                : { backgroundColor: colors.card, borderColor: "#E53935" },
+            ]}
+            onPress={() => {
+              if (sosActive) {
+                Alert.alert(
+                  "Deactivate Beacon?",
+                  "Your SOS beacon will be turned off and removed from the map.",
+                  [
+                    { text: "Keep Active", style: "cancel" },
+                    {
+                      text: "Deactivate",
+                      style: "destructive",
+                      onPress: deactivateSos,
+                    },
+                  ]
+                );
+              } else {
+                setSosNoteInput("");
+                setShowSosModal(true);
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons
+              name="sos"
+              size={18}
+              color={sosActive ? "#fff" : "#E53935"}
+            />
+            {sosActive && (
+              <Text style={styles.sosBtnActiveText}>LIVE</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── SOS ACTIVATION MODAL ────────────────────────────────────────── */}
@@ -2981,45 +3021,6 @@ export default function MapScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* NAV HUD */}
-      {isNavigating && navTrail && (
-        <View style={[styles.navHud, { bottom: tabBarHeight + 76, backgroundColor: colors.card, borderColor: colors.accent }]}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-              <MaterialIcons name="navigation" size={13} color={colors.accent} />
-              <Text style={[styles.navTrailName, { color: colors.foreground }]} numberOfLines={1}>
-                {navTrail.title.toUpperCase()}
-              </Text>
-            </View>
-            <View style={[styles.navProgressBarBg, { backgroundColor: colors.border }]}>
-              <View
-                style={[
-                  styles.navProgressFill,
-                  {
-                    width: navDistTotal > 0 ? `${Math.min(100, Math.round((navDistCovered / navDistTotal) * 100))}%` : "0%",
-                    backgroundColor: colors.accent,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={[styles.navProgressText, { color: colors.mutedForeground }]}>
-              {navDistCovered.toFixed(1)} of {navDistTotal.toFixed(1)} MI
-              {navDistTotal > 0 ? `  ·  ${Math.round((navDistCovered / navDistTotal) * 100)}%` : ""}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setShowNoteModal(true)}
-            style={[styles.navNoteBtn, { backgroundColor: "#E65100" }]}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="add-alert" size={18} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={stopNavigation} style={[styles.navStopBtn, { backgroundColor: colors.destructive }]} activeOpacity={0.8}>
-            <Feather name="x" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
-
       <TrailDetailScreen
         trail={selectedTrail}
         visible={!!selectedTrail}
@@ -3434,9 +3435,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   navHud: {
-    position: "absolute",
-    left: 12,
-    right: 12,
     borderRadius: 10,
     borderWidth: 1.5,
     flexDirection: "row",
@@ -3444,6 +3442,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 12,
+    marginBottom: 10,
+    marginRight: 56,
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -3630,10 +3630,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  bottomBtns: {
+  bottomStack: {
     position: "absolute",
     left: 16,
     right: 16,
+  },
+  bottomBtns: {
     flexDirection: "row",
     gap: 10,
   },
