@@ -60,27 +60,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        // Ensure a Firestore user document exists for every authenticated user.
-        // New users (Google sign-in, email/password) never get one created
-        // automatically — without this, onSnapshot listeners in profile.tsx
-        // listen on a non-existent doc and badge grants never fire.
-        const userRef = doc(db, "users", u.uid);
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) {
-          await setDoc(userRef, {
-            displayName: u.displayName ?? "",
-            photoURL: u.photoURL ?? "",
-            email: u.email ?? "",
-            createdAt: Date.now(),
-            achievements: [],
-            achievementDates: {},
-          });
-        }
-      }
+    const unsub = onAuthStateChanged(auth, (u) => {
+      // Unblock the app immediately — never wait on Firestore before showing UI.
+      // This is the critical offline fix: a returning user with a cached session
+      // can open the app with no signal and land on the map instantly.
       setUser(u);
       setLoading(false);
+
+      // Ensure a Firestore user document exists for every authenticated user.
+      // Runs in the background so it never blocks auth state resolution.
+      // New users (Google sign-in, email/password) never get one created
+      // automatically — without this, onSnapshot listeners in profile.tsx
+      // listen on a non-existent doc and badge grants never fire.
+      if (u) {
+        const userRef = doc(db, "users", u.uid);
+        getDoc(userRef)
+          .then((snap) => {
+            if (!snap.exists()) {
+              return setDoc(userRef, {
+                displayName: u.displayName ?? "",
+                photoURL: u.photoURL ?? "",
+                email: u.email ?? "",
+                createdAt: Date.now(),
+                achievements: [],
+                achievementDates: {},
+              });
+            }
+          })
+          .catch(() => {
+            // Offline or network error — silently ignore.
+            // The doc will be created on next successful connection.
+          });
+      }
     });
     return unsub;
   }, []);
