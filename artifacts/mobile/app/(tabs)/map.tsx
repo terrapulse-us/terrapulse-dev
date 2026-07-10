@@ -3005,7 +3005,7 @@ export default function MapScreen() {
           activeOpacity={1}
           onPress={() => setShowFilterMenu(false)}
         >
-          <View style={[styles.layerSheet, styles.layerSheetLight]}>
+          <View style={[styles.layerSheet, styles.layerSheetLight, { paddingBottom: insets.bottom + 36 }]}>
             <View style={styles.modalHandleLight} />
             <Text style={styles.layerTitleLight}>FILTERS</Text>
 
