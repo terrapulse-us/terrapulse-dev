@@ -3748,6 +3748,7 @@ const styles = StyleSheet.create({
   },
   bottomBtns: {
     flexDirection: "row",
+    alignItems: "flex-end",
     gap: 10,
   },
   recordBtn: {
