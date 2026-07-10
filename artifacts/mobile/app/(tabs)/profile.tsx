@@ -1010,16 +1010,18 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
+    paddingHorizontal: 6,
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
+    gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
   },
-  tabText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  tabText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
   uploadBtn: {
     flexDirection: "row",
     alignItems: "center",

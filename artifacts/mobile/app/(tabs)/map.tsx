@@ -1272,10 +1272,33 @@ export default function MapScreen() {
         segments: [],
         createdAt: serverTimestamp(),
       });
-      const flatPoints = encodePointsFlat(downsamplePoints(pts));
+      const downsampled = downsamplePoints(pts);
+      const flatPoints = encodePointsFlat(downsampled);
       await setDoc(doc(db, "users", user.uid, "rides", rideDocRef.id, "track", "data"), {
         points: flatPoints,
       });
+
+      // Trails without a mapped route (no "Follow this trail") can't be gated
+      // via navigateTrail, so a recorded ride passing near the trail's point
+      // counts as having "ridden" it — this unlocks "Mark as Complete" for them.
+      const nearbyAreaTrailIds = ALL_TRAILS.filter(
+        (t) => !(TRAIL_ROUTES[t.id]?.length) && !riddenTrailIds.includes(t.id)
+      )
+        .filter((t) =>
+          downsampled.some(
+            (p) => latLngDistMiles(p.latitude, p.longitude, t.coords.latitude, t.coords.longitude) <= 1.5
+          )
+        )
+        .map((t) => t.id);
+      if (nearbyAreaTrailIds.length > 0) {
+        setRiddenTrailIds((prev) => Array.from(new Set([...prev, ...nearbyAreaTrailIds])));
+        setDoc(
+          doc(db, "users", user.uid),
+          { riddenTrailIds: arrayUnion(...nearbyAreaTrailIds) },
+          { merge: true }
+        ).catch(() => {});
+      }
+
       Alert.alert(
         "Ride Saved!",
         `${distanceMi} mi · ${formatElapsed(durationSecs)} · Top: ${topSpeedMph} mph`,
@@ -1290,7 +1313,7 @@ export default function MapScreen() {
     } catch {
       Alert.alert("Error", "Could not save ride. Try again.");
     }
-  }, [user, rideStartTime]);
+  }, [user, rideStartTime, riddenTrailIds]);
 
   const uploadPhoto = useCallback(async () => {
     if (!selectedTrail || !user) return;

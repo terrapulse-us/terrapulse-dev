@@ -579,14 +579,16 @@ export default function TrailDetailScreen({
               {(() => {
                 const hasRoute = (trail.routeCoordinates?.length ?? 0) > 0;
                 const hasRidden = riddenTrailIds.includes(trail.id);
-                const locked = hasRoute && !hasRidden && !done;
+                const locked = !hasRidden && !done;
                 return locked ? (
                   <View style={[s.completeBtn, s.completeBtnLocked, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <Feather name="lock" size={15} color={colors.mutedForeground} />
                     <View>
                       <Text style={[s.completeBtnText, { color: colors.mutedForeground }]}>MARK AS COMPLETE</Text>
                       <Text style={[s.completeBtnHint, { color: colors.mutedForeground }]}>
-                        Follow this trail on the map first
+                        {hasRoute
+                          ? "Follow this trail on the map first"
+                          : "Record a ride near this trail first"}
                       </Text>
                     </View>
                   </View>
@@ -606,11 +608,11 @@ export default function TrailDetailScreen({
                     activeOpacity={0.85}
                   >
                     {completing ? (
-                      <ActivityIndicator color={done ? colors.success : "#000"} />
+                      <ActivityIndicator color={done ? colors.success : "#fff"} />
                     ) : (
                       <>
-                        <Feather name={done ? "check-circle" : "flag"} size={16} color={done ? colors.success : "#000"} />
-                        <Text style={[s.completeBtnText, { color: done ? colors.success : "#000" }]}>
+                        <Feather name={done ? "check-circle" : "flag"} size={16} color={done ? colors.success : "#fff"} />
+                        <Text style={[s.completeBtnText, { color: done ? colors.success : "#fff" }]}>
                           {done ? "TRAIL COMPLETED ✓" : "MARK AS COMPLETE"}
                         </Text>
                       </>

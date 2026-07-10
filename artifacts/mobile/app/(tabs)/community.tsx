@@ -123,7 +123,7 @@ export default function CommunityScreen() {
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               {isMe && (
-                <View style={[styles.youBadge, { backgroundColor: colors.accent }]}>
+                <View style={[styles.youBadge, { backgroundColor: "#00E676" }]}>
                   <Text style={styles.youBadgeText}>YOU</Text>
                 </View>
               )}
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   trailPill: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   trailPillText: { fontSize: 9, fontWeight: "700" },
   youBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  youBadgeText: { fontSize: 9, fontWeight: "900", color: "#000", letterSpacing: 1 },
+  youBadgeText: { fontSize: 9, fontWeight: "900", color: "#fff", letterSpacing: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 40 },
   loadingText: { fontSize: 11, fontWeight: "700", letterSpacing: 2, marginTop: 8 },
   emptyTitle: { fontWeight: "900", fontSize: 16, textAlign: "center" },
