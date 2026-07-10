@@ -374,7 +374,7 @@ export default function MapScreen() {
   const cameraRef = useRef<CameraRef>(null);
 
 
-  const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
+  const [mapLayer, setMapLayer] = useState<MapLayer>("topo");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
