@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
-const TUTORIAL_KEY = "tp_tutorial_v3_seen";
+const TUTORIAL_KEY = "tp_tutorial_v4_seen";
 const { width: SCREEN_W } = Dimensions.get("window");
 
 interface Slide {
@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
     icon: "terrain",
     tag: "WELCOME",
     title: "TerraPulse",
-    body: "Your off-road command center. Explore trails across the entire US, record rides, stream live to Twitch, and connect with the off-road community.",
+    body: "Your off-road command center. Explore trails across the entire US, record rides, ride in a group, chat with your AI trip assistant, and connect with the off-road community.",
     accent: "#FF5500",
   },
   {
@@ -39,7 +39,7 @@ const SLIDES: Slide[] = [
     icon: "map",
     tag: "TRAILS TAB",
     title: "Find Your Next Trail",
-    body: "Browse 400+ verified off-road trails across every US state. Use the state filter at the top to narrow it down. Tap any circle marker to open the trail detail sheet.",
+    body: "Browse 400+ verified off-road trails across every US state. Tap the menu icon (top right) to filter by vehicle type or jump to a specific state. Tap any circle marker to open the trail detail sheet.",
     accent: "#FF5500",
   },
   {
@@ -124,6 +124,22 @@ const SLIDES: Slide[] = [
   },
   {
     iconLib: "material",
+    icon: "people",
+    tag: "GROUP RIDE",
+    title: "Ride Together",
+    body: "Start or join a Group Ride right from a trail's guide sheet. See every rider's live position on the map, keep the group together, and chat with them without leaving the app.",
+    accent: "#1E88E5",
+  },
+  {
+    iconLib: "material",
+    icon: "sos",
+    tag: "SOS BEACON",
+    title: "Help, When You Need It",
+    body: "Broke down or hurt out on the trail? Tap the SOS button to broadcast your live location to nearby riders. It stays on the map until you deactivate it — because cell signal out there isn't guaranteed.",
+    accent: "#E53935",
+  },
+  {
+    iconLib: "material",
     icon: "add-location-alt",
     tag: "ADD A TRAIL",
     title: "Discover & Share Trails",
@@ -132,19 +148,19 @@ const SLIDES: Slide[] = [
   },
   {
     iconLib: "feather",
-    icon: "radio",
-    tag: "BROADCAST TAB",
-    title: "Stream Live to Twitch",
-    body: "Connect your Twitch account and go live directly from the trail. Flip between front and rear cameras mid-stream. Share the adventure in real time with your audience.",
-    accent: "#9146FF",
-  },
-  {
-    iconLib: "feather",
     icon: "award",
     tag: "RANKS TAB",
     title: "Climb the Leaderboard",
     body: "Complete trails to earn your rank. The more trails you conquer, the higher you climb nationally. Gold, silver, and bronze podium spots are awarded to the top three riders.",
     accent: "#FFD700",
+  },
+  {
+    iconLib: "material",
+    icon: "smart-toy",
+    tag: "ASK TAB",
+    title: "Your AI Trip Assistant",
+    body: "Chat with your AI trip assistant for trail briefings with live weather, campground lookups, a vehicle-fit check against your saved rig, cell-coverage warnings before you lose signal, and full multi-day itineraries.",
+    accent: "#7C4DFF",
   },
   {
     iconLib: "material",
@@ -167,7 +183,7 @@ const SLIDES: Slide[] = [
     icon: "check-circle",
     tag: "ALL SET",
     title: "Ready to Ride!",
-    body: "You know the terrain. Explore trails, record rides, stream live, and conquer the leaderboard. The TerraPulse community is out there — go find it.",
+    body: "You know the terrain. Explore trails, record rides, ride with a group, and conquer the leaderboard. The TerraPulse community is out there — go find it.",
     accent: "#00E676",
   },
 ];
