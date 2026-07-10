@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  Linking,
   type NativeSyntheticEvent,
 } from "react-native";
 import {
@@ -204,6 +205,8 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "satellite", label: "Satellite", icon: "satellite-alt" },
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
 ];
+
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1aZBnGXp2b30fk4Jt3FyIqmsrIsnKC_DBr3CsD6QIWNs/edit";
 
 interface KeypointConfig { id: string; label: string; icon: string; color: string; }
 const KEYPOINT_CONFIGS: KeypointConfig[] = [
@@ -3058,6 +3061,19 @@ export default function MapScreen() {
             >
               <Text style={styles.filterDoneBtnText}>DONE</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.feedbackBtn}
+              onPress={() => {
+                Linking.openURL(FEEDBACK_FORM_URL).catch(() =>
+                  Alert.alert("Cannot open link", "Check your connection and try again.")
+                );
+              }}
+              activeOpacity={0.75}
+            >
+              <MaterialIcons name="feedback" size={16} color="#5A5A4A" />
+              <Text style={styles.feedbackBtnText}>SEND FEEDBACK</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -3684,6 +3700,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   filterDoneBtnText: { color: "#fff", fontWeight: "900", fontSize: 13, letterSpacing: 2 },
+  feedbackBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+  },
+  feedbackBtnText: { fontSize: 11, fontWeight: "800", letterSpacing: 1, color: "#5A5A4A" },
   stateListRow: {
     flexDirection: "row",
     alignItems: "center",
