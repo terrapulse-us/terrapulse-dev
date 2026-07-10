@@ -376,6 +376,8 @@ export default function MapScreen() {
 
   const [mapLayer, setMapLayer] = useState<MapLayer>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showStatePicker, setShowStatePicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(true);
 
   const [terrain3dStyleObj, setTerrain3dStyleObj] =
@@ -413,6 +415,8 @@ export default function MapScreen() {
       return next;
     });
   }, []);
+
+  const hasActiveFilters = selectedState !== "All States" || vehicleTypeFilter.size > 0;
 
   const filteredTrails = useMemo(() => {
     let trails = getTrailsByState(selectedState);
@@ -1705,8 +1709,6 @@ export default function MapScreen() {
   }), []);
 
   const TOP_BAR_HEIGHT = insets.top + 64;
-  const STATE_BAR_HEIGHT = 48;
-  const VEHICLE_BAR_HEIGHT = 44;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -2081,79 +2083,26 @@ export default function MapScreen() {
                 : STATE_NAMES[selectedState] ?? selectedState}
             </Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Feather name="log-out" size={18} color={colors.mutedForeground} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => setShowFilterMenu(true)}
+              style={styles.filterMenuBtn}
+              activeOpacity={0.75}
+            >
+              <MaterialIcons
+                name="menu"
+                size={20}
+                color={hasActiveFilters ? colors.primary : colors.mutedForeground}
+              />
+              {hasActiveFilters && (
+                <View style={[styles.filterMenuDot, { backgroundColor: colors.primary }]} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+              <Feather name="log-out" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-
-      {/* STATE FILTER BAR */}
-      <View style={[styles.stateBar, { top: TOP_BAR_HEIGHT }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.stateBarContent}
-        >
-          {US_STATES.map((state) => {
-            const active = selectedState === state;
-            return (
-              <TouchableOpacity
-                key={state}
-                style={[
-                  styles.statePill,
-                  {
-                    backgroundColor: active ? colors.primary : colors.card,
-                    borderColor: active ? colors.primary : colors.border,
-                  },
-                ]}
-                onPress={() => setSelectedState(state)}
-                activeOpacity={0.75}
-              >
-                <Text
-                  style={[
-                    styles.statePillText,
-                    { color: active ? colors.primaryForeground : colors.mutedForeground },
-                  ]}
-                >
-                  {state === "All States" ? "ALL" : state}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* VEHICLE TYPE FILTER BAR */}
-      <View style={[styles.vehicleBar, { top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.vehicleBarContent}
-        >
-          {(Object.keys(VEHICLE_TYPE_CONFIG) as VehicleType[]).map((vt) => {
-            const cfg = VEHICLE_TYPE_CONFIG[vt];
-            const active = vehicleTypeFilter.has(vt);
-            return (
-              <TouchableOpacity
-                key={vt}
-                style={[
-                  styles.vehiclePill,
-                  {
-                    backgroundColor: active ? cfg.color : colors.card,
-                    borderColor: active ? cfg.color : colors.border,
-                  },
-                ]}
-                onPress={() => toggleVehicleFilter(vt)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.vehiclePillEmoji}>{cfg.emoji}</Text>
-                <Text style={[styles.vehiclePillText, { color: active ? "#fff" : colors.mutedForeground }]}>
-                  {cfg.shortLabel}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
       </View>
 
       {/* RECORDING HUD */}
@@ -2162,7 +2111,7 @@ export default function MapScreen() {
           style={[
             styles.recHud,
             {
-              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + VEHICLE_BAR_HEIGHT + 8,
+              top: TOP_BAR_HEIGHT + 8,
               backgroundColor: "rgba(0,0,0,0.88)",
               borderColor: colors.destructive,
             },
@@ -2235,7 +2184,7 @@ export default function MapScreen() {
           style={[
             styles.recHud,
             {
-              top: TOP_BAR_HEIGHT + STATE_BAR_HEIGHT + VEHICLE_BAR_HEIGHT + 8,
+              top: TOP_BAR_HEIGHT + 8,
               backgroundColor: "rgba(0,0,0,0.88)",
               borderColor: colors.success,
             },
@@ -3044,6 +2993,115 @@ export default function MapScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* FILTER MENU MODAL (vehicle type + state) */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showFilterMenu}
+        onRequestClose={() => setShowFilterMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.layerBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowFilterMenu(false)}
+        >
+          <View style={[styles.layerSheet, styles.layerSheetLight]}>
+            <View style={styles.modalHandleLight} />
+            <Text style={styles.layerTitleLight}>FILTERS</Text>
+
+            <Text style={styles.overlaysSectionTitle}>VEHICLE TYPE</Text>
+            <View style={styles.vehicleFilterGrid}>
+              {(Object.keys(VEHICLE_TYPE_CONFIG) as VehicleType[]).map((vt) => {
+                const cfg = VEHICLE_TYPE_CONFIG[vt];
+                const active = vehicleTypeFilter.has(vt);
+                return (
+                  <TouchableOpacity
+                    key={vt}
+                    style={[
+                      styles.vehiclePill,
+                      {
+                        backgroundColor: active ? cfg.color : "#EDE7DC",
+                        borderColor: active ? cfg.color : "#D0C9BC",
+                      },
+                    ]}
+                    onPress={() => toggleVehicleFilter(vt)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.vehiclePillEmoji}>{cfg.emoji}</Text>
+                    <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                      {cfg.shortLabel}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.overlayDividerLight} />
+            <Text style={styles.overlaysSectionTitle}>STATE</Text>
+            <TouchableOpacity
+              style={styles.stateDropdownBtn}
+              onPress={() => setShowStatePicker(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.stateDropdownText}>
+                {selectedState === "All States"
+                  ? "ALL STATES"
+                  : `${(STATE_NAMES[selectedState] ?? selectedState).toUpperCase()} (${selectedState})`}
+              </Text>
+              <MaterialIcons name="arrow-drop-down" size={22} color="#2A2A1E" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.filterDoneBtn}
+              onPress={() => setShowFilterMenu(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.filterDoneBtnText}>DONE</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* STATE PICKER MODAL */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showStatePicker}
+        onRequestClose={() => setShowStatePicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.layerBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowStatePicker(false)}
+        >
+          <View style={[styles.layerSheet, styles.layerSheetLight, { maxHeight: "75%" }]}>
+            <View style={styles.modalHandleLight} />
+            <Text style={styles.layerTitleLight}>SELECT STATE</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {US_STATES.map((state) => {
+                const active = selectedState === state;
+                return (
+                  <TouchableOpacity
+                    key={state}
+                    style={[styles.stateListRow, active && styles.stateListRowActive]}
+                    onPress={() => {
+                      setSelectedState(state);
+                      setShowStatePicker(false);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.stateListRowText, active && styles.stateListRowTextActive]}>
+                      {state === "All States" ? "ALL STATES" : `${STATE_NAMES[state] ?? state} (${state})`}
+                    </Text>
+                    {active && <MaterialIcons name="check" size={18} color="#fff" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <TrailDetailScreen
         trail={selectedTrail}
         visible={!!selectedTrail}
@@ -3572,26 +3630,24 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   logoutBtn: { padding: 6 },
-  stateBar: { position: "absolute", left: 0, right: 0, height: 48 },
-  stateBarContent: {
-    paddingHorizontal: 12,
+  filterMenuBtn: {
+    padding: 6,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  filterMenuDot: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  vehicleFilterGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
-  statePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-  },
-  statePillText: { fontSize: 11, fontWeight: "900", letterSpacing: 1 },
-  vehicleBar: { position: "absolute", left: 0, right: 0, height: 44 },
-  vehicleBarContent: { paddingHorizontal: 12, alignItems: "center", gap: 6 },
   vehiclePill: {
     flexDirection: "row",
     alignItems: "center",
@@ -3608,6 +3664,38 @@ const styles = StyleSheet.create({
   },
   vehiclePillEmoji: { fontSize: 14 },
   vehiclePillText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+  stateDropdownBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#EDE7DC",
+    borderWidth: 1,
+    borderColor: "#D0C9BC",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  stateDropdownText: { fontSize: 12, fontWeight: "800", letterSpacing: 0.5, color: "#2A2A1E" },
+  filterDoneBtn: {
+    marginTop: 20,
+    backgroundColor: "#1E3A1E",
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  filterDoneBtnText: { color: "#fff", fontWeight: "900", fontSize: 13, letterSpacing: 2 },
+  stateListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  stateListRowActive: { backgroundColor: "#5A9A5A" },
+  stateListRowText: { fontSize: 12, fontWeight: "700", color: "#2A2A1E" },
+  stateListRowTextActive: { color: "#fff", fontWeight: "900" },
   recHud: {
     position: "absolute",
     left: 12,
