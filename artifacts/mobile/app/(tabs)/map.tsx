@@ -206,7 +206,7 @@ const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
 ];
 
-const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1aZBnGXp2b30fk4Jt3FyIqmsrIsnKC_DBr3CsD6QIWNs/edit";
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3xHorBzGi-rCkzizsORf1xt6hwzaYZtEzfzlWqWhmG06zlw/viewform?usp=sharing";
 
 interface KeypointConfig { id: string; label: string; icon: string; color: string; }
 const KEYPOINT_CONFIGS: KeypointConfig[] = [
