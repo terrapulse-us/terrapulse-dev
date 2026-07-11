@@ -463,8 +463,18 @@ export default function MapScreen() {
       case "standard":  return STANDARD_STYLE_URL as never;
       case "satellite":
         if (satelliteBaseStyle) {
+          // Also scale hillshade-exaggeration so changes are visible even at pitch 0
+          const hillshadeExag = Math.min(0.9, terrainExaggeration * 0.22);
+          const layers = (satelliteBaseStyle.layers as unknown[]).map((l) => {
+            const layer = l as { id: string; paint?: Record<string, unknown> };
+            if (layer.id === "terrain-hillshade" && layer.paint) {
+              return { ...layer, paint: { ...layer.paint, "hillshade-exaggeration": hillshadeExag } };
+            }
+            return l;
+          });
           return {
             ...satelliteBaseStyle,
+            layers,
             terrain: { source: "terrain-dem", exaggeration: terrainExaggeration },
           } as never;
         }
@@ -1793,7 +1803,7 @@ export default function MapScreen() {
           ref={cameraRef}
           center={[-119.4179, 36.7783]}
           zoom={7}
-          pitch={mapLayer === "terrain3d" ? 60 : 0}
+          pitch={mapLayer === "terrain3d" ? 60 : mapLayer === "satellite" && satelliteBaseStyle ? 45 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
 
