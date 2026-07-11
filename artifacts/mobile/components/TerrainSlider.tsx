@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, PanResponder, StyleSheet } from "react-native";
+import { View, Text, PanResponder, StyleSheet, type ViewStyle } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const EXG_MIN = 0.5;
@@ -17,9 +17,10 @@ interface Props {
   value: number;
   onChange: (v: number) => void;
   colors: Colors;
+  style?: ViewStyle;
 }
 
-export default function TerrainSlider({ value, onChange, colors }: Props) {
+export default function TerrainSlider({ value, onChange, colors, style }: Props) {
   const [displayValue, setDisplayValue] = useState(value);
   const [trackWidth, setTrackWidth] = useState(0);
 
@@ -74,7 +75,7 @@ export default function TerrainSlider({ value, onChange, colors }: Props) {
       : "EXTREME";
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style]}>
       <View style={styles.headerRow}>
         <MaterialIcons name="landscape" size={13} color="#FF5500" />
         <Text style={[styles.headerLabel, { color: colors.foreground }]}>ELEVATION BOOST</Text>

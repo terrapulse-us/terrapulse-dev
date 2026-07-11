@@ -2403,6 +2403,7 @@ export default function MapScreen() {
             value={terrainExaggeration}
             onChange={setTerrainExaggeration}
             colors={colors}
+            style={{ marginRight: 60 }}
           />
         )}
 
