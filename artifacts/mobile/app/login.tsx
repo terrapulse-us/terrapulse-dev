@@ -17,6 +17,7 @@ import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
+import TosModal from "@/components/TosModal";
 import {
   GoogleSignin,
   statusCodes,
@@ -40,6 +41,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { user, login, register, loginWithGoogleCredential } = useAuth();
 
+  const [tosAccepted, setTosAccepted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -107,6 +109,8 @@ export default function LoginScreen() {
   };
 
   return (
+    <>
+    <TosModal onAccepted={() => setTosAccepted(true)} />
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -209,6 +213,7 @@ export default function LoginScreen() {
       </View>
     </View>
     </KeyboardAvoidingView>
+    </>
   );
 }
 
