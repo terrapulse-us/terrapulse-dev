@@ -340,52 +340,6 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   return style;
 }
 
-/**
- * Fetch MapTiler hybrid (satellite) style JSON and inject the terrain-rgb-v2
- * DEM source + hillshade layer. The terrain exaggeration property is NOT set
- * here — it is added dynamically in mapStyle so changes are cheap (no re-fetch).
- */
-async function buildSatelliteBaseStyle(key: string): Promise<Record<string, unknown>> {
-  const url = `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`MapTiler fetch failed: ${resp.status}`);
-  const style = (await resp.json()) as Record<string, unknown>;
-
-  const sources = (style.sources as Record<string, unknown>) ?? {};
-  sources["terrain-dem"] = {
-    type: "raster-dem",
-    url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${key}`,
-    tileSize: 256,
-    encoding: "mapbox",
-  };
-  style.sources = sources;
-
-  const layers = (style.layers as unknown[]) ?? [];
-  const insertIdx = layers.findIndex(
-    (l) => (l as { type: string }).type === "symbol"
-  );
-  const hillshadeLayer = {
-    id: "terrain-hillshade",
-    type: "hillshade",
-    source: "terrain-dem",
-    paint: {
-      "hillshade-exaggeration": 0.5,
-      "hillshade-shadow-color": "#1A1209",
-      "hillshade-highlight-color": "#FFFFFF",
-      "hillshade-illumination-direction": 315,
-      "hillshade-illumination-anchor": "map",
-    },
-  };
-  if (insertIdx > 0) {
-    layers.splice(insertIdx, 0, hillshadeLayer);
-  } else {
-    layers.push(hillshadeLayer);
-  }
-  style.layers = layers;
-
-  return style;
-}
-
 const USFS_MVUM_TILES = [
   "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
 ];
@@ -432,9 +386,7 @@ export default function MapScreen() {
 
   const [terrain3dStyleObj, setTerrain3dStyleObj] =
     useState<Record<string, unknown> | null>(null);
-  const [satelliteBaseStyle, setSatelliteBaseStyle] =
-    useState<Record<string, unknown> | null>(null);
-  const [terrainExaggeration, setTerrainExaggeration] = useState(1.5);
+  const [terrainExaggeration, setTerrainExaggeration] = useState(2.2);
 
   // Fetch terrain3d style once (cached in state)
   useEffect(() => {
@@ -447,43 +399,22 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   }, [mapLayer, terrain3dStyleObj]);
 
-  // Fetch satellite base style (DEM + hillshade injected, no terrain prop yet)
-  useEffect(() => {
-    if (mapLayer !== "satellite" || satelliteBaseStyle !== null) return;
-    if (!MAPTILER_KEY) return;
-    let cancelled = false;
-    buildSatelliteBaseStyle(MAPTILER_KEY)
-      .then((s) => { if (!cancelled) setSatelliteBaseStyle(s); })
-      .catch(() => { /* falls back to flat hybrid URL */ });
-    return () => { cancelled = true; };
-  }, [mapLayer, satelliteBaseStyle]);
-
   const mapStyle = useMemo<never>(() => {
     switch (mapLayer) {
       case "standard":  return STANDARD_STYLE_URL as never;
-      case "satellite":
-        if (satelliteBaseStyle) {
-          // Also scale hillshade-exaggeration so changes are visible even at pitch 0
-          const hillshadeExag = Math.min(0.9, terrainExaggeration * 0.22);
-          const layers = (satelliteBaseStyle.layers as unknown[]).map((l) => {
-            const layer = l as { id: string; paint?: Record<string, unknown> };
-            if (layer.id === "terrain-hillshade" && layer.paint) {
-              return { ...layer, paint: { ...layer.paint, "hillshade-exaggeration": hillshadeExag } };
-            }
-            return l;
-          });
+      case "satellite": return SATELLITE_STYLE_URL as never;
+      case "terrain3d":
+        if (terrain3dStyleObj) {
           return {
-            ...satelliteBaseStyle,
-            layers,
+            ...terrain3dStyleObj,
             terrain: { source: "terrain-dem", exaggeration: terrainExaggeration },
           } as never;
         }
-        return SATELLITE_STYLE_URL as never;
-      case "terrain3d": return (terrain3dStyleObj ?? TERRAIN3D_STYLE_URL) as never;
+        return TERRAIN3D_STYLE_URL as never;
       case "topo":
       default:          return TOPO_STYLE_URL as never;
     }
-  }, [mapLayer, terrain3dStyleObj, satelliteBaseStyle, terrainExaggeration]);
+  }, [mapLayer, terrain3dStyleObj, terrainExaggeration]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
@@ -1803,7 +1734,7 @@ export default function MapScreen() {
           ref={cameraRef}
           center={[-119.4179, 36.7783]}
           zoom={7}
-          pitch={mapLayer === "terrain3d" ? 60 : mapLayer === "satellite" && satelliteBaseStyle ? 45 : 0}
+          pitch={mapLayer === "terrain3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
 
@@ -2397,8 +2328,8 @@ export default function MapScreen() {
 
       {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
       <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
-        {/* SATELLITE TERRAIN EXAGGERATION SLIDER */}
-        {mapLayer === "satellite" && satelliteBaseStyle && (
+        {/* 3D TERRAIN EXAGGERATION SLIDER */}
+        {mapLayer === "terrain3d" && terrain3dStyleObj && (
           <TerrainSlider
             value={terrainExaggeration}
             onChange={setTerrainExaggeration}
