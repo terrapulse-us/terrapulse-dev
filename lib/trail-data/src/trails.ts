@@ -655,6 +655,67 @@ const _TRAIL_DATA: TrailInput[] = [
   { id: "de-3",  title: "Redden State Forest OHV (Georgetown)", state: "DE", coords: { latitude: 38.7522,  longitude: -75.4214  }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Sussex County" },
   { id: "md-4",  title: "Patuxent State Park OHV (Laurel)",     state: "MD", coords: { latitude: 39.1822,  longitude: -76.8914  }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Anne Arundel County" },
   { id: "md-5",  title: "Savage River State Forest OHV",        state: "MD", coords: { latitude: 39.5822,  longitude: -79.1014  }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "High Clearance",             suspension: "Stock w/ Clearance",      region: "Garrett County" },
+
+  // ─── BLM OHV Designated Areas — national dataset (BLM_Natl_Recs_poly, FET_SUBTYPE='OHV Designated Area') ───
+  // Arizona — La Paz County corridor (Parker Strip / Colorado River area)
+  { id: "az-16", title: "Copper Basin Dunes Open Area",          state: "AZ", coords: { latitude: 34.2583,  longitude: -114.1781 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "La Paz County" },
+  { id: "az-17", title: "Crossroads Open Area",                  state: "AZ", coords: { latitude: 34.2389,  longitude: -114.2180 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "La Paz County" },
+  { id: "az-18", title: "Hot Well Dunes Recreation Area",        state: "AZ", coords: { latitude: 32.5258,  longitude: -109.4259 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Graham County" },
+  { id: "az-19", title: "Shea Road / Osborne Wash Open Area",    state: "AZ", coords: { latitude: 34.1281,  longitude: -114.1635 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "La Paz County" },
+  { id: "az-20", title: "Standard Wash Open Area",               state: "AZ", coords: { latitude: 34.4328,  longitude: -114.1669 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "La Paz County" },
+
+  // California — BLM OHV areas not yet in database
+  { id: "ca-28", title: "Chappie-Shasta OHV Area",              state: "CA", coords: { latitude: 40.7392,  longitude: -122.5133 }, difficulty: "6/10 Challenging",  difficultyRating: 6,  size: "Mid-Size & Larger",          suspension: "2\" Lift Recommended",    region: "Shasta County" },
+  { id: "ca-29", title: "Fort Sage OHV Area",                   state: "CA", coords: { latitude: 40.0705,  longitude: -120.0438 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Lassen County" },
+  { id: "ca-30", title: "Imperial Sand Dunes (Glamis)",         state: "CA", coords: { latitude: 32.8816,  longitude: -115.0043 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / Sand Vehicles",  suspension: "Stock Friendly",          region: "Imperial County" },
+
+  // Colorado — BLM OHV areas
+  { id: "co-18", title: "18 Road OHV Area",                     state: "CO", coords: { latitude: 39.2556,  longitude: -108.7087 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes / Dirt Bikes",     suspension: "Stock OK",                region: "Mesa County" },
+  { id: "co-19", title: "Hubbard Mesa OHV Area",                state: "CO", coords: { latitude: 39.5789,  longitude: -107.7933 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Garfield County" },
+
+  // Montana — BLM OHV areas
+  { id: "mt-12", title: "Radersburg OHV Area",                  state: "MT", coords: { latitude: 46.1885,  longitude: -111.6468 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Broadwater County" },
+
+  // New Mexico — BLM OHV areas
+  { id: "nm-11", title: "Aden Hills OHV Area",                  state: "NM", coords: { latitude: 32.2008,  longitude: -107.0481 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "High Clearance",             suspension: "2\" Lift Recommended",    region: "Doña Ana County" },
+  { id: "nm-12", title: "Alkali Lake OHV Area",                 state: "NM", coords: { latitude: 32.5129,  longitude: -104.2094 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Eddy County" },
+  { id: "nm-13", title: "Hackberry Lake OHV Area",              state: "NM", coords: { latitude: 32.6574,  longitude: -103.9200 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Lea County" },
+  { id: "nm-14", title: "Haystack Mountain OHV Area",           state: "NM", coords: { latitude: 33.6386,  longitude: -104.2530 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Chaves County" },
+  { id: "nm-15", title: "Mescalero Sands North Dune OHV",       state: "NM", coords: { latitude: 33.3982,  longitude: -103.8547 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Chaves County" },
+  { id: "nm-16", title: "Red Sands OHV Area",                   state: "NM", coords: { latitude: 32.5650,  longitude: -106.0778 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Doña Ana County" },
+
+  // Nevada — BLM OHV areas
+  { id: "nv-14", title: "Black Rock Desert OHV Area",           state: "NV", coords: { latitude: 40.8522,  longitude: -119.1524 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "High Clearance",             suspension: "Stock w/ Clearance",      region: "Humboldt County" },
+  { id: "nv-15", title: "Sand Mountain OHV Area",               state: "NV", coords: { latitude: 39.3147,  longitude: -118.3955 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Churchill County" },
+  { id: "nv-16", title: "Shoshone OHV Trail System",            state: "NV", coords: { latitude: 40.1553,  longitude: -117.0219 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "2\" Lift Recommended",    region: "Elko County" },
+
+  // Oregon — BLM OHV areas not yet in database
+  { id: "or-13", title: "Christmas Valley Sand Dunes",          state: "OR", coords: { latitude: 43.3176,  longitude: -120.3598 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Lake County" },
+  { id: "or-14", title: "Cline Buttes OHV Area",                state: "OR", coords: { latitude: 44.3081,  longitude: -121.3302 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Deschutes County" },
+  { id: "or-15", title: "Radar Hill OHV Area",                  state: "OR", coords: { latitude: 43.5575,  longitude: -119.1354 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Harney County" },
+  { id: "or-16", title: "Shotgun OHV Trail System",             state: "OR", coords: { latitude: 44.2516,  longitude: -122.8915 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes / Dirt Bikes",     suspension: "2\" Lift Recommended",    region: "Lane County" },
+  { id: "or-17", title: "Upper Nestucca OHV Trail System",      state: "OR", coords: { latitude: 45.2422,  longitude: -123.5111 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes / Dirt Bikes",     suspension: "2\" Lift Recommended",    region: "Tillamook County" },
+  { id: "or-18", title: "Virtue Flat OHV Area",                 state: "OR", coords: { latitude: 44.8088,  longitude: -117.6315 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Baker County" },
+
+  // Utah — BLM OHV areas not yet in database
+  { id: "ut-17", title: "Auroura OHV Area",                     state: "UT", coords: { latitude: 38.9245,  longitude: -111.9608 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Sevier County" },
+  { id: "ut-18", title: "Buckskin Hills OHV Area",              state: "UT", coords: { latitude: 40.5223,  longitude: -109.4939 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Uintah County" },
+  { id: "ut-19", title: "Coral Pink Sand Dunes OHV",            state: "UT", coords: { latitude: 37.0724,  longitude: -112.6773 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Kane County" },
+  { id: "ut-20", title: "Factory Butte OHV Area",               state: "UT", coords: { latitude: 38.4439,  longitude: -110.9251 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Wayne County" },
+  { id: "ut-21", title: "Glenwood OHV Area",                    state: "UT", coords: { latitude: 38.7822,  longitude: -111.9674 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Sevier County" },
+  { id: "ut-22", title: "Jensen Hills OHV Area",                state: "UT", coords: { latitude: 40.4022,  longitude: -109.3860 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Uintah County" },
+  { id: "ut-23", title: "Knolls ORV Area",                      state: "UT", coords: { latitude: 40.6850,  longitude: -113.2996 }, difficulty: "4/10 Moderate",     difficultyRating: 4,  size: "All Sizes",                  suspension: "Stock OK",                region: "Tooele County" },
+  { id: "ut-24", title: "Red Wash OHV Area",                    state: "UT", coords: { latitude: 40.1046,  longitude: -109.4054 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Uintah County" },
+  { id: "ut-25", title: "Sand Mountain OHV Area",               state: "UT", coords: { latitude: 37.0569,  longitude: -113.3798 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / Sand Vehicles",  suspension: "Stock Friendly",          region: "Washington County" },
+  { id: "ut-26", title: "Swing Arm City OHV Area",              state: "UT", coords: { latitude: 38.3881,  longitude: -110.9247 }, difficulty: "6/10 Challenging",  difficultyRating: 6,  size: "Mid-Size & Larger",          suspension: "2\" Lift Recommended",    region: "Wayne County" },
+  { id: "ut-27", title: "White Wash Sand Dunes",                state: "UT", coords: { latitude: 38.8016,  longitude: -110.0319 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Grand County" },
+
+  // Washington — BLM OHV area (Juniper Dunes, listed as OR in BLM dataset but physically in WA)
+  { id: "wa-13", title: "Juniper Dunes OHV Area",               state: "WA", coords: { latitude: 46.3849,  longitude: -118.8962 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / ATVs",           suspension: "Stock Friendly",          region: "Franklin County" },
+
+  // Wyoming — BLM OHV areas
+  { id: "wy-9",  title: "Basin Gardens ORV Area",               state: "WY", coords: { latitude: 44.4204,  longitude: -108.0000 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Big Horn County" },
+  { id: "wy-10", title: "Killpecker Sand Dunes OHV",            state: "WY", coords: { latitude: 41.9839,  longitude: -109.0921 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / Sand Vehicles",  suspension: "Stock Friendly",          region: "Sweetwater County" },
 ];
 
 export const ALL_TRAILS: Trail[] = _TRAIL_DATA.map(t => ({

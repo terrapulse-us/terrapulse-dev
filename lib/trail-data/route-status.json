@@ -59,7 +59,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"Dumont Dunes\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"Dumont Dunes\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:05.462Z"
     },
     "ca-10": {
@@ -90,7 +90,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"El Mirage\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"El Mirage\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:09.490Z"
     },
     "ca-15": {
@@ -122,7 +122,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "7 pts, 1.1 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "7 pts, 1.1 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.794Z"
     },
     "ca-20": {
@@ -148,7 +148,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "28 pts, 5.0 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "28 pts, 5.0 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ca-24": {
@@ -226,7 +226,7 @@
     "az-1": {
       "classification": "route",
       "status": "not-found",
-      "notes": "Automated hit was only 3 pts — too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
+      "notes": "Automated hit was only 3 pts \u2014 too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
       "updatedAt": "2026-07-06T08:34:14.376Z"
     },
     "az-2": {
@@ -239,7 +239,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "7 pts, 1.4 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "7 pts, 1.4 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "az-4": {
@@ -270,7 +270,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "14 pts, 4.2 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "14 pts, 4.2 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "az-9": {
@@ -313,7 +313,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "41 pts, 6.7 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "41 pts, 6.7 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-2": {
@@ -326,14 +326,14 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "12 pts, 2.2 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "12 pts, 2.2 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-4": {
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "37 pts, 9.0 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "37 pts, 9.0 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-5": {
@@ -358,7 +358,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "18 pts, 4.0 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "18 pts, 4.0 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-9": {
@@ -461,7 +461,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "38 pts, 8.1 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "38 pts, 8.1 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "hi-3": {
@@ -738,7 +738,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "18 pts, 3.8 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "18 pts, 3.8 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ms-1": {
@@ -925,7 +925,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"Red Sands OHV\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"Red Sands OHV\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:44.215Z"
     },
     "nm-2": {
@@ -1094,7 +1094,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"Millican Valley OHV Trail System\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"Millican Valley OHV Trail System\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:46.920Z"
     },
     "or-4": {
@@ -1185,7 +1185,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "44 pts, 6.7 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "44 pts, 6.7 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "sd-1": {
@@ -1221,7 +1221,7 @@
     "tn-2": {
       "classification": "route",
       "status": "not-found",
-      "notes": "Automated hit was only 3 pts — too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
+      "notes": "Automated hit was only 3 pts \u2014 too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
       "updatedAt": "2026-07-06T08:34:14.377Z"
     },
     "tn-3": {
@@ -1312,7 +1312,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "133 pts, 25.4 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "133 pts, 25.4 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ut-4": {
@@ -1325,7 +1325,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"Little Sahara Recreation Site\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"Little Sahara Recreation Site\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:50.372Z"
     },
     "ut-6": {
@@ -1349,7 +1349,7 @@
     "ut-9": {
       "classification": "route",
       "status": "not-found",
-      "notes": "Automated hit was only 3 pts — too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
+      "notes": "Automated hit was only 3 pts \u2014 too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
       "updatedAt": "2026-07-06T08:34:14.377Z"
     },
     "ut-10": {
@@ -1566,28 +1566,28 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "28 pts, 7.0 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "28 pts, 7.0 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-12": {
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "41 pts, 6.7 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "41 pts, 6.7 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-13": {
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "32 pts, 5.3 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "32 pts, 5.3 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-14": {
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "40 pts, 6.3 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "40 pts, 6.3 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "co-15": {
@@ -1612,7 +1612,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "usfs",
-      "notes": "7 pts, 0.5 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "7 pts, 0.5 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "az-11": {
@@ -1637,7 +1637,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "47 pts, 8.7 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "47 pts, 8.7 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "az-15": {
@@ -1698,7 +1698,7 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "107 pts, 22.2 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "107 pts, 22.2 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ut-12": {
@@ -1717,14 +1717,14 @@
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "25 pts, 4.2 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "25 pts, 4.2 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ut-15": {
       "classification": "route",
       "status": "auto-candidate",
       "source": "osm",
-      "notes": "5 pts, 0.6 mi — needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
+      "notes": "5 pts, 0.6 mi \u2014 needs Phase 2 visual review before promotion to verified. Merged into trail-routes.ts (AUTO-GENERATED section) via codegen-routes.ts; pending Phase 2 visual spot-check.",
       "updatedAt": "2026-07-06T08:35:40.795Z"
     },
     "ut-16": {
@@ -1754,7 +1754,7 @@
     "nv-12": {
       "classification": "route",
       "status": "not-found",
-      "notes": "Automated hit was only 4 pts — too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
+      "notes": "Automated hit was only 4 pts \u2014 too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
       "updatedAt": "2026-07-06T08:34:14.377Z"
     },
     "nv-13": {
@@ -1797,7 +1797,7 @@
       "classification": "area",
       "status": "area-boundary",
       "source": "blm-ohv-areas",
-      "notes": "Matched BLM area \"Millican Valley OHV Trail System\" — needs Phase 2 visual review before promotion to verified.",
+      "notes": "Matched BLM area \"Millican Valley OHV Trail System\" \u2014 needs Phase 2 visual review before promotion to verified.",
       "updatedAt": "2026-07-06T08:27:55.544Z"
     },
     "or-9": {
@@ -1941,7 +1941,7 @@
     "ga-7": {
       "classification": "route",
       "status": "not-found",
-      "notes": "Automated hit was only 4 pts — too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
+      "notes": "Automated hit was only 4 pts \u2014 too short/sparse a fragment to be trustworthy on the map (same straight-line-fragment failure class as wi-1). Demoted after architect review; needs Phase 3 landmark research instead.",
       "updatedAt": "2026-07-06T08:34:14.377Z"
     },
     "ga-8": {
@@ -2447,6 +2447,286 @@
       "status": "no-data",
       "notes": "No matching BLM OHV area boundary found (may be a state park/private OHV park, not BLM land). Map will show the point only.",
       "updatedAt": "2026-07-06T08:28:05.215Z"
+    },
+    "az-16": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Copper Basin Dunes Open Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "az-17": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Crossroads Open Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "az-18": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Hot Well Dunes Recreation Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "az-19": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Shea Road / Osborne Wash Open Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "az-20": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Standard Wash Open Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-28": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Chappie-Shasta\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-29": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Fort Sage\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-30": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Imperial Sand Dunes\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "co-18": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"18 Road OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "co-19": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Hubbard Mesa OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "mt-12": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Radersburg\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-11": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Aden Hills\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-12": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Alkali Lake OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-13": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Hackberry Lake OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-14": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Haystack Mountain OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-15": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Mescalero Sands North Dune OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nm-16": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Red Sands OHV\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-14": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Black Rock OHV Open Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-15": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Sand Mountain Recreation Area OHV\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-16": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Shoshone OHV Trail System\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-13": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Christmas Valley Sand Dunes\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-14": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Cline Buttes OHV Area-North\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-15": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Radar Hill OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-16": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Shotgun OHV Trail System\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-17": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Upper Nestucca OHV Trail System\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "or-18": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Virtue Flat OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-17": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Auroura\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-18": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Buckskin Hills\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-19": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Coral Pink Sand Dunes\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-20": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Factory Butte\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-21": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Glenwood\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-22": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Jensen Hills\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-23": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Knolls ORV\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-24": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Red Wash (AKA Devils Playground)\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-25": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Sand Mountain Open OHV Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-26": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Swing Arm City\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-27": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"White Wash Sand Dunes\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "wa-13": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Juniper Dunes OHV Area\" (listed as OR in BLM dataset; physically in WA per coordinates 46.38N,-118.90W) \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "wy-9": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Basin Gardens ORV Play Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "wy-10": {
+      "classification": "area",
+      "status": "area-boundary",
+      "source": "blm-ohv-areas",
+      "notes": "Matched BLM area \"Killpecker Sand Dunes Open Play Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
     }
   }
 }
