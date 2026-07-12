@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  Switch,
   Platform,
   Linking,
   type NativeSyntheticEvent,
@@ -68,6 +69,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import { checkPublicLand, type LandCheckResult } from "@/lib/land-check";
 import TrailSearchModal from "@/components/TrailSearchModal";
 import { markTrailComplete, markTrailContributed } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
@@ -348,7 +350,11 @@ const USFS_MVUM_TILES = [
 interface UserTrail extends Trail {
   routeCoordinates?: Array<{ lat: number; lng: number }>;
   isUserSubmitted?: boolean;
+  isPrivate?: boolean;
+  submittedBy?: string;
   submittedByName?: string;
+  landCheckPassed?: boolean;
+  landCheckAgency?: string | null;
 }
 
 function enrichWithRoute(trail: UserTrail): UserTrail {
@@ -485,6 +491,9 @@ export default function MapScreen() {
   const [trailName, setTrailName] = useState("");
   const [trailDifficultyRating, setTrailDifficultyRating] = useState(5);
   const [submittingTrail, setSubmittingTrail] = useState(false);
+  const [trailIsPrivate, setTrailIsPrivate] = useState(false);
+  const [landCheck, setLandCheck] = useState<LandCheckResult | null>(null);
+  const [landChecking, setLandChecking] = useState(false);
   const [userTrails, setUserTrails] = useState<UserTrail[]>([]);
 
   const [trailKeypoints, setTrailKeypoints] = useState<TrailKeypoint[]>([]);
@@ -1084,11 +1093,16 @@ export default function MapScreen() {
     const unsub = onSnapshot(
       query(collection(db, "trails"), where("isUserSubmitted", "==", true)),
       (snap) => {
-        setUserTrails(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserTrail)));
+        const uid = user?.uid ?? null;
+        setUserTrails(
+          snap.docs
+            .map((d) => ({ id: d.id, ...d.data() } as UserTrail))
+            .filter((t) => !t.isPrivate || t.submittedBy === uid)
+        );
       }
     );
     return unsub;
-  }, []);
+  }, [user?.uid]);
 
   // SOS Beacons — live listener for all active distress beacons on the map.
   useEffect(() => {
@@ -1560,6 +1574,26 @@ export default function MapScreen() {
     }
   }, [navTrail, user]);
 
+  useEffect(() => {
+    if (!showAddTrailModal || trailIsPrivate) {
+      setLandCheck(null);
+      setLandChecking(false);
+      return;
+    }
+    const pts = trailPointsRef.current;
+    if (pts.length === 0) return;
+    const lat = pts.reduce((s, p) => s + p.latitude, 0) / pts.length;
+    const lng = pts.reduce((s, p) => s + p.longitude, 0) / pts.length;
+    setLandCheck(null);
+    setLandChecking(true);
+    let cancelled = false;
+    checkPublicLand(lat, lng)
+      .then((result) => { if (!cancelled) setLandCheck(result); })
+      .catch(() => { if (!cancelled) setLandCheck({ status: "error" }); })
+      .finally(() => { if (!cancelled) setLandChecking(false); });
+    return () => { cancelled = true; };
+  }, [showAddTrailModal, trailIsPrivate]);
+
   const startTrailRecording = useCallback(async () => {
     if (isRecording) {
       Alert.alert("Already Recording", "Stop your ride recording first.");
@@ -1624,56 +1658,88 @@ export default function MapScreen() {
       Alert.alert("Name Required", "Please give your trail a name.");
       return;
     }
-    const pts = trailPointsRef.current;
-    setSubmittingTrail(true);
-    try {
-      const lat = pts.reduce((s, p) => s + p.latitude, 0) / pts.length;
-      const lng = pts.reduce((s, p) => s + p.longitude, 0) / pts.length;
-      let stateCode = "US";
+
+    const performSubmit = async (submittingAsPrivate: boolean) => {
+      const pts = trailPointsRef.current;
+      setSubmittingTrail(true);
       try {
-        const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        const regionName = geo[0]?.region ?? "";
-        stateCode = stateNameToCode[regionName.toUpperCase()] ?? regionName.substring(0, 2).toUpperCase();
-      } catch { /* keep default */ }
-      const rating = trailDifficultyRating;
-      await addDoc(collection(db, "trails"), {
-        title: trailName.trim(),
-        state: stateCode,
-        coords: { latitude: lat, longitude: lng },
-        difficulty: `${rating}/10 ${difficultyLabel(rating)}`,
-        difficultyRating: rating,
-        size: "High Clearance",
-        suspension: "Stock OK",
-        region: stateCode,
-        submittedBy: user.uid,
-        submittedByName: user.displayName ?? "Unknown",
-        createdAt: serverTimestamp(),
-        routeCoordinates: pts.map((p) => ({ lat: p.latitude, lng: p.longitude })),
-        isUserSubmitted: true,
-        keypoints: trailKeypoints,
-      });
-      Alert.alert(
-        "Trail Added!",
-        `"${trailName.trim()}" is now visible to everyone on TerraPulse!`,
-        [{ text: "LET'S RIDE!" }]
-      );
-      // Grant contributor badges based on the user's total submitted count.
-      // userTrails reflects the snapshot before this submission, so +1 is correct.
-      if (user) {
-        markTrailContributed(user.uid, userTrails.length + 1).catch(() => {});
+        const lat = pts.reduce((s, p) => s + p.latitude, 0) / pts.length;
+        const lng = pts.reduce((s, p) => s + p.longitude, 0) / pts.length;
+        let stateCode = "US";
+        try {
+          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const regionName = geo[0]?.region ?? "";
+          stateCode = stateNameToCode[regionName.toUpperCase()] ?? regionName.substring(0, 2).toUpperCase();
+        } catch { /* keep default */ }
+        const rating = trailDifficultyRating;
+        const landPassed = !submittingAsPrivate && landCheck?.status === "public";
+        const landAgency =
+          landPassed && landCheck?.status === "public"
+            ? (landCheck as { status: "public"; agency: string }).agency
+            : null;
+        await addDoc(collection(db, "trails"), {
+          title: trailName.trim(),
+          state: stateCode,
+          coords: { latitude: lat, longitude: lng },
+          difficulty: `${rating}/10 ${difficultyLabel(rating)}`,
+          difficultyRating: rating,
+          size: "High Clearance",
+          suspension: "Stock OK",
+          region: stateCode,
+          submittedBy: user.uid,
+          submittedByName: user.displayName ?? "Unknown",
+          createdAt: serverTimestamp(),
+          routeCoordinates: pts.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+          isUserSubmitted: true,
+          isPrivate: submittingAsPrivate,
+          landCheckPassed: landPassed,
+          landCheckAgency: landAgency,
+          keypoints: trailKeypoints,
+        });
+        Alert.alert(
+          submittingAsPrivate ? "Trail Saved!" : "Trail Added!",
+          submittingAsPrivate
+            ? `"${trailName.trim()}" is saved to your private trails.`
+            : `"${trailName.trim()}" is now visible to everyone on TerraPulse!`,
+          [{ text: submittingAsPrivate ? "OK" : "LET'S RIDE!" }]
+        );
+        if (!submittingAsPrivate && user) {
+          markTrailContributed(user.uid, userTrails.length + 1).catch(() => {});
+        }
+        setShowAddTrailModal(false);
+        setTrailName("");
+        setTrailDifficultyRating(5);
+        setTrailIsPrivate(false);
+        setLandCheck(null);
+        trailPointsRef.current = [];
+        setTrailPoints([]);
+        setTrailDistanceMi(0);
+        setTrailKeypoints([]);
+      } catch {
+        Alert.alert("Error", "Could not save trail. Try again.");
+      } finally {
+        setSubmittingTrail(false);
       }
-      setShowAddTrailModal(false);
-      setTrailName("");
-      setTrailDifficultyRating(5);
-      trailPointsRef.current = [];
-      setTrailPoints([]);
-      setTrailDistanceMi(0);
-    } catch {
-      Alert.alert("Error", "Could not save trail. Try again.");
-    } finally {
-      setSubmittingTrail(false);
+    };
+
+    if (
+      !trailIsPrivate &&
+      (landCheck === null || landCheck.status === "unknown" || landCheck.status === "error")
+    ) {
+      Alert.alert(
+        "Land Ownership Unknown",
+        "We couldn't confirm this trail is on public land (BLM, USFS, or NPS). Sharing trails on private land without permission may be illegal.\n\nSave privately, or submit anyway at your own discretion.",
+        [
+          { text: "Make Private", onPress: () => performSubmit(true) },
+          { text: "Submit Anyway", style: "destructive", onPress: () => performSubmit(false) },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
     }
-  }, [user, trailName, trailDifficultyRating]);
+
+    await performSubmit(trailIsPrivate);
+  }, [user, trailName, trailDifficultyRating, trailIsPrivate, landCheck, userTrails, trailKeypoints]);
 
   const markerColor = (rating: number) => {
     if (rating <= 3) return "#00E676";
@@ -3255,13 +3321,69 @@ export default function MapScreen() {
               })}
             </View>
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
+            {/* Make Private toggle */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 20,
+                paddingTop: 14,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.specLabel, { color: colors.foreground }]}>MAKE PRIVATE</Text>
+                <Text style={[styles.trailRegion, { color: colors.mutedForeground, fontSize: 11, marginTop: 2 }]}>
+                  {trailIsPrivate ? "Only visible to you" : "Visible to all TerraPulse riders"}
+                </Text>
+              </View>
+              <Switch
+                value={trailIsPrivate}
+                onValueChange={setTrailIsPrivate}
+                trackColor={{ false: colors.success, true: colors.border }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {/* Land check status row */}
+            {!trailIsPrivate && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, minHeight: 20 }}>
+                {landChecking ? (
+                  <>
+                    <ActivityIndicator size="small" color={colors.mutedForeground} />
+                    <Text style={[styles.trailRegion, { color: colors.mutedForeground, fontSize: 11 }]}>
+                      Checking land boundaries…
+                    </Text>
+                  </>
+                ) : landCheck?.status === "public" ? (
+                  <>
+                    <Feather name="check-circle" size={13} color={colors.success} />
+                    <Text style={[styles.trailRegion, { color: colors.success, fontSize: 11 }]} numberOfLines={1}>
+                      {landCheck.agency} · {landCheck.unitName}
+                    </Text>
+                  </>
+                ) : landCheck?.status === "unknown" || landCheck?.status === "error" ? (
+                  <>
+                    <Feather name="alert-triangle" size={13} color="#FFC107" />
+                    <Text style={[styles.trailRegion, { color: "#FFC107", fontSize: 11 }]}>
+                      Land ownership unconfirmed
+                    </Text>
+                  </>
+                ) : null}
+              </View>
+            )}
+
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
               <TouchableOpacity
                 style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
                 onPress={() => {
                   setShowAddTrailModal(false);
                   setTrailName("");
                   setTrailDifficultyRating(5);
+                  setTrailIsPrivate(false);
+                  setLandCheck(null);
                   trailPointsRef.current = [];
                   setTrailPoints([]);
                   setTrailDistanceMi(0);
@@ -3271,14 +3393,23 @@ export default function MapScreen() {
                 <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>DISCARD</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.completeBtn, { flex: 1, marginTop: 0, backgroundColor: colors.success }]}
-                onPress={submitTrail}
-                disabled={submittingTrail}
+                style={[
+                  styles.completeBtn,
+                  {
+                    flex: 1,
+                    marginTop: 0,
+                    backgroundColor: trailIsPrivate ? colors.mutedForeground : colors.success,
+                  },
+                ]}
+                onPress={() => submitTrail()}
+                disabled={submittingTrail || (landChecking && !trailIsPrivate)}
               >
                 {submittingTrail ? (
                   <ActivityIndicator color="#000" />
                 ) : (
-                  <Text style={[styles.completeBtnText, { color: "#000" }]}>SUBMIT TRAIL</Text>
+                  <Text style={[styles.completeBtnText, { color: "#000" }]}>
+                    {trailIsPrivate ? "SAVE PRIVATE" : "SUBMIT TRAIL"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
