@@ -2727,6 +2727,146 @@
       "source": "blm-ohv-areas",
       "notes": "Matched BLM area \"Killpecker Sand Dunes Open Play Area\" \u2014 BLM OHV Designated Area from national BLM ArcGIS dataset (BLM_Natl_Recs_poly). Boundary polygon available via live BLM overlay.",
       "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "al-7": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 (OFF HIGHWAY VEHICLE) facility \u2014 Kentuck ORV Area, Talladega NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-31": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Black Springs OHV Area, Eldorado NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-32": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Interface OHV Area, Eldorado NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-33": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Prosser Pits OHV Area, Tahoe NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-34": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 San Gabriel Canyon OHV Area, Angeles NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-35": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Figueroa OHV Recreation Area, Los Padres NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-36": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Humbug OHV Recreation Area, Klamath NF (coords in CA per lat/lng despite OR listing). Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ca-37": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Juniper Flat OHV Area, Klamath NF. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "co-20": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Peach Valley OHV Area, BLM Gunnison Gorge NCA. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "co-21": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 North Delta OHV Area, BLM Grand Junction field office. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "mt-13": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Glasgow OHV Area, BLM eastern MT. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "mt-14": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Glendive OHV Area SRMA, BLM eastern MT. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "mt-15": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Shepherd Ah-Nei OHV Area, BLM south-central MT. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-17": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Big Dune OHV Area, BLM Amargosa Valley. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-18": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Clayton Valley Sand Dunes, BLM Esmeralda County. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "nv-19": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Crescent Sand Dunes, BLM Nye County. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "oh-8": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Monday Creek OHV System, Wayne National Forest. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "oh-9": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Superior OHV System, Wayne National Forest. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "ut-28": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Three Peaks OHV Trail System, BLM Cedar City field office. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
+    },
+    "wy-11": {
+      "classification": "area",
+      "status": "no-data",
+      "source": "ridb-activity-18",
+      "notes": "RIDB activity 18 \u2014 Poison Spider OHV Park, BLM Casper field office. Map shows point only.",
+      "updatedAt": "2026-07-12T00:00:00.000Z"
     }
   }
 }
