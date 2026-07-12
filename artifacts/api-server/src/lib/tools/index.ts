@@ -6,6 +6,7 @@ import { fitCheckToolDef, runFitCheck } from "./fit-check";
 import { webSearchToolDef, runWebSearch } from "./web-search";
 import { cellCoverageToolDef, runCellCoverage } from "./cell-coverage";
 import { itineraryToolDef, runItinerary } from "./itinerary";
+import { weatherToolDef, runWeather } from "./weather";
 
 export const AGENT_TOOL_DEFS = [
   trailBriefingToolDef,
@@ -14,6 +15,7 @@ export const AGENT_TOOL_DEFS = [
   webSearchToolDef,
   cellCoverageToolDef,
   itineraryToolDef,
+  weatherToolDef,
 ];
 
 /**
@@ -39,6 +41,8 @@ export async function runTool(
         return { result: runFitCheck(input, vehicleProfile), isError: false };
       case "web_search":
         return { result: await runWebSearch(input), isError: false };
+      case "get_weather":
+        return { result: await runWeather(input), isError: false };
       case "check_cell_coverage": {
         const coverage = await runCellCoverage(input);
         // Deterministic decision (not left to the model): only surface a
