@@ -12,11 +12,13 @@ const RIDB_BASE = "https://ridb.recreation.gov/api/v1";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 function getApiKey(): string {
-  // process.env.EXPO_PUBLIC_* is inlined by Metro at bundle time (works in OTA).
-  // Constants.expoConfig.extra is a fallback for dev builds.
+  // Constants.expoConfig.extra is populated from app.config.js at Expo server-start
+  // time and is always available in dev (Replit) without needing Metro to re-bundle.
+  // process.env.EXPO_PUBLIC_* is a secondary path — Metro inlines it at bundle time,
+  // which means it only picks up a newly-added secret after a full restart.
   return (
-    process.env.EXPO_PUBLIC_RIDB_API_KEY ||
     (Constants.expoConfig?.extra?.ridbApiKey as string | undefined) ||
+    process.env.EXPO_PUBLIC_RIDB_API_KEY ||
     ""
   );
 }
