@@ -68,6 +68,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import TrailSearchModal from "@/components/TrailSearchModal";
 import { markTrailComplete, markTrailContributed } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -452,6 +453,7 @@ export default function MapScreen() {
     return trails;
   }, [selectedState, vehicleTypeFilter]);
 
+  const [showTrailSearch, setShowTrailSearch] = useState(false);
   const [selectedTrail, setSelectedTrail] = useState<UserTrail | null>(null);
   const [photos, setPhotos] = useState<TrailPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -2109,6 +2111,13 @@ export default function MapScreen() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <TouchableOpacity
+              onPress={() => setShowTrailSearch(true)}
+              style={styles.logoutBtn}
+              activeOpacity={0.75}
+            >
+              <Feather name="search" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => setShowFilterMenu(true)}
               style={styles.filterMenuBtn}
               activeOpacity={0.75}
@@ -3167,6 +3176,16 @@ export default function MapScreen() {
         activeRideInfo={activeRideInfo}
         isFollowed={!!selectedTrail && followedTrailIds.includes(selectedTrail.id)}
         onFollow={toggleFollowTrail}
+      />
+
+      <TrailSearchModal
+        visible={showTrailSearch}
+        onClose={() => setShowTrailSearch(false)}
+        onSelectTrail={(trail) => {
+          setShowTrailSearch(false);
+          cameraRef.current?.flyTo({ center: [trail.coords.longitude, trail.coords.latitude], zoom: 13, duration: 1200 });
+          setSelectedTrail(enrichWithRoute(trail as UserTrail));
+        }}
       />
 
       {/* ADD TRAIL SUBMISSION MODAL */}

@@ -26,6 +26,8 @@ import {
   doc,
   updateDoc,
   arrayUnion,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -64,6 +66,12 @@ interface TrailEvent {
   createdByName: string;
   attendees: { uid: string; name: string }[];
   description: string;
+}
+
+interface Contributor {
+  uid: string;
+  displayName: string;
+  addedAt?: number;
 }
 
 interface Props {
@@ -269,6 +277,23 @@ export default function TrailDetailScreen({
   const [pickerMonth, setPickerMonth] = useState(new Date());
   const [attendeesEvent, setAttendeesEvent] = useState<TrailEvent | null>(null);
 
+  // Contributors state
+  const [showContributors, setShowContributors] = useState(false);
+  const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [togglingContributor, setTogglingContributor] = useState(false);
+
+  // Load contributors for this trail
+  useEffect(() => {
+    if (!trail || !visible) { setContributors([]); return; }
+    const unsub = onSnapshot(
+      collection(db, "trails", trail.id, "contributors"),
+      (snap) => {
+        setContributors(snap.docs.map((d) => ({ uid: d.id, ...d.data() } as Contributor)));
+      }
+    );
+    return unsub;
+  }, [trail?.id, visible]);
+
   // Load events for this trail
   useEffect(() => {
     if (!trail || !visible) { setEvents([]); return; }
@@ -338,6 +363,28 @@ export default function TrailDetailScreen({
     }
   }, [user, trail, evTitle, evType, evDateStr, evTime, evVisibility, evDescription, resetCreateForm]);
 
+  const toggleContributor = useCallback(async () => {
+    if (!user || !trail) return;
+    const isContrib = contributors.some((c) => c.uid === user.uid);
+    setTogglingContributor(true);
+    try {
+      const contribRef = doc(db, "trails", trail.id, "contributors", user.uid);
+      if (isContrib) {
+        await deleteDoc(contribRef);
+      } else {
+        await setDoc(contribRef, {
+          uid: user.uid,
+          displayName: user.displayName ?? user.email ?? "Anonymous",
+          addedAt: Date.now(),
+        });
+      }
+    } catch {
+      Alert.alert("Error", "Could not update contributor status. Try again.");
+    } finally {
+      setTogglingContributor(false);
+    }
+  }, [user, trail, contributors]);
+
   const joinOrLeaveEvent = useCallback(async (event: TrailEvent) => {
     if (!user || !trail) return;
     const already = event.attendees?.some((a) => a.uid === user.uid);
@@ -362,6 +409,8 @@ export default function TrailDetailScreen({
   if (!trail) return null;
 
   const done = completedTrails.includes(trail.id);
+  const hasRoute = (trail.routeCoordinates?.length ?? 0) > 0;
+  const isContributor = user ? contributors.some((c) => c.uid === user.uid) : false;
   const todayStr = formatDateStr(new Date());
   const calYear = calendarMonth.getFullYear();
   const calMonth = calendarMonth.getMonth();
@@ -396,8 +445,8 @@ export default function TrailDetailScreen({
         {/* ── ACTION BUTTONS ── */}
         <View style={[s.actionRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={[s.actionBtn, s.directionsBtn]} onPress={openDirections} activeOpacity={0.85}>
-            <MaterialIcons name="directions" size={16} color="#fff" />
-            <Text style={[s.actionBtnText, { color: "#fff" }]}>GET DIRECTIONS</Text>
+            <MaterialIcons name="directions" size={15} color="#fff" />
+            <Text style={[s.actionBtnText, { color: "#fff" }]} numberOfLines={1}>GET DIRECTIONS</Text>
           </TouchableOpacity>
           {!!onFollow && (
             <TouchableOpacity
@@ -409,8 +458,8 @@ export default function TrailDetailScreen({
               onPress={onFollow}
               activeOpacity={0.85}
             >
-              <MaterialIcons name={isFollowed ? "favorite" : "favorite-border"} size={15} color={isFollowed ? "#fff" : colors.accent} />
-              <Text style={[s.actionBtnText, { color: isFollowed ? "#fff" : colors.accent }]}>
+              <MaterialIcons name={isFollowed ? "favorite" : "favorite-border"} size={14} color={isFollowed ? "#fff" : colors.accent} />
+              <Text style={[s.actionBtnText, { color: isFollowed ? "#fff" : colors.accent }]} numberOfLines={1}>
                 {isFollowed ? "FOLLOWING" : "FOLLOW"}
               </Text>
             </TouchableOpacity>
@@ -425,12 +474,27 @@ export default function TrailDetailScreen({
               <ActivityIndicator size="small" color={colors.accent} />
             ) : (
               <>
-                <Feather name="download" size={14} color={colors.accent} />
-                <Text style={[s.actionBtnText, { color: colors.accent }]}>SAVE OFFLINE</Text>
+                <Feather name="download" size={13} color={colors.accent} />
+                <Text style={[s.actionBtnText, { color: colors.accent }]} numberOfLines={1}>SAVE OFFLINE</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
+
+        {/* ── CONTRIBUTORS BAR ── */}
+        <TouchableOpacity
+          style={[s.contribBar, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}
+          onPress={() => setShowContributors(true)}
+          activeOpacity={0.75}
+        >
+          <Feather name="users" size={13} color={colors.mutedForeground} />
+          <Text style={[s.contribBarText, { color: colors.mutedForeground }]}>
+            {contributors.length === 0
+              ? "No trail contributors yet"
+              : `${contributors.length} contributor${contributors.length !== 1 ? "s" : ""}`}
+          </Text>
+          <Feather name="chevron-right" size={13} color={colors.border} />
+        </TouchableOpacity>
 
         {/* ── FOLLOW TRAIL ── */}
         {!!trail.routeCoordinates?.length && !!onNavigate && (
@@ -577,7 +641,6 @@ export default function TrailDetailScreen({
 
               {/* Mark as Complete */}
               {(() => {
-                const hasRoute = (trail.routeCoordinates?.length ?? 0) > 0;
                 const hasRidden = riddenTrailIds.includes(trail.id);
                 const locked = !hasRidden && !done;
                 return locked ? (
@@ -620,6 +683,39 @@ export default function TrailDetailScreen({
                   </TouchableOpacity>
                 );
               })()}
+
+              {/* Add me as contributor — only for area trails (no GPS route) once completed */}
+              {done && !hasRoute && user && (
+                <TouchableOpacity
+                  style={[s.contribToggle, { borderTopColor: colors.border }]}
+                  onPress={toggleContributor}
+                  disabled={togglingContributor}
+                  activeOpacity={0.8}
+                >
+                  <Feather
+                    name="users"
+                    size={15}
+                    color={isContributor ? colors.success : colors.mutedForeground}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.contribToggleTitle, { color: colors.foreground }]}>
+                      Add me as contributor
+                    </Text>
+                    <Text style={[s.contribToggleSub, { color: colors.mutedForeground }]}>
+                      {isContributor
+                        ? "You're listed as a contributor to this trail"
+                        : "Helped map or verify this trail exists?"}
+                    </Text>
+                  </View>
+                  {togglingContributor ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <View style={[s.contribCheckBox, { backgroundColor: isContributor ? colors.success : colors.border }]}>
+                      {isContributor && <Feather name="check" size={12} color="#fff" />}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -798,6 +894,67 @@ export default function TrailDetailScreen({
             )}
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* ── CONTRIBUTORS MODAL ── */}
+      <Modal
+        visible={showContributors}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowContributors(false)}
+      >
+        <TouchableOpacity
+          style={s.contribOverlay}
+          onPress={() => setShowContributors(false)}
+          activeOpacity={1}
+        >
+          <TouchableOpacity
+            style={[s.contribSheet, { backgroundColor: colors.card }]}
+            activeOpacity={1}
+            onPress={() => {}}
+          >
+            <View style={s.contribSheetHandle} />
+            <Text style={[s.contribSheetTitle, { color: colors.foreground }]}>Trail Contributors</Text>
+            <Text style={[s.contribSheetSub, { color: colors.mutedForeground }]}>
+              Riders who helped map or verify this trail
+            </Text>
+            {contributors.length === 0 ? (
+              <View style={s.contribEmpty}>
+                <Feather name="users" size={32} color={colors.border} />
+                <Text style={[s.contribEmptyText, { color: colors.mutedForeground }]}>No contributors yet</Text>
+                {!hasRoute && user && (
+                  <Text style={[s.contribEmptyHint, { color: colors.mutedForeground }]}>
+                    Complete this trail to add yourself
+                  </Text>
+                )}
+              </View>
+            ) : (
+              contributors.map((c) => (
+                <View key={c.uid} style={[s.contribItem, { borderTopColor: colors.border }]}>
+                  <View style={[s.contribAvatar, { backgroundColor: colors.accent + "33" }]}>
+                    <Text style={[s.contribInitial, { color: colors.accent }]}>
+                      {(c.displayName?.[0] ?? "?").toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={[s.contribName, { color: colors.foreground }]} numberOfLines={1}>
+                    {c.displayName}
+                  </Text>
+                  {c.uid === user?.uid && (
+                    <View style={[s.youBadge, { backgroundColor: colors.accent }]}>
+                      <Text style={s.youBadgeText}>YOU</Text>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+            <TouchableOpacity
+              style={[s.contribCloseBtn, { backgroundColor: colors.secondary }]}
+              onPress={() => setShowContributors(false)}
+            >
+              <Text style={[s.contribCloseBtnText, { color: colors.foreground }]}>Close</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* ── CREATE EVENT MODAL ── */}
@@ -1026,12 +1183,14 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
+    gap: 5,
     paddingVertical: 11,
+    paddingHorizontal: 6,
     borderRadius: 8,
+    overflow: "hidden",
   },
   directionsBtn: { backgroundColor: "#1A73E8" },
-  actionBtnText: { fontWeight: "800", fontSize: 12, letterSpacing: 1 },
+  actionBtnText: { fontWeight: "800", fontSize: 11, letterSpacing: 0.3, flexShrink: 1 },
   followTrailBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1198,4 +1357,82 @@ const s = StyleSheet.create({
     marginTop: 24,
   },
   saveBtnText: { fontWeight: "900", fontSize: 14, letterSpacing: 2 },
+
+  // ── Contributors ──────────────────────────────────────────────────────────
+  contribBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+  },
+  contribBarText: { flex: 1, fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
+  contribToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    marginTop: 4,
+  },
+  contribToggleTitle: { fontSize: 13, fontWeight: "800" },
+  contribToggleSub: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+  contribCheckBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  contribOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  contribSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  contribSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(128,128,128,0.3)",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  contribSheetTitle: { fontSize: 16, fontWeight: "900", letterSpacing: 0.5, marginBottom: 4 },
+  contribSheetSub: { fontSize: 12, fontWeight: "600", marginBottom: 16 },
+  contribEmpty: { alignItems: "center", paddingVertical: 24, gap: 8 },
+  contribEmptyText: { fontSize: 13, fontWeight: "700" },
+  contribEmptyHint: { fontSize: 11, fontWeight: "600", textAlign: "center" },
+  contribItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  contribAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  contribInitial: { fontSize: 15, fontWeight: "900" },
+  contribName: { flex: 1, fontSize: 13, fontWeight: "700" },
+  youBadge: { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
+  youBadgeText: { fontSize: 9, fontWeight: "900", color: "#fff", letterSpacing: 0.5 },
+  contribCloseBtn: {
+    alignItems: "center",
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginTop: 16,
+  },
+  contribCloseBtnText: { fontWeight: "800", fontSize: 13, letterSpacing: 0.5 },
 });

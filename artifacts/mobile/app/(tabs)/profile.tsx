@@ -18,6 +18,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import TrailSearchModal from "@/components/TrailSearchModal";
 import { OfflineManager } from "@maplibre/maplibre-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -114,6 +115,7 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<Section>("gallery");
+  const [showSearch, setShowSearch] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -489,6 +491,22 @@ export default function ProfileScreen() {
           <Feather name="log-out" size={18} color={colors.mutedForeground} />
         </TouchableOpacity>
       </View>
+
+      {/* SEARCH TRAILS */}
+      <TouchableOpacity
+        style={[styles.privacyRow, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}
+        onPress={() => setShowSearch(true)}
+        activeOpacity={0.75}
+      >
+        <View style={styles.privacyLeft}>
+          <Feather name="search" size={15} color={colors.accent} />
+          <View>
+            <Text style={[styles.privacyLabel, { color: colors.foreground }]}>SEARCH TRAILS</Text>
+            <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>Find any of 402 trails nationwide</Text>
+          </View>
+        </View>
+        <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+      </TouchableOpacity>
 
       {/* PRIVACY TOGGLE */}
       <View style={[styles.privacyRow, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}>
@@ -933,6 +951,22 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <Text style={[styles.footerVersion, { color: colors.border }]}>TerraPulse v1.0.0</Text>
       </View>
+
+      <TrailSearchModal
+        visible={showSearch}
+        onClose={() => setShowSearch(false)}
+        onSelectTrail={(trail) => {
+          setShowSearch(false);
+          router.push({
+            pathname: "/(tabs)/map",
+            params: {
+              focusTrailId: trail.id,
+              focusLat: String(trail.coords.latitude),
+              focusLng: String(trail.coords.longitude),
+            },
+          });
+        }}
+      />
 
       {/* LIGHTBOX */}
       <Modal visible={!!lightboxUri} transparent animationType="fade" onRequestClose={() => setLightboxUri(null)}>
