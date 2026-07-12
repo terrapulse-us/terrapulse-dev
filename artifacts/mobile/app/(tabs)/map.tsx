@@ -3529,16 +3529,31 @@ export default function MapScreen() {
         }}
       >
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => {}}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E65100", borderTopWidth: 2 }]}>
-            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-              <View style={styles.modalHandle} />
-              <Text style={[styles.layerTitle, { color: colors.foreground, marginBottom: 4 }]}>
-                POST A NOTE
-              </Text>
-              <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 16 }]}>
-                Let other riders on this trail know what's ahead. Visible for 48 hours.
-              </Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.card,
+                borderColor: "#E65100",
+                borderTopWidth: 2,
+                maxHeight: "88%",
+                paddingBottom: insets.bottom + 12,
+              },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.layerTitle, { color: colors.foreground, marginBottom: 4 }]}>
+              POST A NOTE
+            </Text>
+            <Text style={[styles.trailRegion, { color: colors.mutedForeground, marginBottom: 12 }]}>
+              Let other riders on this trail know what's ahead. Visible for 48 hours.
+            </Text>
 
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={{ flexShrink: 1 }}
+            >
               {NOTE_TYPE_CONFIGS.map((nt) => {
                 const isActive = noteSelectedType === nt.id;
                 return (
@@ -3583,41 +3598,41 @@ export default function MapScreen() {
                   maxLength={120}
                 />
               )}
+            </ScrollView>
 
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-                <TouchableOpacity
-                  style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
-                  onPress={() => {
-                    setShowNoteModal(false);
-                    setNoteSelectedType(null);
-                    setNoteCustomText("");
-                  }}
-                >
-                  <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CANCEL</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.completeBtn,
-                    {
-                      flex: 1,
-                      marginTop: 0,
-                      backgroundColor: noteSelectedType
-                        ? (NOTE_TYPE_CONFIGS.find(n => n.id === noteSelectedType)?.color ?? colors.success)
-                        : colors.border,
-                      opacity: noteSelectedType ? 1 : 0.5,
-                    },
-                  ]}
-                  onPress={addCommunityNote}
-                  disabled={!noteSelectedType || submittingNote}
-                >
-                  {submittingNote ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={[styles.completeBtnText, { color: "#fff" }]}>POST NOTE</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+              <TouchableOpacity
+                style={[styles.downloadBtn, { flex: 1, borderColor: colors.border, marginBottom: 0 }]}
+                onPress={() => {
+                  setShowNoteModal(false);
+                  setNoteSelectedType(null);
+                  setNoteCustomText("");
+                }}
+              >
+                <Text style={[styles.downloadBtnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.completeBtn,
+                  {
+                    flex: 1,
+                    marginTop: 0,
+                    backgroundColor: noteSelectedType
+                      ? (NOTE_TYPE_CONFIGS.find(n => n.id === noteSelectedType)?.color ?? colors.success)
+                      : colors.border,
+                    opacity: noteSelectedType ? 1 : 0.5,
+                  },
+                ]}
+                onPress={addCommunityNote}
+                disabled={!noteSelectedType || submittingNote}
+              >
+                {submittingNote ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={[styles.completeBtnText, { color: "#fff" }]}>POST NOTE</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>
