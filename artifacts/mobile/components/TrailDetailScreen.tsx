@@ -445,8 +445,8 @@ export default function TrailDetailScreen({
         {/* ── ACTION BUTTONS ── */}
         <View style={[s.actionRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={[s.actionBtn, s.directionsBtn]} onPress={openDirections} activeOpacity={0.85}>
-            <MaterialIcons name="directions" size={15} color="#fff" />
-            <Text style={[s.actionBtnText, { color: "#fff" }]} numberOfLines={1}>GET DIRECTIONS</Text>
+            <MaterialIcons name="directions" size={14} color="#fff" />
+            <Text style={[s.actionBtnText, { color: "#fff" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>GET DIRECTIONS</Text>
           </TouchableOpacity>
           {!!onFollow && (
             <TouchableOpacity
@@ -459,7 +459,7 @@ export default function TrailDetailScreen({
               activeOpacity={0.85}
             >
               <MaterialIcons name={isFollowed ? "favorite" : "favorite-border"} size={14} color={isFollowed ? "#fff" : colors.accent} />
-              <Text style={[s.actionBtnText, { color: isFollowed ? "#fff" : colors.accent }]} numberOfLines={1}>
+              <Text style={[s.actionBtnText, { color: isFollowed ? "#fff" : colors.accent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 {isFollowed ? "FOLLOWING" : "FOLLOW"}
               </Text>
             </TouchableOpacity>
@@ -475,7 +475,7 @@ export default function TrailDetailScreen({
             ) : (
               <>
                 <Feather name="download" size={13} color={colors.accent} />
-                <Text style={[s.actionBtnText, { color: colors.accent }]} numberOfLines={1}>SAVE OFFLINE</Text>
+                <Text style={[s.actionBtnText, { color: colors.accent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>SAVE OFFLINE</Text>
               </>
             )}
           </TouchableOpacity>
@@ -1190,7 +1190,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   directionsBtn: { backgroundColor: "#1A73E8" },
-  actionBtnText: { fontWeight: "800", fontSize: 11, letterSpacing: 0.3, flexShrink: 1 },
+  actionBtnText: { fontWeight: "800", fontSize: 11, flexShrink: 1 },
   followTrailBtn: {
     flexDirection: "row",
     alignItems: "center",
