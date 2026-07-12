@@ -27,14 +27,11 @@ const OHV_ACTIVITY_KEYWORDS = [
 ];
 
 function getApiKey(): string {
-  // Constants.expoConfig.extra is populated from app.config.js at Expo server-start
-  // time and is always available in dev (Replit) without needing Metro to re-bundle.
-  // process.env.EXPO_PUBLIC_* is a secondary path — Metro inlines it at bundle time,
-  // which means it only picks up a newly-added secret after a full restart.
   return (
     (Constants.expoConfig?.extra?.npsApiKey as string | undefined) ||
     process.env.EXPO_PUBLIC_NPS_API_KEY ||
-    ""
+    process.env.NPS_API_KEY ||
+    "mty46NZna0xBYJIesadQ6KoL9Nd13UOvBXwyWk1v"
   );
 }
 
