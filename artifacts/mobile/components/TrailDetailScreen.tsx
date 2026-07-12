@@ -475,7 +475,7 @@ export default function TrailDetailScreen({
             ) : (
               <>
                 <Feather name="download" size={13} color={colors.accent} />
-                <Text style={[s.actionBtnText, { color: colors.accent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>SAVE OFFLINE</Text>
+                <Text style={[s.actionBtnText, { color: colors.accent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>SAVE MAP</Text>
               </>
             )}
           </TouchableOpacity>
