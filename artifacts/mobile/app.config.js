@@ -102,10 +102,14 @@ module.exports = () => ({
       firebaseMessagingSenderId: "516913346465",
       firebaseAppId: "1:516913346465:web:2b01f1220d182a3911bde0",
       googleWebClientId: "516913346465-2d9sghu3nqvtbnj2ttiddu3191jkib32.apps.googleusercontent.com",
-      npsApiKey: process.env.EXPO_PUBLIC_NPS_API_KEY ?? "",
-      // ridbApiKey comes from RIDB_API_KEY secret (Replit) or
-      // EXPO_PUBLIC_RIDB_API_KEY (EAS secret).
-      ridbApiKey: process.env.RIDB_API_KEY ?? process.env.EXPO_PUBLIC_RIDB_API_KEY ?? "",
+      npsApiKey:
+        process.env.EXPO_PUBLIC_NPS_API_KEY ||
+        process.env.NPS_API_KEY ||
+        "mty46NZna0xBYJIesadQ6KoL9Nd13UOvBXwyWk1v",
+      ridbApiKey:
+        process.env.RIDB_API_KEY ||
+        process.env.EXPO_PUBLIC_RIDB_API_KEY ||
+        "864eb9f6-39c0-4cb2-99d4-69d3e2c7c71c",
       eas: { projectId: "5e42857a-9f58-4c15-8b0b-571dd97b3189" },
     },
     owner: "mclaporteterrapulses-team",
