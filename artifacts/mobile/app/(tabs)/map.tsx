@@ -405,8 +405,20 @@ export default function MapScreen() {
       case "satellite": return SATELLITE_STYLE_URL as never;
       case "terrain3d":
         if (terrain3dStyleObj) {
+          // Scale hillshade-exaggeration with the slider so shadows visibly deepen/soften
+          // at any zoom level (not just up-close 3D view). Formula keeps hillshade at
+          // its original 0.55 when terrainExaggeration == 2.2.
+          const hillshadeExag = Math.min(0.95, terrainExaggeration * 0.25);
+          const layers3d = (terrain3dStyleObj.layers as unknown[]).map((l) => {
+            const layer = l as { id: string; paint?: Record<string, unknown> };
+            if (layer.id === "terrain-hillshade" && layer.paint) {
+              return { ...layer, paint: { ...layer.paint, "hillshade-exaggeration": hillshadeExag } };
+            }
+            return l;
+          });
           return {
             ...terrain3dStyleObj,
+            layers: layers3d,
             terrain: { source: "terrain-dem", exaggeration: terrainExaggeration },
           } as never;
         }
