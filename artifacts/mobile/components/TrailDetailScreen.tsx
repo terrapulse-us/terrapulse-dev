@@ -445,8 +445,8 @@ export default function TrailDetailScreen({
         {/* ── ACTION BUTTONS ── */}
         <View style={[s.actionRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={[s.actionBtn, s.directionsBtn]} onPress={openDirections} activeOpacity={0.85}>
-            <MaterialIcons name="directions" size={14} color="#fff" />
-            <Text style={[s.actionBtnText, { color: "#fff" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>GET DIRECTIONS</Text>
+            <MaterialIcons name="location-on" size={15} color="#fff" />
+            <Text style={[s.actionBtnText, { color: "#fff" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>DIRECTIONS</Text>
           </TouchableOpacity>
           {!!onFollow && (
             <TouchableOpacity
