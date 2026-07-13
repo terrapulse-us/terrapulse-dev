@@ -133,6 +133,7 @@ import {
 import TrailGuideSheet from "@/components/TrailGuideSheet";
 import TrailDetailScreen from "@/components/TrailDetailScreen";
 import UserLocationPulse from "@/components/UserLocationPulse";
+import WingmanHelmetMarker from "@/components/WingmanHelmetMarker";
 import * as Updates from "expo-updates";
 import { downsamplePoints, encodePointsFlat } from "@/lib/ride-utils";
 import { downloadTrailArea as downloadOfflineTrailArea } from "@/lib/offline-maps";
@@ -518,6 +519,10 @@ export default function MapScreen() {
   const [activeBeacons, setActiveBeacons] = useState<SosBeacon[]>([]);
   const [selectedBeacon, setSelectedBeacon] = useState<SosBeacon | null>(null);
 
+  // ── Wingman crew locations ────────────────────────────────────────────────
+  const [crewForWingman, setCrewForWingman] = useState<{ uid: string; displayName: string; wingmanEnabled: boolean }[]>([]);
+  const [wingmanLocations, setWingmanLocations] = useState<Record<string, { lat: number; lng: number; displayName: string }>>({});
+
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -591,6 +596,43 @@ export default function MapScreen() {
   const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
   const [showNpsOverlay, setShowNpsOverlay] = useState(false);
   const [npsLoading, setNpsLoading] = useState(false);
+
+  // ── Wingman crew location subscriptions ──────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "crew"),
+      (snap) =>
+        setCrewForWingman(
+          snap.docs.map((d) => ({ uid: d.id, ...d.data() } as { uid: string; displayName: string; wingmanEnabled: boolean }))
+        ),
+      () => setCrewForWingman([])
+    );
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    const tracked = crewForWingman.filter((m) => m.wingmanEnabled);
+    if (tracked.length === 0) {
+      setWingmanLocations({});
+      return;
+    }
+    const unsubs = tracked.map((m) =>
+      onSnapshot(doc(db, "users", m.uid), (snap) => {
+        const data = snap.data();
+        const loc = data?.wingmanLocation as { lat: number; lng: number; active: boolean } | undefined;
+        setWingmanLocations((prev) => {
+          if (loc?.active && loc.lat != null && loc.lng != null) {
+            return { ...prev, [m.uid]: { lat: loc.lat, lng: loc.lng, displayName: m.displayName } };
+          }
+          const next = { ...prev };
+          delete next[m.uid];
+          return next;
+        });
+      })
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [crewForWingman]);
 
   // Core navigation: takes a trail explicitly so it works from any call site
   const navigateTrail = useCallback((trail: UserTrail) => {
@@ -1961,6 +2003,17 @@ export default function MapScreen() {
                 <Text style={styles.rideMemberLabelText} numberOfLines={1}>{member.displayName}</Text>
               </View>
             </View>
+          </Marker>
+        ))}
+
+        {/* ── Wingman crew markers ─────────────────────────────────────────── */}
+        {Object.entries(wingmanLocations).map(([uid, member]) => (
+          <Marker
+            key={`wingman-${uid}`}
+            lngLat={[member.lng, member.lat]}
+            anchor="center"
+          >
+            <WingmanHelmetMarker displayName={member.displayName} />
           </Marker>
         ))}
 
