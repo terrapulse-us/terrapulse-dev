@@ -12,6 +12,7 @@ import {
   Switch,
   Modal,
   Image,
+  Linking,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
@@ -36,6 +37,7 @@ import { router } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { apiServerUrl } from "@/lib/api-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,7 +78,28 @@ interface CrewMember {
   location?: { lat: number; lng: number; updatedAt: number; active: boolean };
 }
 
-type GarageSection = "rides" | "maps" | "crew";
+type GarageSection = "rides" | "maps" | "crew" | "mods";
+
+interface ModResult {
+  name: string;
+  brand: string;
+  priceRange: string;
+  description: string;
+  url: string;
+  why: string;
+}
+
+const MOD_CATEGORIES: { key: string; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+  { key: "suspension",     label: "SUSPENSION",  icon: "trending-up" },
+  { key: "tires",          label: "TIRES",        icon: "circle" },
+  { key: "bumpers",        label: "BUMPERS",      icon: "shield" },
+  { key: "skid plates",    label: "SKID PLATES",  icon: "square" },
+  { key: "lighting",       label: "LIGHTING",     icon: "sun" },
+  { key: "recovery gear",  label: "RECOVERY",     icon: "anchor" },
+  { key: "winches",        label: "WINCHES",      icon: "rotate-cw" },
+  { key: "air compressors",label: "AIR/COMPRESSORS",icon: "wind" },
+  { key: "accessories",    label: "ACCESSORIES",  icon: "tool" },
+];
 
 const VEHICLE_TYPES: { type: VehicleType; label: string; icon: string }[] = [
   { type: "truck",    label: "Truck / 4x4",  icon: "truck" },
@@ -307,6 +330,193 @@ function AddVehicleModal({
   );
 }
 
+// ── Edit Vehicle Modal ────────────────────────────────────────────────────────
+
+function EditVehicleModal({
+  visible,
+  vehicle,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  vehicle: Vehicle | null;
+  onClose: () => void;
+  onSave: (v: Omit<Vehicle, "id" | "isFavorite" | "createdAt">) => Promise<void>;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const [type, setType] = useState<VehicleType>("truck");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [tireSize, setTireSize] = useState("");
+  const [suspension, setSuspension] = useState("");
+  const [liftIn, setLiftIn] = useState("");
+  const [tireDiameterIn, setTireDiameterIn] = useState("");
+  const [hasLockers, setHasLockers] = useState(false);
+  const [hasLowRange, setHasLowRange] = useState(false);
+  const [mods, setMods] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (vehicle) {
+      setType(vehicle.type);
+      setMake(vehicle.make);
+      setModel(vehicle.model);
+      setYear(vehicle.year);
+      setNickname(vehicle.nickname ?? "");
+      setTireSize(vehicle.tireSize ?? "");
+      setSuspension(vehicle.suspension ?? "");
+      setLiftIn(vehicle.liftIn ? String(vehicle.liftIn) : "");
+      setTireDiameterIn(vehicle.tireDiameterIn ? String(vehicle.tireDiameterIn) : "");
+      setHasLockers(vehicle.hasLockers ?? false);
+      setHasLowRange(vehicle.hasLowRange ?? false);
+      setMods(vehicle.mods ?? "");
+    }
+  }, [vehicle]);
+
+  const handleSave = async () => {
+    if (!make.trim() || !model.trim()) {
+      Alert.alert("Missing Info", "Please enter at least a make and model.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave({
+        type,
+        make: make.trim(),
+        model: model.trim(),
+        year: year.trim(),
+        nickname: nickname.trim(),
+        tireSize: tireSize.trim(),
+        suspension: suspension.trim(),
+        mods: mods.trim(),
+        liftIn: parseFloat(liftIn) || 0,
+        tireDiameterIn: parseFloat(tireDiameterIn) || 0,
+        hasLockers,
+        hasLowRange,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
+        <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
+          <View style={styles.handle} />
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>EDIT VEHICLE</Text>
+
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>VEHICLE TYPE</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {VEHICLE_TYPES.map((v) => (
+                  <TouchableOpacity
+                    key={v.type}
+                    style={[styles.typePill, { backgroundColor: type === v.type ? colors.accent : colors.secondary, borderColor: type === v.type ? colors.accent : colors.border }]}
+                    onPress={() => setType(v.type)}
+                  >
+                    <MaterialCommunityIcons name={v.icon as never} size={16} color={type === v.type ? "#fff" : colors.mutedForeground} />
+                    <Text style={{ color: type === v.type ? "#fff" : colors.mutedForeground, fontWeight: "700", fontSize: 11 }}>{v.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {(
+              [
+                { label: "YEAR", value: year, onChange: setYear, placeholder: "e.g. 2022", numeric: true },
+                { label: "MAKE", value: make, onChange: setMake, placeholder: "e.g. Toyota", numeric: false },
+                { label: "MODEL", value: model, onChange: setModel, placeholder: "e.g. Tacoma TRD Pro", numeric: false },
+                { label: "NICKNAME (OPTIONAL)", value: nickname, onChange: setNickname, placeholder: 'e.g. "The Beast"', numeric: false },
+              ] as { label: string; value: string; onChange: (t: string) => void; placeholder: string; numeric: boolean }[]
+            ).map(({ label, value, onChange, placeholder, numeric }) => (
+              <View key={label} style={{ marginBottom: 12 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>{label}</Text>
+                <TextInput
+                  style={[styles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={placeholder}
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType={numeric ? "numeric" : "default"}
+                />
+              </View>
+            ))}
+
+            <Text style={[styles.sectionDividerLabel, { color: colors.mutedForeground, borderTopColor: colors.border }]}>
+              SPECS — USED BY AI ASSISTANT
+            </Text>
+
+            {(
+              [
+                { label: "TIRE SIZE", value: tireSize, onChange: setTireSize, placeholder: "e.g. 35x12.5R17", numeric: false },
+                { label: "SUSPENSION", value: suspension, onChange: setSuspension, placeholder: "e.g. Icon Stage 8, 3in lift", numeric: false },
+                { label: "LIFT (INCHES)", value: liftIn, onChange: setLiftIn, placeholder: "e.g. 2.5", numeric: true },
+                { label: "TIRE DIAMETER (INCHES)", value: tireDiameterIn, onChange: setTireDiameterIn, placeholder: "e.g. 35", numeric: true },
+              ] as { label: string; value: string; onChange: (t: string) => void; placeholder: string; numeric: boolean }[]
+            ).map(({ label, value, onChange, placeholder, numeric }) => (
+              <View key={label} style={{ marginBottom: 12 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>{label}</Text>
+                <TextInput
+                  style={[styles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={placeholder}
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType={numeric ? "numeric" : "default"}
+                />
+              </View>
+            ))}
+
+            <View style={[styles.switchRow, { borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>HAS LOCKERS</Text>
+                <Text style={[styles.switchSub, { color: colors.mutedForeground }]}>Front or rear locking differentials</Text>
+              </View>
+              <Switch value={hasLockers} onValueChange={setHasLockers} thumbColor={hasLockers ? colors.success : colors.mutedForeground} trackColor={{ false: colors.border, true: "#004D26" }} />
+            </View>
+
+            <View style={[styles.switchRow, { borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>HAS LOW RANGE</Text>
+                <Text style={[styles.switchSub, { color: colors.mutedForeground }]}>2-speed transfer case (4LO)</Text>
+              </View>
+              <Switch value={hasLowRange} onValueChange={setHasLowRange} thumbColor={hasLowRange ? colors.success : colors.mutedForeground} trackColor={{ false: colors.border, true: "#004D26" }} />
+            </View>
+
+            <View style={{ marginBottom: 12 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>MODS & BUILD NOTES</Text>
+              <TextInput
+                style={[styles.modsInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                value={mods}
+                onChangeText={setMods}
+                placeholder="e.g. ARB bumper, snorkel, roof rack, onboard air..."
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
+              <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]} onPress={onClose} disabled={saving}>
+                <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: colors.accent }]} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={[styles.btnText, { color: "#fff" }]}>SAVE CHANGES</Text>}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function GarageScreen() {
@@ -319,6 +529,15 @@ export default function GarageScreen() {
   // ── Vehicles ──────────────────────────────────────────────────────────────
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
+
+  // ── Find Mods state ────────────────────────────────────────────────────────
+  const [modStep, setModStep] = useState<"vehicle" | "category" | "results" | null>(null);
+  const [modVehicle, setModVehicle] = useState<Vehicle | null>(null);
+  const [modCategory, setModCategory] = useState<string>("");
+  const [modResults, setModResults] = useState<ModResult[]>([]);
+  const [modsLoading, setModsLoading] = useState(false);
+  const [modsError, setModsError] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -371,6 +590,54 @@ export default function GarageScreen() {
       Alert.alert("Error", "Could not update favorite.");
     }
   }, [user, vehicles]);
+
+  const updateVehicle = useCallback(async (v: Omit<Vehicle, "id" | "isFavorite" | "createdAt">) => {
+    if (!user || !editVehicle) return;
+    await updateDoc(doc(db, "users", user.uid, "vehicles", editVehicle.id), v);
+    if (editVehicle.isFavorite) {
+      await setDoc(doc(db, "users", user.uid), {
+        vehicleSpecs: {
+          make: v.make, model: v.model, year: v.year,
+          tireSize: v.tireSize ?? "", suspension: v.suspension ?? "",
+          mods: v.mods ?? "", liftIn: v.liftIn ?? 0,
+          tireDiameterIn: v.tireDiameterIn ?? 0,
+          hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
+        },
+      }, { merge: true });
+    }
+    setEditVehicle(null);
+  }, [user, editVehicle]);
+
+  const searchMods = useCallback(async (vehicle: Vehicle, category: string) => {
+    if (!apiServerUrl) {
+      setModsError("API server not configured.");
+      setModsLoading(false);
+      return;
+    }
+    setModsLoading(true);
+    setModsError("");
+    setModResults([]);
+    try {
+      const resp = await fetch(`${apiServerUrl}/api/mods/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleYear: vehicle.year,
+          vehicleMake: vehicle.make,
+          vehicleModel: vehicle.model,
+          vehicleType: vehicle.type,
+          category,
+        }),
+      });
+      const json = await resp.json() as { mods?: ModResult[]; error?: string };
+      if (!resp.ok) throw new Error(json.error ?? "Search failed");
+      setModResults(json.mods ?? []);
+    } catch (e) {
+      setModsError(e instanceof Error ? e.message : "Search failed. Try again.");
+    } finally {
+      setModsLoading(false);
+    }
+  }, []);
 
   const deleteVehicle = useCallback((vehicle: Vehicle) => {
     Alert.alert(
@@ -562,12 +829,13 @@ export default function GarageScreen() {
 
       {/* SECTION TABS */}
       <View style={[styles.sectionTabs, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {(["rides", "maps", "crew"] as GarageSection[]).map((s) => {
+        {(["rides", "maps", "crew", "mods"] as GarageSection[]).map((s) => {
           const active = section === s;
           const cfg = {
-            rides: { icon: "truck" as const, label: "MY RIDES" },
-            maps:  { icon: "map" as const,   label: "OFFLINE MAPS" },
+            rides: { icon: "truck" as const,  label: "MY RIDES" },
+            maps:  { icon: "map" as const,    label: "MAPS" },
             crew:  { icon: "users" as const,  label: "MY CREW" },
+            mods:  { icon: "tool" as const,   label: "FIND MODS" },
           };
           return (
             <TouchableOpacity
@@ -647,6 +915,12 @@ export default function GarageScreen() {
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Feather name="star" size={20} color={v.isFavorite ? colors.accent : colors.mutedForeground} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setEditVehicle(v)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather name="edit-2" size={16} color={colors.mutedForeground} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => deleteVehicle(v)}
@@ -823,11 +1097,215 @@ export default function GarageScreen() {
         </ScrollView>
       )}
 
+      {/* ── FIND MODS ─────────────────────────────────────────────────────── */}
+      {section === "mods" && (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <View style={[styles.modsLaunchCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.modsLaunchIcon, { backgroundColor: colors.accent + "18" }]}>
+              <Feather name="tool" size={32} color={colors.accent} />
+            </View>
+            <Text style={[styles.modsLaunchTitle, { color: colors.foreground }]}>FIND MODS FOR YOUR RIG</Text>
+            <Text style={[styles.modsLaunchSub, { color: colors.mutedForeground }]}>
+              Pick your vehicle and a mod category. We'll search for the best suspension, tires, bumpers, lighting, and more — matched to your exact rig.
+            </Text>
+            {vehicles.length === 0 ? (
+              <View style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
+                <Text style={[{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }]}>
+                  Add a vehicle in My Rides first.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, paddingHorizontal: 20 }]}
+                  onPress={() => setSection("rides")}
+                >
+                  <Feather name="truck" size={14} color={colors.accent} />
+                  <Text style={[styles.btnText, { color: colors.accent }]}>GO TO MY RIDES</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: colors.accent, paddingHorizontal: 32, marginTop: 8 }]}
+                onPress={() => setModStep("vehicle")}
+              >
+                <Feather name="search" size={16} color="#fff" />
+                <Text style={[styles.btnText, { color: "#fff" }]}>FIND MODS</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       <AddVehicleModal
         visible={showAddVehicle}
         onClose={() => setShowAddVehicle(false)}
         onSave={addVehicle}
       />
+
+      <EditVehicleModal
+        visible={editVehicle !== null}
+        vehicle={editVehicle}
+        onClose={() => setEditVehicle(null)}
+        onSave={updateVehicle}
+      />
+
+      {/* ── MOD FLOW: Step 1 — Vehicle Picker ─────────────────────────────── */}
+      <Modal visible={modStep === "vehicle"} animationType="slide" transparent onRequestClose={() => setModStep(null)}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "75%" }]}>
+            <View style={styles.handle} />
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>WHICH RIG?</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }}>
+              Select the vehicle you want to mod
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {vehicles.map((v) => (
+                <TouchableOpacity
+                  key={v.id}
+                  style={[styles.modVehicleRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  onPress={() => { setModVehicle(v); setModStep("category"); }}
+                >
+                  <View style={[styles.vehicleIconWrap, { backgroundColor: v.isFavorite ? colors.accent + "22" : colors.card }]}>
+                    <MaterialCommunityIcons name={vehicleIcon(v.type)} size={22} color={v.isFavorite ? colors.accent : colors.mutedForeground} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>
+                      {v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ")}
+                    </Text>
+                    {v.nickname && (
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}>
+                        {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+                      </Text>
+                    )}
+                  </View>
+                  {v.isFavorite && <Feather name="star" size={13} color={colors.accent} />}
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, marginTop: 10 }]}
+              onPress={() => setModStep(null)}
+            >
+              <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MOD FLOW: Step 2 — Category Picker ────────────────────────────── */}
+      <Modal visible={modStep === "category"} animationType="slide" transparent onRequestClose={() => setModStep("vehicle")}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.handle} />
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>WHAT MODS?</Text>
+            {modVehicle && (
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }}>
+                For: {modVehicle.nickname || [modVehicle.year, modVehicle.make, modVehicle.model].filter(Boolean).join(" ")}
+              </Text>
+            )}
+            <View style={styles.catGrid}>
+              {MOD_CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat.key}
+                  style={[styles.catChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  onPress={() => {
+                    setModCategory(cat.key);
+                    setModStep("results");
+                    if (modVehicle) searchMods(modVehicle, cat.key);
+                  }}
+                >
+                  <Feather name={cat.icon} size={16} color={colors.accent} />
+                  <Text style={[styles.catChipText, { color: colors.foreground }]}>{cat.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, marginTop: 4 }]}
+              onPress={() => setModStep("vehicle")}
+            >
+              <Feather name="arrow-left" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.btnText, { color: colors.mutedForeground }]}>BACK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MOD FLOW: Step 3 — Results ────────────────────────────────────── */}
+      <Modal visible={modStep === "results"} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setModStep("category")}>
+        <View style={[{ flex: 1, backgroundColor: colors.background }]}>
+          <View style={[styles.modResultsHeader, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={() => setModStep("category")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Feather name="arrow-left" size={20} color={colors.foreground} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "900", fontSize: 15, color: colors.foreground, letterSpacing: 1 }}>
+                {modCategory.toUpperCase()}
+              </Text>
+              {modVehicle && (
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}>
+                  {modVehicle.nickname || [modVehicle.year, modVehicle.make, modVehicle.model].filter(Boolean).join(" ")}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {modsLoading ? (
+            <View style={[styles.emptyCenter, { marginTop: 80 }]}>
+              <ActivityIndicator color={colors.accent} size="large" />
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginTop: 14, textAlign: "center" }}>
+                Searching for the best {modCategory} upgrades…
+              </Text>
+            </View>
+          ) : modsError ? (
+            <View style={[styles.emptyCenter, { marginTop: 80 }]}>
+              <Feather name="alert-circle" size={36} color={colors.destructive} />
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 15, marginTop: 10 }}>Search Failed</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center", marginTop: 4 }}>{modsError}</Text>
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: colors.accent, marginTop: 16, paddingHorizontal: 24 }]}
+                onPress={() => modVehicle && searchMods(modVehicle, modCategory)}
+              >
+                <Feather name="refresh-cw" size={14} color="#fff" />
+                <Text style={[styles.btnText, { color: "#fff" }]}>RETRY</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 32, gap: 12 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {modResults.length === 0 ? (
+                <View style={[styles.emptyCenter, { marginTop: 60 }]}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center" }}>
+                    No results found. Try a different category.
+                  </Text>
+                </View>
+              ) : modResults.map((mod, i) => (
+                <View key={i} style={[styles.modResultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.modResultName, { color: colors.foreground }]}>{mod.name}</Text>
+                      <Text style={[styles.modResultBrand, { color: colors.accent }]}>{mod.brand}</Text>
+                      <Text style={[styles.modResultPrice, { color: colors.success ?? "#22c55e" }]}>{mod.priceRange}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.shopBtn, { backgroundColor: colors.accent }]}
+                      onPress={() => Linking.openURL(mod.url).catch(() => {})}
+                    >
+                      <Text style={styles.shopBtnText}>SHOP</Text>
+                      <Feather name="external-link" size={10} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={[styles.modResultDesc, { color: colors.mutedForeground }]}>{mod.description}</Text>
+                  <View style={[styles.modResultWhy, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                    <Feather name="check-circle" size={11} color={colors.accent} />
+                    <Text style={[styles.modResultWhyText, { color: colors.mutedForeground }]}>{mod.why}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1023,4 +1501,84 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   btnText: { fontWeight: "900", fontSize: 13, letterSpacing: 1 },
+
+  // ── Find Mods ──────────────────────────────────────────────────────────────
+  modsLaunchCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    gap: 14,
+    width: "100%",
+  },
+  modsLaunchIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modsLaunchTitle: { fontWeight: "900", fontSize: 17, letterSpacing: 1.5, textAlign: "center" },
+  modsLaunchSub: { fontSize: 12, textAlign: "center", lineHeight: 18, fontWeight: "600" },
+  modVehicleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 8,
+  },
+  catGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 14,
+  },
+  catChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  catChipText: { fontWeight: "800", fontSize: 11, letterSpacing: 0.5 },
+  modResultsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  modResultCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+  },
+  modResultName: { fontWeight: "900", fontSize: 14, letterSpacing: 0.3 },
+  modResultBrand: { fontWeight: "700", fontSize: 12, marginTop: 2 },
+  modResultPrice: { fontWeight: "900", fontSize: 13, marginTop: 2 },
+  modResultDesc: { fontSize: 12, lineHeight: 17, fontWeight: "500" },
+  modResultWhy: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    padding: 8,
+  },
+  modResultWhyText: { flex: 1, fontSize: 11, fontWeight: "600", lineHeight: 16 },
+  shopBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  shopBtnText: { fontWeight: "900", fontSize: 10, letterSpacing: 1, color: "#fff" },
 });
