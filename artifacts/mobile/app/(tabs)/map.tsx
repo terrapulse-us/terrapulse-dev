@@ -272,21 +272,38 @@ const TOPO_STYLE_URL = mtStyle("topo-v2");
 const TERRAIN3D_STYLE_URL = STANDARD_STYLE_URL;
 
 /**
- * Fetch outdoor-v2 style JSON and inject a MapTiler terrain-DEM source +
- * terrain exaggeration so MapLibre renders true 3D elevation.
+ * Fetch any MapTiler style JSON and patch ALL raster / raster-dem sources to
+ * 512 px tiles. On 3× DPI phones (iPhone 12+, Pixel 5+) this halves visible
+ * blurriness with zero extra cost on the MapTiler free tier.
  */
-async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>> {
-  const url = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
+async function fetchHdStyle(url: string): Promise<Record<string, unknown>> {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`MapTiler fetch failed: ${resp.status}`);
   const style = (await resp.json()) as Record<string, unknown>;
+  const sources = (style.sources as Record<string, Record<string, unknown>>) ?? {};
+  for (const src of Object.values(sources)) {
+    if (src.type === "raster" || src.type === "raster-dem") {
+      src.tileSize = 512;
+    }
+  }
+  style.sources = sources;
+  return style;
+}
 
-  // Inject raster-dem source from MapTiler terrain-rgb-v2
+/**
+ * Fetch outdoor-v2 style JSON (HD-patched) and inject a MapTiler terrain-DEM
+ * source + terrain exaggeration so MapLibre renders true 3D elevation.
+ */
+async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>> {
+  const url = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
+  const style = await fetchHdStyle(url);
+
+  // Inject raster-dem source from MapTiler terrain-rgb-v2 at 512 px
   const sources = (style.sources as Record<string, unknown>) ?? {};
   sources["terrain-dem"] = {
     type: "raster-dem",
     url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${key}`,
-    tileSize: 256,
+    tileSize: 512,
     encoding: "mapbox",
   };
   style.sources = sources;
@@ -396,6 +413,11 @@ export default function MapScreen() {
     useState<Record<string, unknown> | null>(null);
   const [terrainExaggeration, setTerrainExaggeration] = useState(2.2);
 
+  // HD style cache for flat layers (standard / satellite / topo).
+  // Keyed by layer name so switching back doesn't re-fetch.
+  const [hdStyleCache, setHdStyleCache] =
+    useState<Record<string, Record<string, unknown>>>({});
+
   // Fetch terrain3d style once (cached in state)
   useEffect(() => {
     if (mapLayer !== "terrain3d" || terrain3dStyleObj !== null) return;
@@ -407,10 +429,30 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   }, [mapLayer, terrain3dStyleObj]);
 
+  // Fetch 512 px-patched HD style for whichever flat layer is active
+  useEffect(() => {
+    if (mapLayer === "terrain3d" || !MAPTILER_KEY) return;
+    if (hdStyleCache[mapLayer]) return; // already cached
+    const url =
+      mapLayer === "standard"  ? STANDARD_STYLE_URL  :
+      mapLayer === "satellite" ? SATELLITE_STYLE_URL  :
+      TOPO_STYLE_URL;
+    let cancelled = false;
+    fetchHdStyle(url)
+      .then((s) => {
+        if (!cancelled)
+          setHdStyleCache((prev) => ({ ...prev, [mapLayer]: s }));
+      })
+      .catch(() => { /* falls back to URL string */ });
+    return () => { cancelled = true; };
+  }, [mapLayer, hdStyleCache]);
+
   const mapStyle = useMemo<never>(() => {
     switch (mapLayer) {
-      case "standard":  return STANDARD_STYLE_URL as never;
-      case "satellite": return SATELLITE_STYLE_URL as never;
+      case "standard":
+        return (hdStyleCache["standard"] ?? STANDARD_STYLE_URL) as never;
+      case "satellite":
+        return (hdStyleCache["satellite"] ?? SATELLITE_STYLE_URL) as never;
       case "terrain3d":
         if (terrain3dStyleObj) {
           // Scale hillshade-exaggeration with the slider so shadows visibly deepen/soften
@@ -432,9 +474,10 @@ export default function MapScreen() {
         }
         return TERRAIN3D_STYLE_URL as never;
       case "topo":
-      default:          return TOPO_STYLE_URL as never;
+      default:
+        return (hdStyleCache["topo"] ?? TOPO_STYLE_URL) as never;
     }
-  }, [mapLayer, terrain3dStyleObj, terrainExaggeration]);
+  }, [mapLayer, terrain3dStyleObj, terrainExaggeration, hdStyleCache]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
