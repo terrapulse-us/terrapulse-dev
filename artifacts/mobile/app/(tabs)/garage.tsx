@@ -81,25 +81,11 @@ interface CrewMember {
 type GarageSection = "rides" | "maps" | "crew" | "mods";
 
 interface ModResult {
-  name: string;
-  brand: string;
-  priceRange: string;
-  description: string;
+  title: string;
   url: string;
-  why: string;
+  source: string;
+  description: string;
 }
-
-const MOD_CATEGORIES: { key: string; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: "suspension",     label: "SUSPENSION",  icon: "trending-up" },
-  { key: "tires",          label: "TIRES",        icon: "circle" },
-  { key: "bumpers",        label: "BUMPERS",      icon: "shield" },
-  { key: "skid plates",    label: "SKID PLATES",  icon: "square" },
-  { key: "lighting",       label: "LIGHTING",     icon: "sun" },
-  { key: "recovery gear",  label: "RECOVERY",     icon: "anchor" },
-  { key: "winches",        label: "WINCHES",      icon: "rotate-cw" },
-  { key: "air compressors",label: "AIR/COMPRESSORS",icon: "wind" },
-  { key: "accessories",    label: "ACCESSORIES",  icon: "tool" },
-];
 
 const VEHICLE_TYPES: { type: VehicleType; label: string; icon: string }[] = [
   { type: "truck",    label: "Truck / 4x4",  icon: "truck" },
@@ -532,9 +518,9 @@ export default function GarageScreen() {
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
 
   // ── Find Mods state ────────────────────────────────────────────────────────
-  const [modStep, setModStep] = useState<"vehicle" | "category" | "results" | null>(null);
+  const [showModVehiclePicker, setShowModVehiclePicker] = useState(false);
   const [modVehicle, setModVehicle] = useState<Vehicle | null>(null);
-  const [modCategory, setModCategory] = useState<string>("");
+  const [modPrompt, setModPrompt] = useState("");
   const [modResults, setModResults] = useState<ModResult[]>([]);
   const [modsLoading, setModsLoading] = useState(false);
   const [modsError, setModsError] = useState("");
@@ -608,10 +594,9 @@ export default function GarageScreen() {
     setEditVehicle(null);
   }, [user, editVehicle]);
 
-  const searchMods = useCallback(async (vehicle: Vehicle, category: string) => {
+  const searchMods = useCallback(async (prompt: string, vehicle: Vehicle | null) => {
     if (!apiServerUrl) {
       setModsError("API server not configured.");
-      setModsLoading(false);
       return;
     }
     setModsLoading(true);
@@ -622,16 +607,16 @@ export default function GarageScreen() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          vehicleYear: vehicle.year,
-          vehicleMake: vehicle.make,
-          vehicleModel: vehicle.model,
-          vehicleType: vehicle.type,
-          category,
+          prompt,
+          vehicleYear: vehicle?.year,
+          vehicleMake: vehicle?.make,
+          vehicleModel: vehicle?.model,
+          vehicleType: vehicle?.type,
         }),
       });
-      const json = await resp.json() as { mods?: ModResult[]; error?: string };
+      const json = await resp.json() as { results?: ModResult[]; error?: string };
       if (!resp.ok) throw new Error(json.error ?? "Search failed");
-      setModResults(json.mods ?? []);
+      setModResults(json.results ?? []);
     } catch (e) {
       setModsError(e instanceof Error ? e.message : "Search failed. Try again.");
     } finally {
@@ -1099,38 +1084,133 @@ export default function GarageScreen() {
 
       {/* ── FIND MODS ─────────────────────────────────────────────────────── */}
       {section === "mods" && (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <View style={[styles.modsLaunchCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.modsLaunchIcon, { backgroundColor: colors.accent + "18" }]}>
-              <Feather name="tool" size={32} color={colors.accent} />
-            </View>
-            <Text style={[styles.modsLaunchTitle, { color: colors.foreground }]}>FIND MODS FOR YOUR RIG</Text>
-            <Text style={[styles.modsLaunchSub, { color: colors.mutedForeground }]}>
-              Pick your vehicle and a mod category. We'll search for the best suspension, tires, bumpers, lighting, and more — matched to your exact rig.
-            </Text>
-            {vehicles.length === 0 ? (
-              <View style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
-                <Text style={[{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }]}>
-                  Add a vehicle in My Rides first.
-                </Text>
+        <View style={{ flex: 1 }}>
+          {/* Search panel */}
+          <View style={[styles.modSearchPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+            {/* Vehicle context pill */}
+            {vehicles.length > 0 && (() => {
+              const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0];
+              return (
                 <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, paddingHorizontal: 20 }]}
-                  onPress={() => setSection("rides")}
+                  style={[styles.modVehiclePill, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  onPress={() => setShowModVehiclePicker(true)}
                 >
-                  <Feather name="truck" size={14} color={colors.accent} />
-                  <Text style={[styles.btnText, { color: colors.accent }]}>GO TO MY RIDES</Text>
+                  <MaterialCommunityIcons name={vehicleIcon(av.type)} size={13} color={colors.accent} />
+                  <Text style={[styles.modVehiclePillText, { color: colors.foreground }]} numberOfLines={1}>
+                    {av.nickname || [av.year, av.make, av.model].filter(Boolean).join(" ")}
+                  </Text>
+                  <Feather name="chevron-down" size={11} color={colors.mutedForeground} />
                 </TouchableOpacity>
-              </View>
-            ) : (
+              );
+            })()}
+
+            {/* Prompt row */}
+            <View style={styles.modPromptRow}>
+              <TextInput
+                style={[styles.modPromptInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                value={modPrompt}
+                onChangeText={setModPrompt}
+                placeholder={'What mods are you looking for? (e.g. 35" tires, skid plates, roof rack...)'}
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                returnKeyType="search"
+                blurOnSubmit
+                onSubmitEditing={() => {
+                  const trimmed = modPrompt.trim();
+                  if (!trimmed || modsLoading) return;
+                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
+                  void searchMods(trimmed, av);
+                }}
+              />
               <TouchableOpacity
-                style={[styles.btn, { backgroundColor: colors.accent, paddingHorizontal: 32, marginTop: 8 }]}
-                onPress={() => setModStep("vehicle")}
+                style={[styles.modSearchBtn, { backgroundColor: modsLoading || !modPrompt.trim() ? colors.secondary : colors.accent }]}
+                onPress={() => {
+                  const trimmed = modPrompt.trim();
+                  if (!trimmed || modsLoading) return;
+                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
+                  void searchMods(trimmed, av);
+                }}
+                disabled={modsLoading || !modPrompt.trim()}
               >
-                <Feather name="search" size={16} color="#fff" />
-                <Text style={[styles.btnText, { color: "#fff" }]}>FIND MODS</Text>
+                {modsLoading
+                  ? <ActivityIndicator size="small" color={colors.mutedForeground} />
+                  : <Feather name="search" size={18} color="#fff" />
+                }
               </TouchableOpacity>
-            )}
+            </View>
           </View>
+
+          {/* Results / empty states */}
+          {modsLoading ? (
+            <View style={styles.emptyCenter}>
+              <ActivityIndicator color={colors.accent} size="large" />
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginTop: 14, textAlign: "center" }}>
+                Searching across the web…
+              </Text>
+            </View>
+          ) : modsError ? (
+            <View style={styles.emptyCenter}>
+              <Feather name="alert-circle" size={32} color={colors.destructive} />
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 15, marginTop: 10 }}>Search Failed</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center", marginTop: 4 }}>{modsError}</Text>
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: colors.accent, marginTop: 16, paddingHorizontal: 24 }]}
+                onPress={() => {
+                  const trimmed = modPrompt.trim();
+                  if (!trimmed) return;
+                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
+                  void searchMods(trimmed, av);
+                }}
+              >
+                <Feather name="refresh-cw" size={14} color="#fff" />
+                <Text style={[styles.btnText, { color: "#fff" }]}>RETRY</Text>
+              </TouchableOpacity>
+            </View>
+          ) : modResults.length > 0 ? (
+            <ScrollView
+              contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 80, gap: 10 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "800", letterSpacing: 1, marginBottom: 2 }}>
+                {modResults.length} RESULTS — TAP TO OPEN
+              </Text>
+              {modResults.map((r, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.modLinkCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => Linking.openURL(r.url).catch(() => {})}
+                  activeOpacity={0.75}
+                >
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={[styles.modLinkTitle, { color: colors.foreground }]} numberOfLines={2}>
+                      {r.title}
+                    </Text>
+                    {!!r.description && (
+                      <Text style={[styles.modLinkDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                        {r.description}
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                      <Feather name="globe" size={10} color={colors.mutedForeground} />
+                      <Text style={[styles.modLinkSource, { color: colors.mutedForeground }]}>{r.source}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.modLinkArrow, { backgroundColor: colors.accent + "18" }]}>
+                    <Feather name="external-link" size={15} color={colors.accent} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyCenter}>
+              <Feather name="tool" size={40} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Find Mods</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Describe what you're looking for — suspension lift, 35" tires, skid plates, recovery gear — and we'll pull real product links from across the web.
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -1147,163 +1227,50 @@ export default function GarageScreen() {
         onSave={updateVehicle}
       />
 
-      {/* ── MOD FLOW: Step 1 — Vehicle Picker ─────────────────────────────── */}
-      <Modal visible={modStep === "vehicle"} animationType="slide" transparent onRequestClose={() => setModStep(null)}>
+      {/* ── Vehicle Picker (for mod context) ──────────────────────────────── */}
+      <Modal visible={showModVehiclePicker} animationType="slide" transparent onRequestClose={() => setShowModVehiclePicker(false)}>
         <View style={styles.modalBg}>
-          <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "75%" }]}>
+          <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "65%" }]}>
             <View style={styles.handle} />
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>WHICH RIG?</Text>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>SEARCH FOR WHICH RIG?</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }}>
-              Select the vehicle you want to mod
+              Your vehicle tailors the search results
             </Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {vehicles.map((v) => (
-                <TouchableOpacity
-                  key={v.id}
-                  style={[styles.modVehicleRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                  onPress={() => { setModVehicle(v); setModStep("category"); }}
-                >
-                  <View style={[styles.vehicleIconWrap, { backgroundColor: v.isFavorite ? colors.accent + "22" : colors.card }]}>
-                    <MaterialCommunityIcons name={vehicleIcon(v.type)} size={22} color={v.isFavorite ? colors.accent : colors.mutedForeground} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>
-                      {v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ")}
-                    </Text>
-                    {v.nickname && (
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}>
-                        {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+              {vehicles.map((v) => {
+                const av = modVehicle ?? vehicles.find((v2) => v2.isFavorite) ?? vehicles[0];
+                const selected = v.id === av?.id;
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[styles.modVehicleRow, { backgroundColor: selected ? colors.accent + "18" : colors.secondary, borderColor: selected ? colors.accent : colors.border }]}
+                    onPress={() => { setModVehicle(v); setShowModVehiclePicker(false); }}
+                  >
+                    <View style={[styles.vehicleIconWrap, { backgroundColor: selected ? colors.accent + "22" : colors.card }]}>
+                      <MaterialCommunityIcons name={vehicleIcon(v.type)} size={22} color={selected ? colors.accent : colors.mutedForeground} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 14 }}>
+                        {v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ")}
                       </Text>
-                    )}
-                  </View>
-                  {v.isFavorite && <Feather name="star" size={13} color={colors.accent} />}
-                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-                </TouchableOpacity>
-              ))}
+                      {v.nickname && (
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}>
+                          {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+                        </Text>
+                      )}
+                    </View>
+                    {selected && <Feather name="check" size={16} color={colors.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, marginTop: 10 }]}
-              onPress={() => setModStep(null)}
+              onPress={() => setShowModVehiclePicker(false)}
             >
               <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-
-      {/* ── MOD FLOW: Step 2 — Category Picker ────────────────────────────── */}
-      <Modal visible={modStep === "category"} animationType="slide" transparent onRequestClose={() => setModStep("vehicle")}>
-        <View style={styles.modalBg}>
-          <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 }]}>
-            <View style={styles.handle} />
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>WHAT MODS?</Text>
-            {modVehicle && (
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }}>
-                For: {modVehicle.nickname || [modVehicle.year, modVehicle.make, modVehicle.model].filter(Boolean).join(" ")}
-              </Text>
-            )}
-            <View style={styles.catGrid}>
-              {MOD_CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.key}
-                  style={[styles.catChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                  onPress={() => {
-                    setModCategory(cat.key);
-                    setModStep("results");
-                    if (modVehicle) searchMods(modVehicle, cat.key);
-                  }}
-                >
-                  <Feather name={cat.icon} size={16} color={colors.accent} />
-                  <Text style={[styles.catChipText, { color: colors.foreground }]}>{cat.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, marginTop: 4 }]}
-              onPress={() => setModStep("vehicle")}
-            >
-              <Feather name="arrow-left" size={14} color={colors.mutedForeground} />
-              <Text style={[styles.btnText, { color: colors.mutedForeground }]}>BACK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── MOD FLOW: Step 3 — Results ────────────────────────────────────── */}
-      <Modal visible={modStep === "results"} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setModStep("category")}>
-        <View style={[{ flex: 1, backgroundColor: colors.background }]}>
-          <View style={[styles.modResultsHeader, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setModStep("category")} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Feather name="arrow-left" size={20} color={colors.foreground} />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "900", fontSize: 15, color: colors.foreground, letterSpacing: 1 }}>
-                {modCategory.toUpperCase()}
-              </Text>
-              {modVehicle && (
-                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}>
-                  {modVehicle.nickname || [modVehicle.year, modVehicle.make, modVehicle.model].filter(Boolean).join(" ")}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {modsLoading ? (
-            <View style={[styles.emptyCenter, { marginTop: 80 }]}>
-              <ActivityIndicator color={colors.accent} size="large" />
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginTop: 14, textAlign: "center" }}>
-                Searching for the best {modCategory} upgrades…
-              </Text>
-            </View>
-          ) : modsError ? (
-            <View style={[styles.emptyCenter, { marginTop: 80 }]}>
-              <Feather name="alert-circle" size={36} color={colors.destructive} />
-              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 15, marginTop: 10 }}>Search Failed</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center", marginTop: 4 }}>{modsError}</Text>
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: colors.accent, marginTop: 16, paddingHorizontal: 24 }]}
-                onPress={() => modVehicle && searchMods(modVehicle, modCategory)}
-              >
-                <Feather name="refresh-cw" size={14} color="#fff" />
-                <Text style={[styles.btnText, { color: "#fff" }]}>RETRY</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ScrollView
-              contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 32, gap: 12 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {modResults.length === 0 ? (
-                <View style={[styles.emptyCenter, { marginTop: 60 }]}>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center" }}>
-                    No results found. Try a different category.
-                  </Text>
-                </View>
-              ) : modResults.map((mod, i) => (
-                <View key={i} style={[styles.modResultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.modResultName, { color: colors.foreground }]}>{mod.name}</Text>
-                      <Text style={[styles.modResultBrand, { color: colors.accent }]}>{mod.brand}</Text>
-                      <Text style={[styles.modResultPrice, { color: colors.success ?? "#22c55e" }]}>{mod.priceRange}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.shopBtn, { backgroundColor: colors.accent }]}
-                      onPress={() => Linking.openURL(mod.url).catch(() => {})}
-                    >
-                      <Text style={styles.shopBtnText}>SHOP</Text>
-                      <Feather name="external-link" size={10} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={[styles.modResultDesc, { color: colors.mutedForeground }]}>{mod.description}</Text>
-                  <View style={[styles.modResultWhy, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-                    <Feather name="check-circle" size={11} color={colors.accent} />
-                    <Text style={[styles.modResultWhyText, { color: colors.mutedForeground }]}>{mod.why}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          )}
         </View>
       </Modal>
     </View>
@@ -1503,23 +1470,45 @@ const styles = StyleSheet.create({
   btnText: { fontWeight: "900", fontSize: 13, letterSpacing: 1 },
 
   // ── Find Mods ──────────────────────────────────────────────────────────────
-  modsLaunchCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    gap: 14,
-    width: "100%",
+  modSearchPanel: {
+    padding: 14,
+    gap: 10,
+    borderBottomWidth: 1,
   },
-  modsLaunchIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  modVehiclePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignSelf: "flex-start",
+  },
+  modVehiclePillText: { fontWeight: "700", fontSize: 12, maxWidth: 220 },
+  modPromptRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  modPromptInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 14,
+    fontWeight: "500",
+    minHeight: 50,
+    maxHeight: 110,
+  },
+  modSearchBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  modsLaunchTitle: { fontWeight: "900", fontSize: 17, letterSpacing: 1.5, textAlign: "center" },
-  modsLaunchSub: { fontSize: 12, textAlign: "center", lineHeight: 18, fontWeight: "600" },
   modVehicleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1529,56 +1518,22 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
-  catGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 14,
-  },
-  catChip: {
+  modLinkCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  catChipText: { fontWeight: "800", fontSize: 11, letterSpacing: 0.5 },
-  modResultsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  modResultCard: {
-    borderRadius: 12,
+    gap: 12,
+    borderRadius: 10,
     borderWidth: 1,
     padding: 14,
-    gap: 10,
   },
-  modResultName: { fontWeight: "900", fontSize: 14, letterSpacing: 0.3 },
-  modResultBrand: { fontWeight: "700", fontSize: 12, marginTop: 2 },
-  modResultPrice: { fontWeight: "900", fontSize: 13, marginTop: 2 },
-  modResultDesc: { fontSize: 12, lineHeight: 17, fontWeight: "500" },
-  modResultWhy: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    padding: 8,
-  },
-  modResultWhyText: { flex: 1, fontSize: 11, fontWeight: "600", lineHeight: 16 },
-  shopBtn: {
-    flexDirection: "row",
+  modLinkTitle: { fontWeight: "800", fontSize: 13, lineHeight: 18 },
+  modLinkDesc: { fontSize: 11, lineHeight: 16, fontWeight: "500" },
+  modLinkSource: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
+  modLinkArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
-    gap: 4,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    justifyContent: "center",
   },
-  shopBtnText: { fontWeight: "900", fontSize: 10, letterSpacing: 1, color: "#fff" },
 });
