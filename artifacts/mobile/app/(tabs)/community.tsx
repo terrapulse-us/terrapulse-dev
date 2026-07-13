@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 11, fontWeight: "700", letterSpacing: 2, marginTop: 8 },
   emptyTitle: { fontWeight: "900", fontSize: 16, textAlign: "center" },
   emptySub: { fontSize: 12, textAlign: "center", lineHeight: 18 },
-  crewRow: { borderTopWidth: 1, flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 14, paddingVertical: 8 },
-  crewBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
-  crewBtnText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
+  crewRow: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 12, paddingBottom: 8, marginTop: -4 },
+  crewBtn: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
+  crewBtnText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.3 },
 });

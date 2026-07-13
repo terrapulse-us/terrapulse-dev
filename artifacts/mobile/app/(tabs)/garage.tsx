@@ -49,6 +49,13 @@ interface Vehicle {
   year: string;
   nickname: string;
   isFavorite: boolean;
+  tireSize?: string;
+  suspension?: string;
+  mods?: string;
+  liftIn?: number;
+  tireDiameterIn?: number;
+  hasLockers?: boolean;
+  hasLowRange?: boolean;
   createdAt?: number;
 }
 
@@ -111,10 +118,19 @@ function AddVehicleModal({
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [nickname, setNickname] = useState("");
+  const [tireSize, setTireSize] = useState("");
+  const [suspension, setSuspension] = useState("");
+  const [liftIn, setLiftIn] = useState("");
+  const [tireDiameterIn, setTireDiameterIn] = useState("");
+  const [hasLockers, setHasLockers] = useState(false);
+  const [hasLowRange, setHasLowRange] = useState(false);
+  const [mods, setMods] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setType("truck"); setMake(""); setModel(""); setYear(""); setNickname("");
+    setTireSize(""); setSuspension(""); setLiftIn(""); setTireDiameterIn("");
+    setHasLockers(false); setHasLowRange(false); setMods("");
   };
 
   const handleSave = async () => {
@@ -124,7 +140,20 @@ function AddVehicleModal({
     }
     setSaving(true);
     try {
-      await onSave({ type, make: make.trim(), model: model.trim(), year: year.trim(), nickname: nickname.trim() });
+      await onSave({
+        type,
+        make: make.trim(),
+        model: model.trim(),
+        year: year.trim(),
+        nickname: nickname.trim(),
+        tireSize: tireSize.trim(),
+        suspension: suspension.trim(),
+        mods: mods.trim(),
+        liftIn: parseFloat(liftIn) || 0,
+        tireDiameterIn: parseFloat(tireDiameterIn) || 0,
+        hasLockers,
+        hasLowRange,
+      });
       reset();
     } finally {
       setSaving(false);
@@ -134,77 +163,144 @@ function AddVehicleModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => { reset(); onClose(); }}>
       <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
-        <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
           <View style={styles.handle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>ADD VEHICLE</Text>
 
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>VEHICLE TYPE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {VEHICLE_TYPES.map((v) => (
-                <TouchableOpacity
-                  key={v.type}
-                  style={[
-                    styles.typePill,
-                    {
-                      backgroundColor: type === v.type ? colors.accent : colors.secondary,
-                      borderColor: type === v.type ? colors.accent : colors.border,
-                    },
-                  ]}
-                  onPress={() => setType(v.type)}
-                >
-                  <MaterialCommunityIcons
-                    name={v.icon as never}
-                    size={16}
-                    color={type === v.type ? "#fff" : colors.mutedForeground}
-                  />
-                  <Text style={{ color: type === v.type ? "#fff" : colors.mutedForeground, fontWeight: "700", fontSize: 11 }}>
-                    {v.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>VEHICLE TYPE</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {VEHICLE_TYPES.map((v) => (
+                  <TouchableOpacity
+                    key={v.type}
+                    style={[
+                      styles.typePill,
+                      {
+                        backgroundColor: type === v.type ? colors.accent : colors.secondary,
+                        borderColor: type === v.type ? colors.accent : colors.border,
+                      },
+                    ]}
+                    onPress={() => setType(v.type)}
+                  >
+                    <MaterialCommunityIcons
+                      name={v.icon as never}
+                      size={16}
+                      color={type === v.type ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text style={{ color: type === v.type ? "#fff" : colors.mutedForeground, fontWeight: "700", fontSize: 11 }}>
+                      {v.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
 
-          {(
-            [
-              { label: "YEAR", value: year, onChange: setYear, placeholder: "e.g. 2022", numeric: true },
-              { label: "MAKE", value: make, onChange: setMake, placeholder: "e.g. Toyota", numeric: false },
-              { label: "MODEL", value: model, onChange: setModel, placeholder: "e.g. Tacoma TRD Pro", numeric: false },
-              { label: "NICKNAME (OPTIONAL)", value: nickname, onChange: setNickname, placeholder: 'e.g. "The Beast"', numeric: false },
-            ] as { label: string; value: string; onChange: (t: string) => void; placeholder: string; numeric: boolean }[]
-          ).map(({ label, value, onChange, placeholder, numeric }) => (
-            <View key={label} style={{ marginBottom: 12 }}>
-              <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>{label}</Text>
-              <TextInput
-                style={[styles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
-                value={value}
-                onChangeText={onChange}
-                placeholder={placeholder}
-                placeholderTextColor={colors.mutedForeground}
-                keyboardType={numeric ? "numeric" : "default"}
+            {(
+              [
+                { label: "YEAR", value: year, onChange: setYear, placeholder: "e.g. 2022", numeric: true },
+                { label: "MAKE", value: make, onChange: setMake, placeholder: "e.g. Toyota", numeric: false },
+                { label: "MODEL", value: model, onChange: setModel, placeholder: "e.g. Tacoma TRD Pro", numeric: false },
+                { label: "NICKNAME (OPTIONAL)", value: nickname, onChange: setNickname, placeholder: 'e.g. "The Beast"', numeric: false },
+              ] as { label: string; value: string; onChange: (t: string) => void; placeholder: string; numeric: boolean }[]
+            ).map(({ label, value, onChange, placeholder, numeric }) => (
+              <View key={label} style={{ marginBottom: 12 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>{label}</Text>
+                <TextInput
+                  style={[styles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={placeholder}
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType={numeric ? "numeric" : "default"}
+                />
+              </View>
+            ))}
+
+            <Text style={[styles.sectionDividerLabel, { color: colors.mutedForeground, borderTopColor: colors.border }]}>
+              SPECS — USED BY AI ASSISTANT
+            </Text>
+
+            {(
+              [
+                { label: "TIRE SIZE", value: tireSize, onChange: setTireSize, placeholder: "e.g. 35x12.5R17", numeric: false },
+                { label: "SUSPENSION", value: suspension, onChange: setSuspension, placeholder: "e.g. Icon Stage 8, 3in lift", numeric: false },
+                { label: "LIFT (INCHES)", value: liftIn, onChange: setLiftIn, placeholder: "e.g. 2.5", numeric: true },
+                { label: "TIRE DIAMETER (INCHES)", value: tireDiameterIn, onChange: setTireDiameterIn, placeholder: "e.g. 35", numeric: true },
+              ] as { label: string; value: string; onChange: (t: string) => void; placeholder: string; numeric: boolean }[]
+            ).map(({ label, value, onChange, placeholder, numeric }) => (
+              <View key={label} style={{ marginBottom: 12 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>{label}</Text>
+                <TextInput
+                  style={[styles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={placeholder}
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType={numeric ? "numeric" : "default"}
+                />
+              </View>
+            ))}
+
+            <View style={[styles.switchRow, { borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>HAS LOCKERS</Text>
+                <Text style={[styles.switchSub, { color: colors.mutedForeground }]}>Front or rear locking differentials</Text>
+              </View>
+              <Switch
+                value={hasLockers}
+                onValueChange={setHasLockers}
+                thumbColor={hasLockers ? colors.success : colors.mutedForeground}
+                trackColor={{ false: colors.border, true: "#004D26" }}
               />
             </View>
-          ))}
 
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
-            <TouchableOpacity
-              style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
-              onPress={() => { reset(); onClose(); }}
-              disabled={saving}
-            >
-              <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, { flex: 1, backgroundColor: colors.accent }]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? <ActivityIndicator color="#fff" size="small" /> : (
-                <Text style={[styles.btnText, { color: "#fff" }]}>ADD VEHICLE</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+            <View style={[styles.switchRow, { borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>HAS LOW RANGE</Text>
+                <Text style={[styles.switchSub, { color: colors.mutedForeground }]}>2-speed transfer case (4LO)</Text>
+              </View>
+              <Switch
+                value={hasLowRange}
+                onValueChange={setHasLowRange}
+                thumbColor={hasLowRange ? colors.success : colors.mutedForeground}
+                trackColor={{ false: colors.border, true: "#004D26" }}
+              />
+            </View>
+
+            <View style={{ marginBottom: 12 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 4 }]}>MODS & BUILD NOTES</Text>
+              <TextInput
+                style={[styles.modsInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
+                value={mods}
+                onChangeText={setMods}
+                placeholder="e.g. ARB bumper, snorkel, roof rack, onboard air..."
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
+              <TouchableOpacity
+                style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                onPress={() => { reset(); onClose(); }}
+                disabled={saving}
+              >
+                <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, { flex: 1, backgroundColor: colors.accent }]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? <ActivityIndicator color="#fff" size="small" /> : (
+                  <Text style={[styles.btnText, { color: "#fff" }]}>ADD VEHICLE</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -244,7 +340,13 @@ export default function GarageScreen() {
     });
     if (isFirst) {
       await setDoc(doc(db, "users", user.uid), {
-        vehicleSpecs: { make: v.make, model: v.model, year: v.year },
+        vehicleSpecs: {
+          make: v.make, model: v.model, year: v.year,
+          tireSize: v.tireSize ?? "", suspension: v.suspension ?? "",
+          mods: v.mods ?? "", liftIn: v.liftIn ?? 0,
+          tireDiameterIn: v.tireDiameterIn ?? 0,
+          hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
+        },
       }, { merge: true });
     }
     setShowAddVehicle(false);
@@ -257,7 +359,13 @@ export default function GarageScreen() {
       if (prev) await updateDoc(doc(db, "users", user.uid, "vehicles", prev.id), { isFavorite: false });
       await updateDoc(doc(db, "users", user.uid, "vehicles", vehicle.id), { isFavorite: true });
       await setDoc(doc(db, "users", user.uid), {
-        vehicleSpecs: { make: vehicle.make, model: vehicle.model, year: vehicle.year },
+        vehicleSpecs: {
+          make: vehicle.make, model: vehicle.model, year: vehicle.year,
+          tireSize: vehicle.tireSize ?? "", suspension: vehicle.suspension ?? "",
+          mods: vehicle.mods ?? "", liftIn: vehicle.liftIn ?? 0,
+          tireDiameterIn: vehicle.tireDiameterIn ?? 0,
+          hasLockers: vehicle.hasLockers ?? false, hasLowRange: vehicle.hasLowRange ?? false,
+        },
       }, { merge: true });
     } catch {
       Alert.alert("Error", "Could not update favorite.");
@@ -878,6 +986,33 @@ const styles = StyleSheet.create({
     height: 46,
     fontSize: 13,
     fontWeight: "600",
+  },
+  sectionDividerLabel: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 2,
+    borderTopWidth: 1,
+    paddingTop: 14,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+    gap: 12,
+  },
+  switchSub: { fontSize: 10, fontWeight: "600", marginTop: 2 },
+  modsInput: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 13,
+    fontWeight: "600",
+    minHeight: 80,
   },
   btn: {
     flexDirection: "row",

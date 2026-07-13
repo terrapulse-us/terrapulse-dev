@@ -47,19 +47,6 @@ import { useColors } from "@/hooks/useColors";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SIZE = (SCREEN_WIDTH - 4) / 3;
 
-interface VehicleSpecs {
-  make: string;
-  model: string;
-  year: string;
-  tireSize: string;
-  suspension: string;
-  mods: string;
-  liftIn: number;
-  tireDiameterIn: number;
-  hasLockers: boolean;
-  hasLowRange: boolean;
-}
-
 interface MediaItem {
   url: string;
   type: "photo" | "video";
@@ -98,7 +85,7 @@ function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-const SECTIONS = ["gallery", "specs", "achievements", "rides", "settings", "notifications"] as const;
+const SECTIONS = ["gallery", "achievements", "rides", "settings", "notifications"] as const;
 
 interface AppNotification {
   id: string;
@@ -125,20 +112,6 @@ export default function ProfileScreen() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [specs, setSpecs] = useState<VehicleSpecs>({
-    make: "",
-    model: "",
-    year: "",
-    tireSize: "",
-    suspension: "",
-    mods: "",
-    liftIn: 0,
-    tireDiameterIn: 0,
-    hasLockers: false,
-    hasLowRange: false
-  });
-  const [savingSpecs, setSavingSpecs] = useState(false);
-  const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [rides, setRides] = useState<RideRecord[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -155,7 +128,6 @@ export default function ProfileScreen() {
     if (!user) return;
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
       const data = snap.exists() ? snap.data() : {};
-      if (data.vehicleSpecs) setSpecs(data.vehicleSpecs);
       if (typeof data.isPublic === "boolean") setIsPublic(data.isPublic);
       if (data.displayName) setDisplayName(data.displayName as string);
       if (data.photoURL) setAvatarUrl(data.photoURL as string);
@@ -447,20 +419,6 @@ export default function ProfileScreen() {
     }
   }, [user]);
 
-  const saveSpecs = useCallback(async () => {
-    if (!user) return;
-    setSavingSpecs(true);
-    try {
-      await setDoc(doc(db, "users", user.uid), { vehicleSpecs: specs }, { merge: true });
-      setSpecsSaved(true);
-      setTimeout(() => setSpecsSaved(false), 2000);
-    } catch {
-      Alert.alert("Error", "Could not save specs. Try again.");
-    } finally {
-      setSavingSpecs(false);
-    }
-  }, [user, specs]);
-
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
@@ -569,7 +527,7 @@ export default function ProfileScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Feather
-              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : s === "settings" ? "settings" : s === "notifications" ? "bell" : "award"}
+              name={s === "gallery" ? "image" : s === "rides" ? "activity" : s === "settings" ? "settings" : s === "notifications" ? "bell" : "award"}
               size={16}
               color={activeSection === s ? colors.accent : colors.mutedForeground}
             />
@@ -630,139 +588,6 @@ export default function ProfileScreen() {
             />
           )}
         </View>
-      )}
-
-      {/* VEHICLE SPECS */}
-      {activeSection === "specs" && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.specsContainer, { paddingBottom: insets.bottom + 20 }]}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={[styles.specsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.specsCardHeader}>
-              <Feather name="truck" size={18} color={colors.accent} />
-              <Text style={[styles.specsCardTitle, { color: colors.foreground }]}>MY RIG</Text>
-            </View>
-
-            {([
-              { key: "year", label: "YEAR", placeholder: "e.g. 2022", icon: "calendar" },
-              { key: "make", label: "MAKE", placeholder: "e.g. Toyota", icon: "truck" },
-              { key: "model", label: "MODEL", placeholder: "e.g. Tacoma TRD Pro", icon: "tag" },
-              { key: "tireSize", label: "TIRE SIZE", placeholder: 'e.g. 35x12.5R17', icon: "circle" },
-              { key: "suspension", label: "SUSPENSION", placeholder: "e.g. Icon Stage 8, 3in lift", icon: "settings" },
-            ] as { key: keyof VehicleSpecs; label: string; placeholder: string; icon: string }[]).map(({ key, label, placeholder, icon }) => (
-              <View key={key} style={styles.fieldWrap}>
-                <Text style={[styles.fieldLabel, { color: colors.accent }]}>{label}</Text>
-                <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-                  <Feather name={icon as keyof typeof Feather.glyphMap} size={14} color={colors.mutedForeground} />
-                  <TextInput
-                    style={[styles.fieldInput, { color: colors.foreground }]}
-                    placeholder={placeholder}
-                    placeholderTextColor={colors.mutedForeground}
-                    value={String(specs[key] ?? "")}
-                    onChangeText={(t) => setSpecs((s) => ({ ...s, [key]: t }))}
-                  />
-                </View>
-              </View>
-            ))}
-
-            <View style={styles.specsDivider} />
-            <View style={styles.specsCardHeader}>
-              <Feather name="bar-chart-2" size={18} color={colors.accent} />
-              <Text style={[styles.specsCardTitle, { color: colors.foreground }]}>DETERMINISTIC SPECS (FOR ASSISTANT)</Text>
-            </View>
-            <Text style={[styles.specsSub, { color: colors.mutedForeground, marginBottom: 12 }]}>
-              These help the AI Trip Assistant check if your vehicle fits specific trails.
-            </Text>
-
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, { color: colors.accent }]}>LIFT (INCHES)</Text>
-              <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-                <Feather name="arrow-up" size={14} color={colors.mutedForeground} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.foreground }]}
-                  placeholder="e.g. 2.5"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  value={String(specs.liftIn || "")}
-                  onChangeText={(t) => setSpecs((s) => ({ ...s, liftIn: parseFloat(t) || 0 }))}
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, { color: colors.accent }]}>TIRE DIAMETER (INCHES)</Text>
-              <View style={[styles.fieldRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-                <Feather name="circle" size={14} color={colors.mutedForeground} />
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.foreground }]}
-                  placeholder="e.g. 33"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  value={String(specs.tireDiameterIn || "")}
-                  onChangeText={(t) => setSpecs((s) => ({ ...s, tireDiameterIn: parseFloat(t) || 0 }))}
-                />
-              </View>
-            </View>
-
-            <View style={[styles.switchField, { marginVertical: 8 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.accent, marginBottom: 2 }]}>HAS LOCKERS</Text>
-                <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>Front or rear locking differentials</Text>
-              </View>
-              <Switch
-                value={specs.hasLockers}
-                onValueChange={(v) => setSpecs((s) => ({ ...s, hasLockers: v }))}
-                thumbColor={specs.hasLockers ? colors.success : colors.mutedForeground}
-                trackColor={{ false: colors.border, true: "#004D26" }}
-              />
-            </View>
-
-            <View style={[styles.switchField, { marginVertical: 8 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.accent, marginBottom: 2 }]}>HAS LOW RANGE</Text>
-                <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>2-speed transfer case (4LO)</Text>
-              </View>
-              <Switch
-                value={specs.hasLowRange}
-                onValueChange={(v) => setSpecs((s) => ({ ...s, hasLowRange: v }))}
-                thumbColor={specs.hasLowRange ? colors.success : colors.mutedForeground}
-                trackColor={{ false: colors.border, true: "#004D26" }}
-              />
-            </View>
-
-            <View style={styles.specsDivider} />
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.fieldLabel, { color: colors.accent }]}>MODS & BUILD NOTES</Text>
-              <TextInput
-                style={[styles.modsInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
-                placeholder="e.g. ARB bumper, snorkel, roof rack, onboard air..."
-                placeholderTextColor={colors.mutedForeground}
-                value={specs.mods}
-                onChangeText={(t) => setSpecs((s) => ({ ...s, mods: t }))}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: "#74C274" }, savingSpecs && { opacity: 0.6 }]}
-              onPress={saveSpecs}
-              disabled={savingSpecs}
-            >
-              {savingSpecs ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Feather name={specsSaved ? "check" : "save"} size={16} color="#fff" />
-                  <Text style={[styles.saveBtnText, { color: "#fff" }]}>{specsSaved ? "SAVED!" : "SAVE RIG SPECS"}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
       )}
 
       {/* ACHIEVEMENTS */}
