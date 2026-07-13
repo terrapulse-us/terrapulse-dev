@@ -197,7 +197,7 @@ export default function AssistantScreen() {
 
   const handleSend = async () => {
     const content = input.trim();
-    if (!content || sending || conversationId === null || !uid) return;
+    if (!content || sending || !uid) return;
 
     setInput("");
     setErrorMsg(null);
@@ -207,8 +207,22 @@ export default function AssistantScreen() {
     setStreamingItinerary(null);
     setStreamingCoverageWarning(null);
 
+    // Lazy-create the conversation on first send so the input is never locked
+    let cid = conversationId;
+    if (cid === null) {
+      try {
+        const created = await createConversation.mutateAsync({ data: { title: "Trip Chat" } });
+        cid = created.id;
+        setConversationId(created.id);
+      } catch {
+        setErrorMsg("Could not start a conversation. Please check your connection and try again.");
+        setSending(false);
+        return;
+      }
+    }
+
     queryClient.setQueryData(
-      getGetAssistantConversationQueryKey(conversationId),
+      getGetAssistantConversationQueryKey(cid),
       (old: AssistantConversationWithMessages | undefined) =>
         old
           ? {
@@ -217,7 +231,7 @@ export default function AssistantScreen() {
                 ...old.messages,
                 {
                   id: -Date.now(),
-                  conversationId,
+                  conversationId: cid,
                   role: "user" as const,
                   content,
                   toolsUsed: null,
@@ -230,7 +244,7 @@ export default function AssistantScreen() {
 
     try {
       await streamAssistantMessage(
-        conversationId,
+        cid,
         uid,
         content,
         vehicleProfile,
@@ -256,7 +270,7 @@ export default function AssistantScreen() {
       setStreamingItinerary(null);
       setStreamingCoverageWarning(null);
       queryClient.invalidateQueries({
-        queryKey: getGetAssistantConversationQueryKey(conversationId),
+        queryKey: getGetAssistantConversationQueryKey(cid),
       });
     }
   };
@@ -430,13 +444,13 @@ export default function AssistantScreen() {
           placeholder="Ask about a trail, weather, or camping…"
           placeholderTextColor={colors.mutedForeground}
           multiline
-          editable={!sending && conversationId !== null}
+          editable={!sending}
           onSubmitEditing={handleSend}
         />
         <TouchableOpacity
           style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
           onPress={handleSend}
-          disabled={!input.trim() || sending || conversationId === null}
+          disabled={!input.trim() || sending || !uid}
         >
           {sending ? (
             <ActivityIndicator size="small" color={colors.primaryForeground} />

@@ -614,8 +614,17 @@ export default function GarageScreen() {
           vehicleType: vehicle?.type,
         }),
       });
-      const json = await resp.json() as { results?: ModResult[]; error?: string };
-      if (!resp.ok) throw new Error(json.error ?? "Search failed");
+      let json: { results?: ModResult[]; error?: string };
+      try {
+        json = await resp.json() as { results?: ModResult[]; error?: string };
+      } catch {
+        throw new Error(
+          resp.ok
+            ? "Server returned an empty response. Please try again."
+            : `Server error (${resp.status}). Please try again.`,
+        );
+      }
+      if (!resp.ok) throw new Error(json.error ?? `Server error (${resp.status})`);
       setModResults(json.results ?? []);
     } catch (e) {
       setModsError(e instanceof Error ? e.message : "Search failed. Try again.");
