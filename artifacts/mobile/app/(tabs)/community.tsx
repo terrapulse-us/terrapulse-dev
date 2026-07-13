@@ -1,5 +1,5 @@
 "use no memo";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -9,11 +9,12 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { router } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -47,6 +48,52 @@ export default function CommunityScreen() {
   const [riders, setRiders] = useState<PublicUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [crewUids, setCrewUids] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub1 = onSnapshot(collection(db, "users", user.uid, "crew"), (snap) => {
+      setCrewUids(new Set(snap.docs.map((d) => d.id)));
+    }, () => {});
+    const q2 = query(
+      collection(db, "friendRequests"),
+      where("fromUid", "==", user.uid),
+      where("status", "==", "pending")
+    );
+    const unsub2 = onSnapshot(q2, (snap) => {
+      setSentRequests(new Set(snap.docs.map((d) => (d.data() as { toUid: string }).toUid)));
+    }, () => {});
+    return () => { unsub1(); unsub2(); };
+  }, [user]);
+
+  const sendFriendRequest = useCallback(async (target: PublicUser) => {
+    if (!user) return;
+    try {
+      const reqRef = await addDoc(collection(db, "friendRequests"), {
+        fromUid: user.uid,
+        fromName: user.displayName || user.email?.split("@")[0] || "Rider",
+        fromPhoto: user.photoURL || null,
+        toUid: target.uid,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, "users", target.uid, "notifications"), {
+        type: "friend_request",
+        title: "Friend Request",
+        body: `${user.displayName || user.email?.split("@")[0] || "A rider"} wants to join your crew.`,
+        fromUid: user.uid,
+        fromName: user.displayName || user.email?.split("@")[0] || "Rider",
+        fromPhoto: user.photoURL || null,
+        requestId: reqRef.id,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+      setSentRequests((prev) => new Set([...prev, target.uid]));
+    } catch {
+      Alert.alert("Error", "Could not send friend request. Try again.");
+    }
+  }, [user]);
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("isPublic", "==", true));
@@ -97,67 +144,93 @@ export default function CommunityScreen() {
     const badgesEarned = item.achievements?.length ?? 0;
     const isMe = item.uid === user?.uid;
 
-    return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-        onPress={() => router.push(`/user/${item.uid}`)}
-        activeOpacity={0.85}
-      >
-        {item.photoURL ? (
-          <Image
-            source={{ uri: item.photoURL }}
-            style={[styles.avatar, { borderColor: colors.border, borderWidth: 2 }]}
-          />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-            <Text style={[styles.avatarText, { color: colors.accent }]}>
-              {handle[0].toUpperCase()}
-            </Text>
-          </View>
-        )}
+    const isCrew = crewUids.has(item.uid);
+    const isPending = sentRequests.has(item.uid);
 
-        <View style={{ flex: 1 }}>
-          <View style={styles.cardTop}>
-            <Text style={[styles.handle, { color: colors.foreground }]} numberOfLines={1}>
-              {handle.toUpperCase()}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              {isMe && (
-                <View style={[styles.youBadge, { backgroundColor: "#00E676" }]}>
-                  <Text style={styles.youBadgeText}>YOU</Text>
-                </View>
-              )}
-              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+    return (
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+        <TouchableOpacity
+          style={styles.cardMain}
+          onPress={() => router.push(`/user/${item.uid}`)}
+          activeOpacity={0.85}
+        >
+          {item.photoURL ? (
+            <Image
+              source={{ uri: item.photoURL }}
+              style={[styles.avatar, { borderColor: colors.border, borderWidth: 2 }]}
+            />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Text style={[styles.avatarText, { color: colors.accent }]}>
+                {handle[0].toUpperCase()}
+              </Text>
             </View>
-          </View>
-          {rig && (
-            <Text style={[styles.rig, { color: colors.accent }]} numberOfLines={1}>
-              {rig}
-            </Text>
           )}
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Feather name="flag" size={11} color={colors.mutedForeground} />
-              <Text style={[styles.statText, { color: colors.mutedForeground }]}>
-                {trailsCompleted} TRAIL{trailsCompleted !== 1 ? "S" : ""}
+
+          <View style={{ flex: 1 }}>
+            <View style={styles.cardTop}>
+              <Text style={[styles.handle, { color: colors.foreground }]} numberOfLines={1}>
+                {handle.toUpperCase()}
               </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {isMe && (
+                  <View style={[styles.youBadge, { backgroundColor: "#00E676" }]}>
+                    <Text style={styles.youBadgeText}>YOU</Text>
+                  </View>
+                )}
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </View>
             </View>
-            <View style={styles.stat}>
-              <Feather name="award" size={11} color={colors.mutedForeground} />
-              <Text style={[styles.statText, { color: colors.mutedForeground }]}>
-                {badgesEarned} BADGE{badgesEarned !== 1 ? "S" : ""}
+            {rig && (
+              <Text style={[styles.rig, { color: colors.accent }]} numberOfLines={1}>
+                {rig}
               </Text>
-            </View>
-            {item.completedTrails?.slice(0, 2).map((tid) => (
-              <View key={tid} style={[styles.trailPill, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.trailPillText, { color: colors.mutedForeground }]} numberOfLines={1}>
-                  {TRAIL_NAMES[tid] ?? tid}
+            )}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Feather name="flag" size={11} color={colors.mutedForeground} />
+                <Text style={[styles.statText, { color: colors.mutedForeground }]}>
+                  {trailsCompleted} TRAIL{trailsCompleted !== 1 ? "S" : ""}
                 </Text>
               </View>
-            ))}
+              <View style={styles.stat}>
+                <Feather name="award" size={11} color={colors.mutedForeground} />
+                <Text style={[styles.statText, { color: colors.mutedForeground }]}>
+                  {badgesEarned} BADGE{badgesEarned !== 1 ? "S" : ""}
+                </Text>
+              </View>
+              {item.completedTrails?.slice(0, 2).map((tid) => (
+                <View key={tid} style={[styles.trailPill, { backgroundColor: colors.secondary }]}>
+                  <Text style={[styles.trailPillText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    {TRAIL_NAMES[tid] ?? tid}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        {!isMe && (
+          <View style={[styles.crewRow, { borderTopColor: colors.border }]}>
+            {isCrew ? (
+              <View style={[styles.crewBtn, { backgroundColor: colors.success + "18", borderColor: colors.success }]}>
+                <Feather name="users" size={12} color={colors.success} />
+                <Text style={[styles.crewBtnText, { color: colors.success }]}>IN YOUR CREW</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.crewBtn, { backgroundColor: isPending ? colors.secondary : colors.accent + "18", borderColor: isPending ? colors.border : colors.accent }]}
+                onPress={() => !isPending && sendFriendRequest(item)}
+                disabled={isPending}
+              >
+                <Feather name={isPending ? "clock" : "user-plus"} size={12} color={isPending ? colors.mutedForeground : colors.accent} />
+                <Text style={[styles.crewBtnText, { color: isPending ? colors.mutedForeground : colors.accent }]}>
+                  {isPending ? "REQUEST SENT" : "ADD TO CREW"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -248,13 +321,16 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 13, fontWeight: "600" },
   list: { padding: 12, gap: 10 },
   card: {
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  cardMain: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 8,
   },
   avatar: {
     width: 48,
@@ -279,4 +355,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 11, fontWeight: "700", letterSpacing: 2, marginTop: 8 },
   emptyTitle: { fontWeight: "900", fontSize: 16, textAlign: "center" },
   emptySub: { fontSize: 12, textAlign: "center", lineHeight: 18 },
+  crewRow: { borderTopWidth: 1, flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 14, paddingVertical: 8 },
+  crewBtn: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
+  crewBtnText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
 });

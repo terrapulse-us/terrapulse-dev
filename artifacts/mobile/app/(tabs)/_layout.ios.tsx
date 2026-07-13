@@ -51,10 +51,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="leaderboard"
+        name="garage"
         options={{
-          title: "RANKS",
-          tabBarIcon: ({ color }) => <Feather name="award" size={34} color={color} />,
+          title: "GARAGE",
+          tabBarIcon: ({ color }) => <Feather name="tool" size={22} color={color} />,
         }}
       />
       <Tabs.Screen

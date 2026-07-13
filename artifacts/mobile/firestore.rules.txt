@@ -59,6 +59,49 @@ service cloud.firestore {
           allow create, delete: if request.auth != null && request.auth.uid == uid;
         }
       }
+
+      // users/{uid}/crew/{memberId} — mutual crew list (My Garage / My Crew).
+      // Owner can read their full crew list. Any authenticated user can write a
+      // crew entry when creating the mutual link after a friend-request accept.
+      match /crew/{memberId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // users/{uid}/notifications/{notifId} — in-app notification center.
+      // Owner reads their own notifications; any authenticated user can create
+      // (friend-request sender or crew-acceptor writes into the recipient's inbox).
+      // Owner can update (mark read / update status).
+      match /notifications/{notifId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // users/{uid}/vehicles/{vehicleId} — My Garage fleet (My Rides).
+      // Strictly private — only the owner reads or writes.
+      match /vehicles/{vehicleId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── friendRequests/{requestId} ───────────────────────────────────────
+    // A pending request created by the sender. The recipient accepts or
+    // declines via the Notifications tab. Both parties can read their own
+    // requests (query by fromUid or toUid). Only the sender creates; only
+    // the recipient updates (to accepted/rejected); neither may delete.
+    match /friendRequests/{requestId} {
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt']);
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'rejected'];
     }
 
     // ── trails/{trailId} ─────────────────────────────────────────────────

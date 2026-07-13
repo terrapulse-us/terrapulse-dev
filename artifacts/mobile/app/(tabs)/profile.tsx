@@ -14,22 +14,24 @@ import {
   Modal,
   Dimensions,
   Switch,
+  Linking,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import TrailSearchModal from "@/components/TrailSearchModal";
-import { OfflineManager } from "@maplibre/maplibre-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
+  addDoc,
   onSnapshot,
   collection,
   query,
   orderBy,
   limit,
+  serverTimestamp,
 } from "firebase/firestore";
 import {
   ref,
@@ -87,15 +89,6 @@ interface RideRecord {
   points?: unknown[];
 }
 
-interface OfflineMapPack {
-  id: string;
-  trailId?: string;
-  trailTitle: string;
-  lat?: number;
-  lng?: number;
-  sizeMB: number;
-}
-
 function formatDuration(secs: number): string {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
@@ -105,7 +98,21 @@ function formatDuration(secs: number): string {
   return `${s}s`;
 }
 
-const SECTIONS = ["gallery", "specs", "achievements", "rides", "maps"] as const;
+const SECTIONS = ["gallery", "specs", "achievements", "rides", "settings", "notifications"] as const;
+
+interface AppNotification {
+  id: string;
+  type: "friend_request" | "friend_accepted" | "system";
+  title: string;
+  body: string;
+  read: boolean;
+  status?: string;
+  fromUid?: string;
+  fromName?: string;
+  fromPhoto?: string;
+  requestId?: string;
+  createdAt?: number;
+}
 type Section = typeof SECTIONS[number];
 
 export default function ProfileScreen() {
@@ -115,7 +122,6 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<Section>("gallery");
-  const [showSearch, setShowSearch] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -135,8 +141,7 @@ export default function ProfileScreen() {
   const [specsSaved, setSpecsSaved] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [rides, setRides] = useState<RideRecord[]>([]);
-  const [offlinePacks, setOfflinePacks] = useState<OfflineMapPack[]>([]);
-  const [loadingPacks, setLoadingPacks] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [togglingPrivacy, setTogglingPrivacy] = useState(false);
@@ -189,78 +194,110 @@ export default function ProfileScreen() {
     return unsub;
   }, [user]);
 
-  const loadOfflinePacks = useCallback(async () => {
-    setLoadingPacks(true);
-    try {
-      const packs = await OfflineManager.getPacks();
-      const items: OfflineMapPack[] = await Promise.all(
-        packs.map(async (p) => {
-          const meta = (p.metadata ?? {}) as Record<string, unknown>;
-          let sizeMB = 0;
-          try {
-            const status = await p.status();
-            sizeMB = status.completedResourceSize / (1024 * 1024);
-          } catch {
-            // size unavailable — still show the pack
-          }
-          return {
-            id: p.id,
-            trailId: typeof meta.trailId === "string" ? meta.trailId : undefined,
-            trailTitle: typeof meta.trailTitle === "string" ? meta.trailTitle : "Saved Map Area",
-            lat: typeof meta.lat === "number" ? meta.lat : undefined,
-            lng: typeof meta.lng === "number" ? meta.lng : undefined,
-            sizeMB,
-          };
-        })
-      );
-      setOfflinePacks(items);
-    } catch {
-      setOfflinePacks([]);
-    } finally {
-      setLoadingPacks(false);
-    }
-  }, []);
-
   useEffect(() => {
-    if (activeSection === "maps") loadOfflinePacks();
-  }, [activeSection, loadOfflinePacks]);
+    if (!user) return;
+    const unsub = onSnapshot(
+      query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(50)),
+      (snap) => setNotifications(snap.docs.map((d) => ({ id: d.id, ...d.data() } as AppNotification))),
+      () => {}
+    );
+    return unsub;
+  }, [user]);
 
-  const viewOfflinePackOnMap = useCallback((pack: OfflineMapPack) => {
-    if (pack.lat == null || pack.lng == null) {
-      Alert.alert("Unavailable", "This saved map doesn't have location data.");
-      return;
+  const markNotifRead = useCallback(async (notifId: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, "users", user.uid, "notifications", notifId), { read: true }).catch(() => {});
+  }, [user]);
+
+  const acceptFriendRequest = useCallback(async (notif: AppNotification) => {
+    if (!user || !notif.fromUid || !notif.requestId) return;
+    try {
+      await updateDoc(doc(db, "friendRequests", notif.requestId), { status: "accepted" }).catch(() => {});
+      await setDoc(doc(db, "users", user.uid, "crew", notif.fromUid), {
+        displayName: notif.fromName ?? "Rider",
+        photoURL: notif.fromPhoto ?? null,
+        wingmanEnabled: false,
+        addedAt: serverTimestamp(),
+      });
+      await setDoc(doc(db, "users", notif.fromUid, "crew", user.uid), {
+        displayName: displayName || user.email?.split("@")[0] || "Rider",
+        photoURL: avatarUrl ?? null,
+        wingmanEnabled: false,
+        addedAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, "users", notif.fromUid, "notifications"), {
+        type: "friend_accepted",
+        title: "Friend Request Accepted",
+        body: `${displayName || "A rider"} accepted your friend request.`,
+        fromUid: user.uid,
+        fromName: displayName || user.email?.split("@")[0] || "Rider",
+        fromPhoto: avatarUrl ?? null,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(doc(db, "users", user.uid, "notifications", notif.id), { read: true, status: "accepted" }).catch(() => {});
+    } catch {
+      Alert.alert("Error", "Could not accept friend request. Try again.");
     }
-    router.push({
-      pathname: "/(tabs)/map",
-      params: {
-        focusLat: String(pack.lat),
-        focusLng: String(pack.lng),
-        ...(pack.trailId ? { focusTrailId: pack.trailId } : {}),
-      },
-    });
-  }, [router]);
+  }, [user, displayName, avatarUrl]);
 
-  const deleteOfflinePack = useCallback((pack: OfflineMapPack) => {
+  const declineFriendRequest = useCallback(async (notif: AppNotification) => {
+    if (!user || !notif.requestId) return;
+    try {
+      await updateDoc(doc(db, "friendRequests", notif.requestId), { status: "rejected" }).catch(() => {});
+      await updateDoc(doc(db, "users", user.uid, "notifications", notif.id), { read: true, status: "declined" }).catch(() => {});
+    } catch {
+      Alert.alert("Error", "Could not decline request. Try again.");
+    }
+  }, [user]);
+
+  const deactivateAccount = useCallback(async () => {
     Alert.alert(
-      "Remove offline map?",
-      `This deletes the downloaded map tiles for "${pack.trailTitle}". You can download it again anytime.`,
+      "Deactivate Account?",
+      "Your profile will be hidden from other riders. You can reactivate by logging back in.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Deactivate",
           style: "destructive",
           onPress: async () => {
             try {
-              await OfflineManager.deletePack(pack.id);
-              setOfflinePacks((prev) => prev.filter((p) => p.id !== pack.id));
+              await setDoc(doc(db, "users", user!.uid), { deactivated: true, isPublic: false }, { merge: true });
+              logout();
             } catch {
-              Alert.alert("Error", "Could not delete offline map. Try again.");
+              Alert.alert("Error", "Could not deactivate account. Try again.");
             }
           },
         },
       ]
     );
-  }, []);
+  }, [user, logout]);
+
+  const requestAccountDeletion = useCallback(() => {
+    Alert.alert(
+      "Delete Account",
+      "This sends a deletion request to the TerraPulse team. Your account will be permanently removed within 5 business days.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Send Request",
+          style: "destructive",
+          onPress: () => {
+            const subject = encodeURIComponent("Account Deletion Request");
+            const body = encodeURIComponent(
+              `Please delete my TerraPulse account.\n\nUser ID: ${user?.uid ?? ""}\nEmail: ${user?.email ?? ""}`
+            );
+            Linking.openURL(`mailto:mclaporte@terrapulse.fun?subject=${subject}&body=${body}`).catch(() => {
+              Alert.alert(
+                "Email not available",
+                "Please email mclaporte@terrapulse.fun to request account deletion."
+              );
+            });
+          },
+        },
+      ]
+    );
+  }, [user]);
 
   const togglePrivacy = useCallback(async (value: boolean) => {
     if (!user) return;
@@ -492,22 +529,6 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SEARCH TRAILS */}
-      <TouchableOpacity
-        style={[styles.privacyRow, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}
-        onPress={() => setShowSearch(true)}
-        activeOpacity={0.75}
-      >
-        <View style={styles.privacyLeft}>
-          <Feather name="search" size={15} color={colors.accent} />
-          <View>
-            <Text style={[styles.privacyLabel, { color: colors.foreground }]}>SEARCH TRAILS</Text>
-            <Text style={[styles.privacySub, { color: colors.mutedForeground }]}>Find any of 402 trails nationwide</Text>
-          </View>
-        </View>
-        <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-      </TouchableOpacity>
-
       {/* PRIVACY TOGGLE */}
       <View style={[styles.privacyRow, { backgroundColor: colors.secondary, borderBottomColor: colors.border }]}>
         <View style={styles.privacyLeft}>
@@ -548,7 +569,7 @@ export default function ProfileScreen() {
             onPress={() => setActiveSection(s)}
           >
             <Feather
-              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : s === "maps" ? "map" : "award"}
+              name={s === "gallery" ? "image" : s === "specs" ? "truck" : s === "rides" ? "activity" : s === "settings" ? "settings" : s === "notifications" ? "bell" : "award"}
               size={16}
               color={activeSection === s ? colors.accent : colors.mutedForeground}
             />
@@ -556,7 +577,7 @@ export default function ProfileScreen() {
               numberOfLines={1}
               style={[styles.tabText, { color: activeSection === s ? colors.accent : colors.mutedForeground }]}
             >
-              {s === "achievements" ? "BADGES" : s.toUpperCase()}
+              {s === "achievements" ? "BADGES" : s === "notifications" ? "ALERTS" : s.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
@@ -879,94 +900,174 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
 
-      {/* OFFLINE MAPS */}
-      {activeSection === "maps" && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.ridesContainer, { paddingBottom: insets.bottom + 20 }]}
-        >
-          {loadingPacks ? (
-            <View style={styles.empty}>
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          ) : offlinePacks.length === 0 ? (
-            <View style={styles.empty}>
-              <Feather name="map" size={40} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved maps yet</Text>
-              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-                Open a trail on the map and tap Download to save it for offline use
-              </Text>
-            </View>
-          ) : (
-            offlinePacks.map((pack) => (
-              <View key={pack.id} style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <TouchableOpacity
-                  style={styles.rideCardHeader}
-                  activeOpacity={0.7}
-                  onPress={() => viewOfflinePackOnMap(pack)}
-                >
-                  <View style={[styles.rideIconWrap, { backgroundColor: colors.accent + "22" }]}>
-                    <Feather name="map" size={18} color={colors.accent} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rideDate, { color: colors.foreground }]} numberOfLines={1}>
-                      {pack.trailTitle}
-                    </Text>
-                    <Text style={[styles.rideTime, { color: colors.mutedForeground }]}>
-                      {pack.sizeMB > 0 ? `${pack.sizeMB.toFixed(1)} MB saved` : "Saved offline"}
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-                </TouchableOpacity>
-
-                <View style={[styles.mapCardActions, { borderTopColor: colors.border }]}>
-                  <TouchableOpacity
-                    style={styles.mapActionBtn}
-                    onPress={() => viewOfflinePackOnMap(pack)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="navigation" size={14} color={colors.accent} />
-                    <Text style={[styles.mapActionText, { color: colors.accent }]}>VIEW ON MAP</Text>
-                  </TouchableOpacity>
-                  <View style={[styles.rideStatDivider, { backgroundColor: colors.border }]} />
-                  <TouchableOpacity
-                    style={styles.mapActionBtn}
-                    onPress={() => deleteOfflinePack(pack)}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="trash-2" size={14} color={colors.destructive} />
-                    <Text style={[styles.mapActionText, { color: colors.destructive }]}>DELETE</Text>
-                  </TouchableOpacity>
+      {/* SETTINGS */}
+      {activeSection === "settings" && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
+          <View style={{ padding: 16, gap: 14 }}>
+            <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.settingsCardTitle, { color: colors.mutedForeground }]}>ACCOUNT</Text>
+              <TouchableOpacity style={styles.settingsRow} onPress={deactivateAccount} activeOpacity={0.7}>
+                <View style={[styles.settingsIconWrap, { backgroundColor: colors.secondary }]}>
+                  <Feather name="pause-circle" size={18} color={colors.mutedForeground} />
                 </View>
-              </View>
-            ))
-          )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Deactivate Account</Text>
+                  <Text style={[styles.settingsSub, { color: colors.mutedForeground }]}>
+                    Temporarily hide your profile — reactivate by logging back in
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+              <View style={[styles.settingsDivider, { backgroundColor: colors.border }]} />
+              <TouchableOpacity style={styles.settingsRow} onPress={requestAccountDeletion} activeOpacity={0.7}>
+                <View style={[styles.settingsIconWrap, { backgroundColor: colors.destructive + "22" }]}>
+                  <Feather name="trash-2" size={18} color={colors.destructive} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingsLabel, { color: colors.destructive }]}>Delete Account</Text>
+                  <Text style={[styles.settingsSub, { color: colors.mutedForeground }]}>
+                    Permanent within 5 business days — sends a request to our team
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.settingsCardTitle, { color: colors.mutedForeground }]}>LEGAL</Text>
+              <TouchableOpacity style={styles.settingsRow} onPress={() => router.push("/privacy")} activeOpacity={0.7}>
+                <View style={[styles.settingsIconWrap, { backgroundColor: colors.secondary }]}>
+                  <Feather name="shield" size={18} color={colors.mutedForeground} />
+                </View>
+                <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Privacy Policy</Text>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+              <View style={[styles.settingsDivider, { backgroundColor: colors.border }]} />
+              <TouchableOpacity
+                style={styles.settingsRow}
+                activeOpacity={0.7}
+                onPress={() =>
+                  Alert.alert(
+                    "Terms & Conditions",
+                    "By using TerraPulse you agree to ride responsibly, respect public and private land, and follow all applicable local laws and regulations.\n\nTerraPulse is not responsible for trail conditions, navigation errors, or personal injury. Always carry appropriate safety gear and tell someone your plans before heading out.\n\nFor full terms visit: terrapulse.fun/terms"
+                  )
+                }
+              >
+                <View style={[styles.settingsIconWrap, { backgroundColor: colors.secondary }]}>
+                  <Feather name="file-text" size={18} color={colors.mutedForeground} />
+                </View>
+                <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Terms & Conditions</Text>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.settingsVersion, { color: colors.border }]}>TerraPulse v1.0.0</Text>
+          </View>
         </ScrollView>
       )}
 
-      {/* FOOTER */}
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.push("/privacy")} activeOpacity={0.7}>
-          <Text style={[styles.footerLink, { color: colors.mutedForeground }]}>Privacy Policy</Text>
-        </TouchableOpacity>
-        <Text style={[styles.footerVersion, { color: colors.border }]}>TerraPulse v1.0.0</Text>
-      </View>
-
-      <TrailSearchModal
-        visible={showSearch}
-        onClose={() => setShowSearch(false)}
-        onSelectTrail={(trail) => {
-          setShowSearch(false);
-          router.push({
-            pathname: "/(tabs)/map",
-            params: {
-              focusTrailId: trail.id,
-              focusLat: String(trail.coords.latitude),
-              focusLng: String(trail.coords.longitude),
-            },
-          });
-        }}
-      />
+      {/* NOTIFICATIONS / ALERTS */}
+      {activeSection === "notifications" && (() => {
+        const unreadCount = notifications.filter((n) => !n.read).length;
+        return (
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 20, gap: 10 }}
+          >
+            {unreadCount > 0 && (
+              <Text style={[styles.notifHeader, { color: colors.mutedForeground }]}>
+                {unreadCount} UNREAD
+              </Text>
+            )}
+            {notifications.length === 0 ? (
+              <View style={styles.empty}>
+                <Feather name="bell" size={40} color={colors.border} />
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No notifications</Text>
+                <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                  Friend requests and crew updates will appear here
+                </Text>
+              </View>
+            ) : (
+              notifications.map((notif) => {
+                const isPendingRequest =
+                  notif.type === "friend_request" && notif.status !== "accepted" && notif.status !== "declined";
+                return (
+                  <View
+                    key={notif.id}
+                    style={[
+                      styles.notifCard,
+                      {
+                        backgroundColor: notif.read ? colors.card : colors.secondary,
+                        borderColor: notif.read ? colors.border : colors.accent,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.notifIconWrap,
+                        {
+                          backgroundColor:
+                            notif.type === "friend_request"
+                              ? colors.accent + "22"
+                              : notif.type === "friend_accepted"
+                              ? colors.success + "22"
+                              : colors.secondary,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={
+                          notif.type === "friend_request"
+                            ? "user-plus"
+                            : notif.type === "friend_accepted"
+                            ? "users"
+                            : "bell"
+                        }
+                        size={18}
+                        color={notif.type === "friend_accepted" ? colors.success : colors.accent}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.notifTitle, { color: colors.foreground }]}>{notif.title}</Text>
+                      <Text style={[styles.notifBody, { color: colors.mutedForeground }]}>{notif.body}</Text>
+                      {isPendingRequest && (
+                        <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                          <TouchableOpacity
+                            style={[styles.notifBtn, { backgroundColor: colors.accent }]}
+                            onPress={() => acceptFriendRequest(notif)}
+                          >
+                            <Text style={[styles.notifBtnText, { color: "#fff" }]}>ACCEPT</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.notifBtn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                            onPress={() => declineFriendRequest(notif)}
+                          >
+                            <Text style={[styles.notifBtnText, { color: colors.mutedForeground }]}>DECLINE</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      {notif.status === "accepted" && notif.type === "friend_request" && (
+                        <Text style={[styles.notifStatus, { color: colors.success }]}>✓ Accepted — they're in your crew</Text>
+                      )}
+                      {notif.status === "declined" && notif.type === "friend_request" && (
+                        <Text style={[styles.notifStatus, { color: colors.mutedForeground }]}>Declined</Text>
+                      )}
+                    </View>
+                    {!notif.read && !isPendingRequest && (
+                      <TouchableOpacity
+                        onPress={() => markNotifRead(notif.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <View style={[styles.unreadDot, { backgroundColor: colors.accent }]} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        );
+      })()}
 
       {/* LIGHTBOX */}
       <Modal visible={!!lightboxUri} transparent animationType="fade" onRequestClose={() => setLightboxUri(null)}>
@@ -1182,14 +1283,23 @@ const styles = StyleSheet.create({
   rideStatValue: { fontSize: 17, fontWeight: "900" },
   rideStatLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 3 },
   rideStatDivider: { width: 1 },
-  mapCardActions: { flexDirection: "row", borderTopWidth: 1 },
-  mapActionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-  },
-  mapActionText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
+  // ── Settings ────────────────────────────────────────────────────────────────
+  settingsCard: { borderRadius: 10, borderWidth: 1, overflow: "hidden", marginBottom: 4 },
+  settingsCardTitle: { fontWeight: "900", fontSize: 10, letterSpacing: 2, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
+  settingsRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  settingsIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  settingsLabel: { fontWeight: "700", fontSize: 14, flex: 1 },
+  settingsSub: { fontSize: 11, fontWeight: "500", marginTop: 2 },
+  settingsDivider: { height: 1, marginHorizontal: 14 },
+  settingsVersion: { fontSize: 10, fontWeight: "700", letterSpacing: 1, textAlign: "center", marginTop: 8 },
+  // ── Notifications ───────────────────────────────────────────────────────────
+  notifHeader: { fontSize: 9, fontWeight: "900", letterSpacing: 2, marginBottom: 2 },
+  notifCard: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: 10, borderWidth: 1 },
+  notifIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  notifTitle: { fontWeight: "900", fontSize: 13 },
+  notifBody: { fontSize: 11, fontWeight: "600", marginTop: 2, lineHeight: 16 },
+  notifBtn: { borderRadius: 6, paddingHorizontal: 16, paddingVertical: 8 },
+  notifBtnText: { fontWeight: "900", fontSize: 11, letterSpacing: 0.5 },
+  notifStatus: { fontSize: 11, fontWeight: "700", marginTop: 6 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, marginTop: 4 },
 });
