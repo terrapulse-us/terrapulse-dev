@@ -1,0 +1,155 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── users/{uid} ──────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+
+      // users/{uid}/gallery/{itemId}
+      match /gallery/{itemId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasAll(['url', 'type', 'uploadedAt']);
+      }
+
+      // users/{uid}/rides/{rideId}
+      match /rides/{rideId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if request.auth != null && request.auth.uid == uid;
+
+        match /track/{trackDocId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow create, delete: if request.auth != null && request.auth.uid == uid;
+        }
+      }
+
+      // users/{uid}/crew/{memberId} — My Garage / My Crew
+      match /crew/{memberId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // users/{uid}/notifications/{notifId} — Alerts tab
+      match /notifications/{notifId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // users/{uid}/vehicles/{vehicleId} — My Rides fleet
+      match /vehicles/{vehicleId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── friendRequests/{requestId} ───────────────────────────────────────
+    match /friendRequests/{requestId} {
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt']);
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'rejected'];
+    }
+
+    // ── trails/{trailId} ─────────────────────────────────────────────────
+    match /trails/{trailId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.isUserSubmitted == true;
+
+      match /photos/{photoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uploadedBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['url', 'uploadedBy', 'createdAt']);
+      }
+
+      match /events/{eventId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['title', 'eventType', 'dateStr', 'time', 'visibility', 'createdBy', 'createdByName', 'attendees', 'description', 'createdAt']);
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees'])
+          && (
+               request.resource.data.attendees.size() == resource.data.attendees.size() + 1
+               || request.resource.data.attendees.size() == resource.data.attendees.size() - 1
+             );
+      }
+
+      match /contributors/{userId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['uid', 'displayName', 'addedAt'])
+          && request.resource.data.uid == request.auth.uid;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /community_notes/{noteId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasAll(['type', 'message', 'lat', 'lng', 'createdBy', 'createdByName', 'createdAt', 'createdAtFallback', 'confirmedBy'])
+          && request.resource.data.confirmedBy == [];
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmedBy'])
+          && request.resource.data.confirmedBy == resource.data.confirmedBy.concat([request.auth.uid]);
+        allow delete: if request.auth != null
+          && (resource.data.createdBy == request.auth.uid
+              || request.time > resource.data.createdAt + duration.value(48, 'h'));
+      }
+    }
+
+    // ── sos_beacons/{uid} ────────────────────────────────────────────────
+    match /sos_beacons/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── live_streams/{uid} ───────────────────────────────────────────────
+    match /live_streams/{uid} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── group_rides/{rideId} ─────────────────────────────────────────────
+    match /group_rides/{rideId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 500;
+        allow update, delete: if false;
+      }
+    }
+
+  }
+}
