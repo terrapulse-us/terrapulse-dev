@@ -1,0 +1,71 @@
+// TerraPulse — Firebase Storage Security Rules
+//
+// SOURCE OF TRUTH for this project's Cloud Storage rules. NOT deployed
+// automatically — Replit cannot publish Storage rules on your behalf.
+//
+// TO APPLY (do this before the 4-day deadline):
+//   1. Firebase Console → Build → Storage → Rules tab
+//   2. Select all existing text and replace it with the contents below
+//   3. Click "Publish"
+// Rules take effect within ~1 minute. No app rebuild or OTA update needed.
+//
+// What this covers (based on actual app usage):
+//   users/{uid}/avatar.jpg        — profile photo, owner-write / auth-read
+//   users/{uid}/gallery/{file}    — gallery images + videos, owner-write / auth-read
+//   trails/{trailId}/{file}       — community trail photos, any-auth-write / auth-read
+//   Everything else               — denied
+//
+// File-size and content-type guards are enforced by the rules, not just
+// the client. Sizes are intentionally generous to avoid blocking legitimate
+// uploads (avatar 5 MB, gallery 25 MB for short video, trail photos 15 MB).
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── User avatars ─────────────────────────────────────────────────────
+    // Profile photo displayed in the leaderboard, crew list, and trail
+    // community notes. Any signed-in user can read (needed for community
+    // display); only the owner can write their own avatar.
+    match /users/{uid}/avatar.jpg {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size  <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── User gallery ─────────────────────────────────────────────────────
+    // Photos and short videos on the Profile gallery tab. Any signed-in
+    // user can read (community feature); only the owner can upload.
+    // Allows both image/* and video/* to support video clips.
+    match /users/{uid}/gallery/{filename} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size  <= 25 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+         || request.resource.contentType.matches('video/.*'));
+    }
+
+    // ── Trail community photos ───────────────────────────────────────────
+    // Photos attached to trail community notes and trail detail pages.
+    // Any signed-in user may upload (community contribution) and read.
+    // Images only — no video in trail photo uploads.
+    match /trails/{trailId}/{filename} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size  <= 15 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Default deny ─────────────────────────────────────────────────────
+    // Block every path not explicitly listed above. This closes the
+    // Test Mode open-bucket that triggered the expiry warning.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+  }
+}
