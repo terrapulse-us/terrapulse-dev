@@ -54,6 +54,92 @@ export function smaExportTiles(keys: string[]): string[] {
   ];
 }
 
+// ─── BLM SMA vector polygon query ─────────────────────────────────────────────
+// Queries the BLM SMA FeatureServer for polygon features in the given bbox and
+// returns them as GeoJSON with a `strokeColor` property pre-assigned from
+// SMA_CATEGORIES so callers can do data-driven MapLibre styling without
+// knowing the underlying agency codes.
+
+const BLM_SMA_FEATURE_URL = `${BLM_BASE}/lands/BLM_Natl_SMA/FeatureServer/1/query`;
+
+// Maps ADMIN_AGENCY_CODE values from the FeatureServer to SmaCategory keys.
+const AGENCY_CODE_TO_KEY: Record<string, string> = {
+  BLM: "blm",
+  USFS: "usfs", FS: "usfs",
+  NPS: "nps",
+  FWS: "usfw", USFWS: "usfw",
+  DOD: "dod",
+  USBIA: "tribal", BIA: "tribal", TRIBAL: "tribal",
+  STATE: "state", STA: "state", LGA: "state",
+  PVT: "private", PRIVATE: "private",
+};
+
+export interface SmaVectorCollection {
+  type: "FeatureCollection";
+  features: Array<GeoJSON.Feature & { properties: { ADMIN_AGENCY_CODE: string; strokeColor: string; categoryKey: string } }>;
+}
+
+/**
+ * Fetch BLM SMA land-ownership polygons as crisp vector features within a
+ * bounding box, coloured per ownership category.  Returns empty on any error.
+ */
+export async function fetchSmaPolygons(
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+  selectedKeys: string[],
+): Promise<SmaVectorCollection> {
+  const cacheKey = `blm_sma_vec_v1_${minLng.toFixed(1)}_${minLat.toFixed(1)}_${maxLng.toFixed(1)}_${maxLat.toFixed(1)}_${[...selectedKeys].sort().join(",")}`;
+  const cached = await getCached<SmaVectorCollection>(cacheKey);
+  if (cached) return cached;
+
+  const envelope = JSON.stringify({
+    xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
+    spatialReference: { wkid: 4326 },
+  });
+  const params = new URLSearchParams({
+    geometry: envelope,
+    geometryType: "esriGeometryEnvelope",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: "ADMIN_AGENCY_CODE",
+    f: "geojson",
+    outSR: "4326",
+    returnGeometry: "true",
+    where: "1=1",
+    resultRecordCount: "500",
+  });
+
+  try {
+    const resp = await fetch(`${BLM_SMA_FEATURE_URL}?${params}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!resp.ok) return { type: "FeatureCollection", features: [] };
+
+    const raw = await resp.json() as { type?: string; features?: Array<{ geometry: unknown; properties: Record<string, unknown> }> };
+    if (!raw.features) return { type: "FeatureCollection", features: [] };
+
+    const categoryColors = Object.fromEntries(SMA_CATEGORIES.map(c => [c.key, c.color]));
+
+    const features = raw.features
+      .filter(f => f.geometry != null)
+      .map(f => {
+        const code = String(f.properties?.ADMIN_AGENCY_CODE ?? "");
+        const catKey = AGENCY_CODE_TO_KEY[code] ?? "otherfed";
+        const strokeColor = categoryColors[catKey] ?? "#999999";
+        return {
+          type: "Feature" as const,
+          geometry: f.geometry as GeoJSON.Geometry,
+          properties: { ...f.properties, ADMIN_AGENCY_CODE: code, strokeColor, categoryKey: catKey },
+        };
+      })
+      .filter(f => selectedKeys.includes(f.properties.categoryKey));
+
+    const result: SmaVectorCollection = { type: "FeatureCollection", features };
+    if (features.length > 0) await setCached(cacheKey, result);
+    return result;
+  } catch {
+    return { type: "FeatureCollection", features: [] };
+  }
+}
+
 // OHV designated areas polygon layer.
 // NOTE: the original BLM_Natl_OHV_Areas/MapServer service has been fully retired from BLM's
 // ArcGIS catalog (404, and absent from the `recreation` folder's service listing) as of 2026-07.

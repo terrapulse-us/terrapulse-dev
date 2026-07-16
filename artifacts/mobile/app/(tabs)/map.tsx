@@ -115,12 +115,11 @@ import {
 import {
   fetchBlmOhvNear,
   fetchBlmCampgrounds,
-  BLM_SMA_TILES,
-  BLM_SMA_BLM_ONLY_TILES,
+  fetchSmaPolygons,
   SMA_CATEGORIES,
-  smaExportTiles,
   type BlmOhvCollection,
   type BlmCampground,
+  type SmaVectorCollection,
 } from "@/lib/blm-api";
 import {
   fetchRidbTrailheadsNear,
@@ -666,6 +665,7 @@ export default function MapScreen() {
     SMA_CATEGORIES.map((c) => c.key)
   );
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
+  const [smaVectorData, setSmaVectorData] = useState<SmaVectorCollection | null>(null);
   const [showBlmCampgrounds, setShowBlmCampgrounds] = useState(false);
   const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
   const [blmCampgroundsLoading, setBlmCampgroundsLoading] = useState(false);
@@ -1053,6 +1053,30 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBlmOverlay, selectedTrail, userLocation, isOnline, offlineSnapshot]);
+
+  // ── BLM SMA vector fetch ─────────────────────────────────────────────────────
+  // Fetches land-ownership polygons from the BLM SMA FeatureServer for the area
+  // around the user/trail so they render as crisp vector stroke outlines instead
+  // of pixelated raster export tiles.  Uses 24h caching in blm-api.ts.
+  useEffect(() => {
+    if (!showBlmOverlay || !isOnline) { setSmaVectorData(null); return; }
+    let cancelled = false;
+    const center = userLocation
+      ? { lat: userLocation.latitude, lng: userLocation.longitude }
+      : selectedTrail
+      ? { lat: selectedTrail.coords.latitude, lng: selectedTrail.coords.longitude }
+      : { lat: 36.7783, lng: -119.4179 };
+    const pad = 0.6; // ~40 miles at mid-latitudes
+    fetchSmaPolygons(
+      center.lng - pad, center.lat - pad,
+      center.lng + pad, center.lat + pad,
+      smaSelected,
+    )
+      .then(data => { if (!cancelled) setSmaVectorData(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBlmOverlay, smaSelected, selectedTrail, userLocation, isOnline]);
 
   // ── Group Ride: check for active ride on the selected trail ─────────────────
   useEffect(() => {
@@ -2147,31 +2171,27 @@ export default function MapScreen() {
             />
           </ImageSource>
         )}
-        {showBlmOverlay && isOnline && smaSelected.length > 0 && (() => {
-          const allSelected = smaSelected.length === SMA_CATEGORIES.length;
-          const onlyBlm = smaSelected.length === 1 && smaSelected[0] === "blm";
-          const srcKey = allSelected ? "all" : [...smaSelected].sort().join("-");
-          const tiles = allSelected
-            ? BLM_SMA_TILES
-            : onlyBlm
-              ? BLM_SMA_BLM_ONLY_TILES
-              : smaExportTiles(smaSelected);
-          return (
-            <RasterSource
-              key={`blm-sma-${srcKey}`}
-              id={`blm-sma-${srcKey}`}
-              tiles={tiles}
-              tileSize={allSelected || onlyBlm ? 256 : 512}
-              minzoom={6}
-            >
-              <Layer
-                id={`blm-sma-layer-${srcKey}`}
-                type="raster"
-                paint={{ "raster-opacity": 0.45 }}
-              />
-            </RasterSource>
-          );
-        })()}
+        {showBlmOverlay && isOnline && mapStyleLoaded && smaVectorData && smaVectorData.features.length > 0 && (
+          <GeoJSONSource id="blm-sma-vector" data={smaVectorData as never}>
+            <Layer
+              id="blm-sma-vector-fill"
+              type="fill"
+              paint={{
+                "fill-color": ["get", "strokeColor"],
+                "fill-opacity": 0.08,
+              }}
+            />
+            <Layer
+              id="blm-sma-vector-line"
+              type="line"
+              paint={{
+                "line-color": ["get", "strokeColor"],
+                "line-width": 1.5,
+                "line-opacity": 0.9,
+              }}
+            />
+          </GeoJSONSource>
+        )}
 
         {/* ── BLM OHV designated area polygons ──────────────────────────── */}
         {mapStyleLoaded && blmOhvData && blmOhvData.features.length > 0 && (
