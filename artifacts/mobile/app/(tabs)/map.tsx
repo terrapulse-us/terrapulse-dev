@@ -107,6 +107,9 @@ import {
   fetchBlmOhvNear,
   fetchBlmCampgrounds,
   BLM_SMA_TILES,
+  BLM_SMA_BLM_ONLY_TILES,
+  SMA_CATEGORIES,
+  smaExportTiles,
   type BlmOhvCollection,
   type BlmCampground,
 } from "@/lib/blm-api";
@@ -361,8 +364,12 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   return style;
 }
 
+// USFS MVUM raster overlay. The old cached EDW_MotorVehicleUse_01 tile service is
+// retired (404, verified 2026-07-16). EDW_MVUM_02 is the live replacement but has no
+// fused tile cache, so each 512px tile is a dynamic ArcGIS export render (same
+// technique as the BLM SMA per-category overlay).
 const USFS_MVUM_TILES = [
-  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MotorVehicleUse_01/MapServer/tile/{z}/{y}/{x}",
+  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_02/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&transparent=true&format=png32&f=image",
 ];
 
 interface UserTrail extends Trail {
@@ -616,6 +623,10 @@ export default function MapScreen() {
   const [osmError, setOsmError] = useState(false);
 
   const [showBlmOverlay, setShowBlmOverlay] = useState(false);
+  const [smaLegendExpanded, setSmaLegendExpanded] = useState(false);
+  const [smaSelected, setSmaSelected] = useState<string[]>(
+    SMA_CATEGORIES.map((c) => c.key)
+  );
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
   const [showBlmCampgrounds, setShowBlmCampgrounds] = useState(false);
   const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
@@ -1995,7 +2006,7 @@ export default function MapScreen() {
           <RasterSource
             id="usfs-mvum"
             tiles={USFS_MVUM_TILES}
-            tileSize={256}
+            tileSize={512}
             minzoom={8}
           >
             <Layer
@@ -2006,12 +2017,35 @@ export default function MapScreen() {
           </RasterSource>
         )}
 
-        {/* ── BLM land-status raster overlay ─────────────────────────────── */}
-        {showBlmOverlay && (
-          <RasterSource id="blm-sma" tiles={BLM_SMA_TILES} tileSize={256} minzoom={6}>
-            <Layer id="blm-sma-layer" type="raster" paint={{ "raster-opacity": 0.45 }} />
-          </RasterSource>
-        )}
+        {/* ── BLM land-ownership (SMA) raster overlay ───────────────────────
+             All categories → fused tile cache (fast). Only BLM → dedicated
+             BLM-only cache (fast, crisp BLM boundaries). Custom subset →
+             dynamic ArcGIS export tiles filtered server-side (slower). */}
+        {showBlmOverlay && smaSelected.length > 0 && (() => {
+          const allSelected = smaSelected.length === SMA_CATEGORIES.length;
+          const onlyBlm = smaSelected.length === 1 && smaSelected[0] === "blm";
+          const srcKey = allSelected ? "all" : [...smaSelected].sort().join("-");
+          const tiles = allSelected
+            ? BLM_SMA_TILES
+            : onlyBlm
+              ? BLM_SMA_BLM_ONLY_TILES
+              : smaExportTiles(smaSelected);
+          return (
+            <RasterSource
+              key={`blm-sma-${srcKey}`}
+              id={`blm-sma-${srcKey}`}
+              tiles={tiles}
+              tileSize={allSelected || onlyBlm ? 256 : 512}
+              minzoom={6}
+            >
+              <Layer
+                id={`blm-sma-layer-${srcKey}`}
+                type="raster"
+                paint={{ "raster-opacity": 0.45 }}
+              />
+            </RasterSource>
+          );
+        })()}
 
         {/* ── BLM OHV designated area polygons ──────────────────────────── */}
         {mapStyleLoaded && blmOhvData && blmOhvData.features.length > 0 && (
@@ -2509,32 +2543,81 @@ export default function MapScreen() {
         }}
       />
 
-      {/* LAND OWNERSHIP LEGEND — appears when SMA overlay is active */}
-      {showBlmOverlay && (
-        <View style={[styles.smaLegend, { bottom: tabBarHeight + 24 }]} pointerEvents="none">
-          <Text style={styles.smaLegendTitle}>LAND OWNERSHIP</Text>
-          <View style={styles.smaLegendGrid}>
-            {[
-              { color: "#C8A850", label: "BLM" },
-              { color: "#85BE6E", label: "Nat'l Forest" },
-              { color: "#6B8FA8", label: "Nat'l Park" },
-              { color: "#7AB8B8", label: "Fish & Wildlife" },
-              { color: "#A888C0", label: "DOD" },
-              { color: "#7AAAD4", label: "State" },
-              { color: "#D4860A", label: "Tribal" },
-              { color: "#C8C0B0", label: "Private" },
-            ].map(({ color, label }) => (
-              <View key={label} style={styles.smaLegendRow}>
-                <View style={[styles.smaLegendSwatch, { backgroundColor: color }]} />
-                <Text style={styles.smaLegendLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
       {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
       <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
+        {/* LAND OWNERSHIP LEGEND POPOUT — first child of the stack so flex flow
+            guarantees it can never overlap RECORD/SOS/nav HUD below it */}
+        {showBlmOverlay && (
+          smaLegendExpanded ? (
+            <View style={styles.smaLegend}>
+              <TouchableOpacity
+                style={styles.smaLegendHeader}
+                onPress={() => setSmaLegendExpanded(false)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.smaLegendTitle}>LAND OWNERSHIP</Text>
+                <MaterialIcons name="expand-more" size={16} color="rgba(255,255,255,0.6)" />
+              </TouchableOpacity>
+              <View style={styles.smaQuickRow}>
+                <TouchableOpacity
+                  style={styles.smaQuickBtn}
+                  onPress={() => setSmaSelected(SMA_CATEGORIES.map((c) => c.key))}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.smaQuickBtnText}>ALL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.smaQuickBtn}
+                  onPress={() => setSmaSelected(["blm"])}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.smaQuickBtnText}>BLM ONLY</Text>
+                </TouchableOpacity>
+              </View>
+              {SMA_CATEGORIES.map(({ key, color, label }) => {
+                const on = smaSelected.includes(key);
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={styles.smaLegendRow}
+                    onPress={() =>
+                      setSmaSelected((prev) =>
+                        prev.includes(key)
+                          ? prev.filter((k) => k !== key)
+                          : [...prev, key]
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.smaLegendSwatch, { backgroundColor: color, opacity: on ? 1 : 0.25 }]} />
+                    <Text style={[styles.smaLegendLabel, !on && { color: "rgba(255,255,255,0.35)" }]}>{label}</Text>
+                    <MaterialIcons
+                      name={on ? "check-box" : "check-box-outline-blank"}
+                      size={16}
+                      color={on ? "#8BC34A" : "rgba(255,255,255,0.3)"}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.smaChip}
+              onPress={() => setSmaLegendExpanded(true)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.smaChipDots}>
+                {SMA_CATEGORIES.filter((c) => smaSelected.includes(c.key)).slice(0, 4).map((c) => (
+                  <View key={c.key} style={[styles.smaChipDot, { backgroundColor: c.color }]} />
+                ))}
+              </View>
+              <Text style={styles.smaChipText}>
+                LAND OWNERSHIP{smaSelected.length < SMA_CATEGORIES.length ? ` (${smaSelected.length})` : ""}
+              </Text>
+              <MaterialIcons name="expand-less" size={15} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          )
+        )}
         {/* 3D TERRAIN EXAGGERATION SLIDER */}
         {mapLayer === "terrain3d" && terrain3dStyleObj && (
           <TerrainSlider
@@ -4750,33 +4833,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   smaLegend: {
-    position: "absolute",
-    left: 12,
-    backgroundColor: "rgba(18,18,14,0.82)",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(18,18,14,0.88)",
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
+    width: 178,
+    marginBottom: 8,
+  },
+  smaLegendHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
   smaLegendTitle: {
     color: "rgba(255,255,255,0.55)",
     fontSize: 9,
     fontWeight: "700",
     letterSpacing: 1.2,
+  },
+  smaQuickRow: {
+    flexDirection: "row",
+    gap: 6,
     marginBottom: 6,
   },
-  smaLegendGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    width: 168,
+  smaQuickBtn: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 6,
+    paddingVertical: 5,
+    alignItems: "center",
+  },
+  smaQuickBtnText: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
   },
   smaLegendRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    width: 78,
+    gap: 6,
+    paddingVertical: 4,
   },
   smaLegendSwatch: {
     width: 10,
@@ -4786,8 +4887,39 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.3)",
   },
   smaLegendLabel: {
+    flex: 1,
     color: "rgba(255,255,255,0.85)",
     fontSize: 10,
     fontWeight: "600",
+  },
+  smaChip: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(18,18,14,0.88)",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    marginBottom: 8,
+  },
+  smaChipDots: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  smaChipDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  smaChipText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 });

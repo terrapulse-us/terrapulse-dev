@@ -7,11 +7,52 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const BLM_BASE = "https://gis.blm.gov/arcgis/rest/services";
 
-// Raster tile URL for land surface management status overlay
-// Colors indicate: BLM (tan), USFS (green), NPS (purple), State (blue), Private (grey)
+// Raster tile URLs for land Surface Management Agency (SMA) overlays.
+// NOTE: the old lands/BLM_Natl_SMA_Limited_Areas service was retired (404) as of 2026-07.
+// Replacements verified live 2026-07-16:
+//   • BLM_Natl_SMA_Cached_with_PriUnk — all ownership categories, fused tile cache (fast)
+//   • BLM_Natl_SMA_Cached_BLM_Only    — BLM lands only, fused tile cache (fast)
+//   • export endpoint on with_PriUnk  — dynamic per-category rendering (slower; used when
+//     the user selects a custom subset of ownership categories)
 export const BLM_SMA_TILES = [
-  `${BLM_BASE}/lands/BLM_Natl_SMA_Limited_Areas/MapServer/tile/{z}/{y}/{x}`,
+  `${BLM_BASE}/lands/BLM_Natl_SMA_Cached_with_PriUnk/MapServer/tile/{z}/{y}/{x}`,
 ];
+export const BLM_SMA_BLM_ONLY_TILES = [
+  `${BLM_BASE}/lands/BLM_Natl_SMA_Cached_BLM_Only/MapServer/tile/{z}/{y}/{x}`,
+];
+
+// Ownership categories with the service's real renderer colors (extracted from the
+// MapServer legend endpoint) and the sub-layer ids used for per-category export.
+export interface SmaCategory {
+  key: string;
+  label: string;
+  color: string;
+  layerIds: number[];
+}
+
+export const SMA_CATEGORIES: SmaCategory[] = [
+  { key: "blm", label: "BLM", color: "#FEE679", layerIds: [22] },
+  { key: "usfs", label: "Nat'l Forest", color: "#CCEBC5", layerIds: [24] },
+  { key: "nps", label: "Nat'l Park", color: "#CABDDC", layerIds: [23] },
+  { key: "usfw", label: "Fish & Wildlife", color: "#7FCCA7", layerIds: [25] },
+  { key: "dod", label: "DOD", color: "#FBB4CE", layerIds: [21] },
+  { key: "tribal", label: "Tribal", color: "#FDB46C", layerIds: [27, 19, 20] },
+  { key: "state", label: "State / Local", color: "#B3E3EE", layerIds: [29, 30] },
+  { key: "otherfed", label: "Other Federal", color: "#E4C49F", layerIds: [26, 28] },
+  { key: "private", label: "Private", color: "#FFFFFF", layerIds: [31] },
+];
+
+// Dynamic export-based raster tile template showing only the given ownership categories.
+// Each 512px tile is rendered server-side by ArcGIS with `layers=show:` filtering —
+// slower than the fused cache but supports arbitrary category combinations.
+export function smaExportTiles(keys: string[]): string[] {
+  const ids = SMA_CATEGORIES.filter((c) => keys.includes(c.key)).flatMap(
+    (c) => c.layerIds
+  );
+  return [
+    `${BLM_BASE}/lands/BLM_Natl_SMA_Cached_with_PriUnk/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&layers=show:${ids.join(",")}&transparent=true&format=png32&f=image`,
+  ];
+}
 
 // OHV designated areas polygon layer.
 // NOTE: the original BLM_Natl_OHV_Areas/MapServer service has been fully retired from BLM's
