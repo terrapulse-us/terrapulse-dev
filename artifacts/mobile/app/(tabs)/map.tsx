@@ -2509,6 +2509,30 @@ export default function MapScreen() {
         }}
       />
 
+      {/* LAND OWNERSHIP LEGEND — appears when SMA overlay is active */}
+      {showBlmOverlay && (
+        <View style={[styles.smaLegend, { bottom: tabBarHeight + 24 }]} pointerEvents="none">
+          <Text style={styles.smaLegendTitle}>LAND OWNERSHIP</Text>
+          <View style={styles.smaLegendGrid}>
+            {[
+              { color: "#C8A850", label: "BLM" },
+              { color: "#85BE6E", label: "Nat'l Forest" },
+              { color: "#6B8FA8", label: "Nat'l Park" },
+              { color: "#7AB8B8", label: "Fish & Wildlife" },
+              { color: "#A888C0", label: "DOD" },
+              { color: "#7AAAD4", label: "State" },
+              { color: "#D4860A", label: "Tribal" },
+              { color: "#C8C0B0", label: "Private" },
+            ].map(({ color, label }) => (
+              <View key={label} style={styles.smaLegendRow}>
+                <View style={[styles.smaLegendSwatch, { backgroundColor: color }]} />
+                <Text style={styles.smaLegendLabel}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
       <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
         {/* 3D TERRAIN EXAGGERATION SLIDER */}
@@ -3112,10 +3136,10 @@ export default function MapScreen() {
               <MaterialIcons name="map" size={20} color={showBlmOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showBlmOverlay ? "#fff" : "#2A2A1E" }]}>
-                  BLM LAND STATUS{blmLoading ? "  ⏳" : blmOhvData ? `  (${blmOhvData.features.length} areas)` : ""}
+                  LAND OWNERSHIP{blmLoading ? "  ⏳" : blmOhvData ? `  (${blmOhvData.features.length} OHV areas)` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showBlmOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  Public land boundaries + designated OHV areas (orange)
+                  BLM · USFS · NPS · State · Tribal · Private (color-coded)
                 </Text>
               </View>
               {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : "#A8A89A"} />}
@@ -4724,5 +4748,46 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  smaLegend: {
+    position: "absolute",
+    left: 12,
+    backgroundColor: "rgba(18,18,14,0.82)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  smaLegendTitle: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  smaLegendGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    width: 168,
+  },
+  smaLegendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    width: 78,
+  },
+  smaLegendSwatch: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  smaLegendLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 10,
+    fontWeight: "600",
   },
 });
