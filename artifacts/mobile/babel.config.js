@@ -9,8 +9,19 @@
  * transform-private-property-in-object, AND transform-classes, which fully converts
  * all class syntax to ES5 before hermesc sees the bundle.
  *
- * We also keep the three plugins explicitly in the plugins array as a belt-and-
- * suspenders measure in case the profile option is not honoured by a future preset version.
+ * IMPORTANT: do NOT re-add those class-feature plugins to a top-level `plugins`
+ * array. Top-level plugins run before ALL presets, i.e. before babel-preset-expo's
+ * TypeScript transform. That breaks any node_modules .ts source that uses
+ * TypeScript `declare` class fields (e.g. expo-file-system/src/ExpoFileSystem.ts)
+ * with: "TypeScript 'declare' fields must first be transformed by
+ * @babel/plugin-transform-typescript." The hermes-v0 profile already applies the
+ * same transforms in the correct order inside the preset, and the hermesc wrapper's
+ * AST-based bundle transform is the final safety net at build time.
+ *
+ * NOTE: the @babel/plugin-transform-* packages in this package's package.json are
+ * no longer referenced by this config, but they MUST stay installed — the hermesc
+ * wrapper (scripts/transform-bundle-classes.cjs) requires them at build time and
+ * silently skips its class transform if they're missing.
  */
 module.exports = function (api) {
   api.cache(true);
@@ -23,11 +34,6 @@ module.exports = function (api) {
           unstable_transformProfile: 'hermes-v0',
         },
       ],
-    ],
-    plugins: [
-      ['@babel/plugin-transform-class-properties', { loose: true }],
-      ['@babel/plugin-transform-private-methods', { loose: true }],
-      ['@babel/plugin-transform-private-property-in-object', { loose: true }],
     ],
   };
 };
