@@ -55,39 +55,49 @@ export function smaExportTiles(keys: string[]): string[] {
 }
 
 // ─── BLM SMA vector polygon query ─────────────────────────────────────────────
-// Queries the BLM SMA FeatureServer for polygon features in the given bbox and
-// returns them as GeoJSON with a `strokeColor` property pre-assigned from
-// SMA_CATEGORIES so callers can do data-driven MapLibre styling without
-// knowing the underlying agency codes.
+// Queries individual category layers from BLM_Natl_SMA_Cached_with_PriUnk/MapServer
+// in parallel and returns them as a single GeoJSON FeatureCollection with a
+// `strokeColor` property pre-assigned per category.
+//
+// Each SmaCategory.layerIds entry corresponds to a Feature Layer in this
+// MapServer that supports Query (capabilities: Query,Map,Data — verified live).
+// This avoids the non-existent FeatureServer and scale-restricted LimitedScale
+// service; the Cached_with_PriUnk layers answer bbox queries at all zoom levels.
 
-const BLM_SMA_FEATURE_URL = `${BLM_BASE}/lands/BLM_Natl_SMA/FeatureServer/1/query`;
-
-// Maps ADMIN_AGENCY_CODE values from the FeatureServer to SmaCategory keys.
-const AGENCY_CODE_TO_KEY: Record<string, string> = {
-  BLM: "blm",
-  USFS: "usfs", FS: "usfs",
-  NPS: "nps",
-  FWS: "usfw", USFWS: "usfw",
-  DOD: "dod",
-  USBIA: "tribal", BIA: "tribal", TRIBAL: "tribal",
-  STATE: "state", STA: "state", LGA: "state",
-  PVT: "private", PRIVATE: "private",
-};
+const BLM_SMA_MAPSERVER = `${BLM_BASE}/lands/BLM_Natl_SMA_Cached_with_PriUnk/MapServer`;
 
 export interface SmaVectorCollection {
   type: "FeatureCollection";
-  features: Array<GeoJSON.Feature & { properties: { ADMIN_AGENCY_CODE: string; strokeColor: string; categoryKey: string } }>;
+  features: Array<GeoJSON.Feature & { properties: { strokeColor: string; categoryKey: string } }>;
+}
+
+async function querySmaLayer(
+  layerId: number,
+  envelope: string,
+  params: URLSearchParams,
+): Promise<Array<{ geometry: GeoJSON.Geometry; properties: Record<string, unknown> }>> {
+  try {
+    const resp = await fetch(`${BLM_SMA_MAPSERVER}/${layerId}/query?${params}&geometry=${encodeURIComponent(envelope)}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!resp.ok) return [];
+    const raw = await resp.json() as { features?: Array<{ geometry: GeoJSON.Geometry; properties: Record<string, unknown> }> };
+    return (raw.features ?? []).filter(f => f.geometry != null);
+  } catch {
+    return [];
+  }
 }
 
 /**
  * Fetch BLM SMA land-ownership polygons as crisp vector features within a
- * bounding box, coloured per ownership category.  Returns empty on any error.
+ * bounding box, coloured per ownership category.  Queries per-category layers
+ * in parallel from the verified Cached_with_PriUnk MapServer.
  */
 export async function fetchSmaPolygons(
   minLng: number, minLat: number, maxLng: number, maxLat: number,
   selectedKeys: string[],
 ): Promise<SmaVectorCollection> {
-  const cacheKey = `blm_sma_vec_v1_${minLng.toFixed(1)}_${minLat.toFixed(1)}_${maxLng.toFixed(1)}_${maxLat.toFixed(1)}_${[...selectedKeys].sort().join(",")}`;
+  const cacheKey = `blm_sma_vec_v2_${minLng.toFixed(1)}_${minLat.toFixed(1)}_${maxLng.toFixed(1)}_${maxLat.toFixed(1)}_${[...selectedKeys].sort().join(",")}`;
   const cached = await getCached<SmaVectorCollection>(cacheKey);
   if (cached) return cached;
 
@@ -95,8 +105,7 @@ export async function fetchSmaPolygons(
     xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
     spatialReference: { wkid: 4326 },
   });
-  const params = new URLSearchParams({
-    geometry: envelope,
+  const baseParams = new URLSearchParams({
     geometryType: "esriGeometryEnvelope",
     spatialRel: "esriSpatialRelIntersects",
     outFields: "ADMIN_AGENCY_CODE",
@@ -104,40 +113,29 @@ export async function fetchSmaPolygons(
     outSR: "4326",
     returnGeometry: "true",
     where: "1=1",
-    resultRecordCount: "500",
+    resultRecordCount: "200",
   });
 
-  try {
-    const resp = await fetch(`${BLM_SMA_FEATURE_URL}?${params}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!resp.ok) return { type: "FeatureCollection", features: [] };
+  const selectedCategories = SMA_CATEGORIES.filter(c => selectedKeys.includes(c.key));
 
-    const raw = await resp.json() as { type?: string; features?: Array<{ geometry: unknown; properties: Record<string, unknown> }> };
-    if (!raw.features) return { type: "FeatureCollection", features: [] };
-
-    const categoryColors = Object.fromEntries(SMA_CATEGORIES.map(c => [c.key, c.color]));
-
-    const features = raw.features
-      .filter(f => f.geometry != null)
-      .map(f => {
-        const code = String(f.properties?.ADMIN_AGENCY_CODE ?? "");
-        const catKey = AGENCY_CODE_TO_KEY[code] ?? "otherfed";
-        const strokeColor = categoryColors[catKey] ?? "#999999";
-        return {
+  // Query all layer IDs for selected categories in parallel
+  const layerResults = await Promise.all(
+    selectedCategories.flatMap(cat =>
+      cat.layerIds.map(async layerId => {
+        const feats = await querySmaLayer(layerId, envelope, baseParams);
+        return feats.map(f => ({
           type: "Feature" as const,
-          geometry: f.geometry as GeoJSON.Geometry,
-          properties: { ...f.properties, ADMIN_AGENCY_CODE: code, strokeColor, categoryKey: catKey },
-        };
+          geometry: f.geometry,
+          properties: { ...f.properties, strokeColor: cat.color, categoryKey: cat.key },
+        }));
       })
-      .filter(f => selectedKeys.includes(f.properties.categoryKey));
+    )
+  );
 
-    const result: SmaVectorCollection = { type: "FeatureCollection", features };
-    if (features.length > 0) await setCached(cacheKey, result);
-    return result;
-  } catch {
-    return { type: "FeatureCollection", features: [] };
-  }
+  const features = layerResults.flat();
+  const result: SmaVectorCollection = { type: "FeatureCollection", features };
+  if (features.length > 0) await setCached(cacheKey, result);
+  return result;
 }
 
 // OHV designated areas polygon layer.
