@@ -452,7 +452,7 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
-  const [showUsfsOverlay, setShowUsfsOverlay] = useState(true);
+  const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
   const [terrain3dStyleObj, setTerrain3dStyleObj] =
     useState<Record<string, unknown> | null>(null);
