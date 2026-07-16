@@ -101,11 +101,12 @@ function toMercator(lng: number, lat: number): [number, number] {
   return [x, y];
 }
 
-function exportImageUrl(base: string, bounds: OfflineBounds): string {
+function exportImageUrl(base: string, bounds: OfflineBounds, layers?: string): string {
   const [xmin, ymin] = toMercator(bounds[0], bounds[1]);
   const [xmax, ymax] = toMercator(bounds[2], bounds[3]);
   const bbox = `${xmin},${ymin},${xmax},${ymax}`;
-  return `${base}?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=2048,2048&transparent=true&format=png32&f=image`;
+  const layersParam = layers ? `&layers=${layers}` : "";
+  return `${base}?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=2048,2048${layersParam}&transparent=true&format=png32&f=image`;
 }
 
 function snapshotDir(trailId: string): Directory {
@@ -131,15 +132,17 @@ async function saveTrailSnapshot(
     // best-effort
   }
 
-  // Static export images for the raster overlays (SMA land ownership + MVUM)
-  for (const [name, base] of [
-    ["sma.png", SMA_EXPORT_BASE],
-    ["mvum.png", MVUM_EXPORT_BASE],
+  // Static export images for the raster overlays (SMA land ownership + MVUM).
+  // MVUM is pinned to layers 1,2 (Roads + Trails) — the service's other layers
+  // are "Data Available"/"Status" coverage placeholders that flood the image.
+  for (const [name, base, layers] of [
+    ["sma.png", SMA_EXPORT_BASE, undefined],
+    ["mvum.png", MVUM_EXPORT_BASE, "show:1,2"],
   ] as const) {
     try {
       const f = new File(dir, name);
       if (f.exists) f.delete();
-      await File.downloadFileAsync(exportImageUrl(base, bounds), f);
+      await File.downloadFileAsync(exportImageUrl(base, bounds, layers), f);
     } catch {
       // best-effort — a missing PNG just means no offline overlay
     }

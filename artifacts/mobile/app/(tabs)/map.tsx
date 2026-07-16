@@ -381,8 +381,11 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
 // retired (404, verified 2026-07-16). EDW_MVUM_02 is the live replacement but has no
 // fused tile cache, so each 512px tile is a dynamic ArcGIS export render (same
 // technique as the BLM SMA per-category overlay).
+// layers=show:1,2 pins the render to actual Roads (1) + Trails (2) — without it
+// the service also draws its small-scale "Data Available"/"Status" coverage
+// placeholder layers (9, 12, 13...), flooding the map with green polygons.
 const USFS_MVUM_TILES = [
-  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_02/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&transparent=true&format=png32&f=image",
+  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_02/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&layers=show:1,2&transparent=true&format=png32&f=image",
 ];
 
 interface UserTrail extends Trail {
