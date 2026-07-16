@@ -1268,11 +1268,19 @@ export default function MapScreen() {
       const d = latLngDistMiles(userLocation.latitude, userLocation.longitude, route[i].lat, route[i].lng);
       if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
     }
+    // Only count progress when the rider is actually ON the trail (within
+    // ~1/4 mile of the route). Without this gate, following a trail from far
+    // away snaps "you are here" to whichever route vertex is geometrically
+    // closest — which can be deep into the route, showing e.g. 85% covered
+    // for a trail the rider has never visited.
+    if (nearestDist > 0.25) return;
     let covered = 0;
     for (let i = 1; i <= nearestIdx; i++) {
       covered += latLngDistMiles(route[i - 1].lat, route[i - 1].lng, route[i].lat, route[i].lng);
     }
-    setNavDistCovered(parseFloat(covered.toFixed(2)));
+    // Monotonic within a session: a brief GPS wobble or backtrack shouldn't
+    // yank the progress bar backwards.
+    setNavDistCovered((prev) => Math.max(prev, parseFloat(covered.toFixed(2))));
   }, [isNavigating, navTrail, userLocation]);
 
 
