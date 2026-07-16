@@ -2415,6 +2415,7 @@ export default function MapScreen() {
             { backgroundColor: colors.card },
           ]}
         >
+
           <View>
             <TerraPulseLogo color={colors.primary} size="md" />
             <Text
@@ -2458,6 +2459,12 @@ export default function MapScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        {!isOnline && (
+          <View style={styles.offlineBanner}>
+            <MaterialIcons name="cloud-off" size={13} color="#FFD166" />
+            <Text style={styles.offlineBannerText}>OFFLINE — SAVED MAPS IN USE</Text>
+          </View>
+        )}
       </View>
 
       {/* RECORDING HUD */}
@@ -2670,13 +2677,6 @@ export default function MapScreen() {
       />
 
       {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
-      {!isOnline && (
-        <View pointerEvents="none" style={[styles.offlineBanner, { top: insets.top + 10 }]}>
-          <MaterialIcons name="cloud-off" size={13} color="#FFD166" />
-          <Text style={styles.offlineBannerText}>OFFLINE — SAVED MAPS IN USE</Text>
-        </View>
-      )}
-
       <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
         {/* LAND OWNERSHIP LEGEND POPOUT — first child of the stack so flex flow
             guarantees it can never overlap RECORD/SOS/nav HUD below it */}
@@ -4243,7 +4243,6 @@ const styles = StyleSheet.create({
   },
   feedbackBtnText: { fontSize: 11, fontWeight: "800", letterSpacing: 1, color: "#5A5A4A" },
   offlineBanner: {
-    position: "absolute",
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
@@ -4252,8 +4251,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,209,102,0.5)",
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 16,
+    marginTop: 6,
   },
   offlineBannerText: {
     color: "#FFD166",
