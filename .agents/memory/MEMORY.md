@@ -34,3 +34,4 @@
 - [Sourcing real trail line geometry](usfs-trail-geometry-sourcing.md) — USFS EDW ArcGIS services have real surveyed centerlines; BLM/State Parks OHV areas generally don't, use landmark waypoints instead
 - [ArcGIS raster overlay sourcing](arcgis-raster-overlay-sourcing.md) — retired services return 200 + error JSON (silent blank overlay); non-cached services need export?bbox={bbox-epsg-3857} tiles; remount RasterSource by selection key
 - [MapLibre RN v11 Android UserLocation has no pulse](maplibre-v11-android-userlocation-pulse.md) — JS UserLocation puck lacks the animated pulse iOS gets natively; fix with a custom Marker + Animated.loop
+- [Offline map packs must pin the live style URL](offline-map-packs-style-pinning.md) — packs keyed to their style URL; a different live style means saved maps silently never serve; also check pack.status() before reporting saved

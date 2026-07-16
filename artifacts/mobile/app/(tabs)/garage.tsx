@@ -38,6 +38,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { apiServerUrl } from "@/lib/api-client";
+import { cacheGet, cacheSet } from "@/lib/offline-cache";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -527,10 +528,21 @@ export default function GarageScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let live = false;
+    // Seed from the offline cache so the garage isn't empty on a cold start
+    // without connectivity; the live snapshot overwrites when it lands.
+    cacheGet<Vehicle[]>(`vehicles:${user.uid}`).then((cached) => {
+      if (!live && cached) setVehicles(cached);
+    });
     const unsub = onSnapshot(
       query(collection(db, "users", user.uid, "vehicles"), orderBy("createdAt", "desc")),
-      (snap) => setVehicles(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Vehicle))),
-      () => setVehicles([])
+      (snap) => {
+        live = true;
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Vehicle));
+        setVehicles(items);
+        cacheSet(`vehicles:${user.uid}`, items);
+      },
+      () => { live = true; setVehicles([]); }
     );
     return unsub;
   }, [user]);
@@ -731,10 +743,21 @@ export default function GarageScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let live = false;
+    // Seed from the offline cache so the crew list survives a cold start
+    // without connectivity; the live snapshot overwrites when it lands.
+    cacheGet<CrewMember[]>(`crew:${user.uid}`).then((cached) => {
+      if (!live && cached) setCrew(cached);
+    });
     const unsub = onSnapshot(
       collection(db, "users", user.uid, "crew"),
-      (snap) => setCrew(snap.docs.map((d) => ({ uid: d.id, ...d.data() } as CrewMember))),
-      () => setCrew([])
+      (snap) => {
+        live = true;
+        const members = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as CrewMember));
+        setCrew(members);
+        cacheSet(`crew:${user.uid}`, members);
+      },
+      () => { live = true; setCrew([]); }
     );
     return unsub;
   }, [user]);

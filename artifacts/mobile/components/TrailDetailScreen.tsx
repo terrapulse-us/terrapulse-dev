@@ -83,6 +83,7 @@ interface Props {
   onUploadPhoto: () => void;
   downloading: boolean;
   onDownload: () => void;
+  offlineReady?: boolean;
   completedTrails: string[];
   riddenTrailIds: string[];
   completing: boolean;
@@ -245,6 +246,7 @@ export default function TrailDetailScreen({
   onUploadPhoto,
   downloading,
   onDownload,
+  offlineReady,
   completedTrails,
   riddenTrailIds,
   completing,
@@ -465,13 +467,22 @@ export default function TrailDetailScreen({
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+            style={[s.actionBtn, {
+              backgroundColor: colors.secondary,
+              borderColor: offlineReady ? "#4CAF50" : colors.border,
+              borderWidth: 1,
+            }]}
             onPress={onDownload}
             disabled={downloading}
             activeOpacity={0.85}
           >
             {downloading ? (
               <ActivityIndicator size="small" color={colors.accent} />
+            ) : offlineReady ? (
+              <>
+                <MaterialIcons name="offline-pin" size={14} color="#4CAF50" />
+                <Text style={[s.actionBtnText, { color: "#4CAF50" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>OFFLINE READY</Text>
+              </>
             ) : (
               <>
                 <Feather name="download" size={13} color={colors.accent} />

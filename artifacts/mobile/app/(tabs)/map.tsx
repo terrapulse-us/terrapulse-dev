@@ -24,9 +24,18 @@ import {
   GeoJSONSource,
   RasterSource,
   Layer,
+  ImageSource,
   type PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native";
-import Constants from "expo-constants";
+import {
+  MAPTILER_KEY,
+  STANDARD_STYLE_URL,
+  SATELLITE_STYLE_URL,
+  TOPO_STYLE_URL,
+  TERRAIN3D_STYLE_URL,
+} from "@/lib/map-styles";
+import { useOnline } from "@/lib/use-online";
+import { cacheGet, cacheSet } from "@/lib/offline-cache";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -139,7 +148,16 @@ import UserLocationPulse from "@/components/UserLocationPulse";
 import WingmanHelmetMarker from "@/components/WingmanHelmetMarker";
 import * as Updates from "expo-updates";
 import { downsamplePoints, encodePointsFlat } from "@/lib/ride-utils";
-import { downloadTrailArea as downloadOfflineTrailArea } from "@/lib/offline-maps";
+import {
+  downloadTrailArea as downloadOfflineTrailArea,
+  ensureTrailAreaDownloaded,
+  isTrailAreaDownloaded,
+  migrateLegacyOfflinePacks,
+  resumeIncompleteOfflinePacks,
+  loadTrailSnapshot,
+  type TrailSnapshot,
+  type OfflineBounds,
+} from "@/lib/offline-maps";
 
 interface TrailPhoto {
   url: string;
@@ -257,22 +275,17 @@ interface CommunityNote {
   confirmedBy: string[];
 }
 
-const MAPTILER_KEY: string =
-  (Constants.expoConfig?.extra as Record<string, string> | undefined)
-    ?.maptilerApiKey ?? (process.env.EXPO_PUBLIC_MAPTILER_KEY ?? "");
+// Style URLs shared with lib/offline-maps.ts (offline packs must pin the
+// exact same MapTiler resources the live map renders).
 
-function mtStyle(id: string): string {
-  return `https://api.maptiler.com/maps/${id}/style.json?key=${MAPTILER_KEY}`;
+// Corner quad for rendering a saved overlay snapshot PNG via ImageSource:
+// top-left, top-right, bottom-right, bottom-left in [lng, lat].
+function snapshotCorners(b: OfflineBounds): [
+  [number, number], [number, number], [number, number], [number, number],
+] {
+  const [w, s, e, n] = b;
+  return [[w, n], [e, n], [e, s], [w, s]];
 }
-
-// MapTiler Outdoor v2 — contours, hiking/offroad routes, rich terrain detail
-const STANDARD_STYLE_URL = mtStyle("outdoor-v2");
-// MapTiler Hybrid — high-res satellite imagery + road/label overlay
-const SATELLITE_STYLE_URL = mtStyle("hybrid");
-// MapTiler Topo v2 — topographic focus with elevation contours
-const TOPO_STYLE_URL = mtStyle("topo-v2");
-// Terrain 3D reuses outdoor-v2 base, then we inject the terrain DEM at runtime
-const TERRAIN3D_STYLE_URL = STANDARD_STYLE_URL;
 
 /**
  * Fetch any MapTiler style JSON and patch ALL raster / raster-dem sources to
@@ -411,6 +424,31 @@ export default function MapScreen() {
 
 
   const [mapLayer, setMapLayer] = useState<MapLayer>("topo");
+  const isOnline = useOnline();
+
+  // One-time sweep: packs created before the style fix downloaded the
+  // openfreemap liberty style, which the live map never renders — delete them
+  // (telling the user so they can re-save) and resume any interrupted
+  // current-format downloads.
+  useEffect(() => {
+    migrateLegacyOfflinePacks()
+      .then((removed) => {
+        if (removed.length > 0) {
+          Alert.alert(
+            "Saved maps updated",
+            `${removed.length} saved trail map${removed.length === 1 ? " was" : "s were"} in an outdated format that never worked offline, so ${removed.length === 1 ? "it was" : "they were"} removed. Open a trail and tap SAVE MAP to re-download — or just navigate a trail and its map saves automatically now.`
+          );
+        }
+      })
+      .catch(() => {});
+    resumeIncompleteOfflinePacks().catch(() => {});
+  }, []);
+
+  // Offline packs only contain the topo style — force it while offline so
+  // the map renders from saved tiles instead of a blank grid.
+  useEffect(() => {
+    if (!isOnline && mapLayer !== "topo") setMapLayer("topo");
+  }, [isOnline, mapLayer]);
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
@@ -704,6 +742,16 @@ export default function MapScreen() {
     setSelectedTrail(null);
     setSelectedGuide(null);
     setFollowUser(true);
+    // Auto-save this trail's map tiles + overlay snapshots for offline use so
+    // the rider is covered even if they never tapped SAVE MAP (fire-and-forget;
+    // no-op if a current-format pack already exists).
+    ensureTrailAreaDownloaded({
+      id: trail.id,
+      title: trail.title,
+      lat: trail.coords.latitude,
+      lng: trail.coords.longitude,
+      route,
+    });
     // Record that the user navigated this trail — gates "Mark as Complete"
     if (user) {
       setRiddenTrailIds((prev) =>
@@ -954,6 +1002,31 @@ export default function MapScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOsmOverlay, osmFetchCenter]);
 
+  // ── Offline snapshot + offline-ready state ─────────────────────────────────
+  const [offlineSnapshot, setOfflineSnapshot] = useState<TrailSnapshot | null>(null);
+  const [offlineReady, setOfflineReady] = useState(false);
+
+  // When offline, load the saved overlay snapshot for the trail in focus
+  // (navigating trail first, else the selected one).
+  useEffect(() => {
+    if (isOnline) { setOfflineSnapshot(null); return; }
+    const trailId = navTrail?.id ?? selectedTrail?.id;
+    if (!trailId) { setOfflineSnapshot(null); return; }
+    let cancelled = false;
+    loadTrailSnapshot(trailId).then((s) => { if (!cancelled) setOfflineSnapshot(s); });
+    return () => { cancelled = true; };
+  }, [isOnline, navTrail?.id, selectedTrail?.id]);
+
+  useEffect(() => {
+    if (!selectedTrail) { setOfflineReady(false); return; }
+    let cancelled = false;
+    isTrailAreaDownloaded(selectedTrail.id)
+      .then((v) => { if (!cancelled) setOfflineReady(v); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTrail?.id]);
+
   // ── BLM overlay fetch ───────────────────────────────────────────────────────
   // Priority: GPS (user's physical location) → selected trail → CA-center fallback.
   // GPS is preferred because BLM OHV coverage is highly regional; a trail browsed
@@ -962,6 +1035,12 @@ export default function MapScreen() {
   // (empty results are not cached, so a retry with real GPS will go to the network).
   useEffect(() => {
     if (!showBlmOverlay) { setBlmOhvData(null); return; }
+    if (!isOnline) {
+      // Serve the saved snapshot's OHV boundaries instead of hitting ArcGIS
+      if (offlineSnapshot?.ohv) setBlmOhvData(offlineSnapshot.ohv);
+      setBlmLoading(false);
+      return;
+    }
     // Skip the retry tick when GPS updates but we already have results
     if (userLocation && blmOhvData && blmOhvData.features.length > 0) return;
     let cancelled = false;
@@ -973,7 +1052,7 @@ export default function MapScreen() {
       .finally(() => { if (!cancelled) setBlmLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showBlmOverlay, selectedTrail, userLocation]);
+  }, [showBlmOverlay, selectedTrail, userLocation, isOnline, offlineSnapshot]);
 
   // ── Group Ride: check for active ride on the selected trail ─────────────────
   useEffect(() => {
@@ -1186,15 +1265,22 @@ export default function MapScreen() {
   }, [selectedTrail]);
 
   useEffect(() => {
+    const uid = user?.uid ?? null;
+    let live = false;
+    // Seed from the offline cache so user-submitted trails exist on a cold
+    // start with no connectivity; the live snapshot overwrites when it lands.
+    cacheGet<UserTrail[]>(`userTrails:${uid ?? "anon"}`).then((cached) => {
+      if (!live && cached) setUserTrails(cached);
+    });
     const unsub = onSnapshot(
       query(collection(db, "trails"), where("isUserSubmitted", "==", true)),
       (snap) => {
-        const uid = user?.uid ?? null;
-        setUserTrails(
-          snap.docs
-            .map((d) => ({ id: d.id, ...d.data() } as UserTrail))
-            .filter((t) => !t.isPrivate || t.submittedBy === uid)
-        );
+        live = true;
+        const visible = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as UserTrail))
+          .filter((t) => !t.isPrivate || t.submittedBy === uid);
+        setUserTrails(visible);
+        cacheSet(`userTrails:${uid ?? "anon"}`, visible);
       }
     );
     return unsub;
@@ -1254,9 +1340,19 @@ export default function MapScreen() {
       setCommunityNotes([]);
       return;
     }
+    let live = false;
+    // Seed from the offline cache so notes saved during the last online
+    // session still show while navigating without service.
+    cacheGet<CommunityNote[]>(`notes:${navTrail.id}`).then((cached) => {
+      if (!live && cached) {
+        const now = Date.now();
+        setCommunityNotes(cached.filter((n) => now - n.createdAtMs <= NOTE_EXPIRY_MS));
+      }
+    });
     const unsub = onSnapshot(
       collection(db, "trails", navTrail.id, "community_notes"),
       (snap) => {
+        live = true;
         const now = Date.now();
         const fresh: CommunityNote[] = [];
         snap.forEach((d) => {
@@ -1279,6 +1375,7 @@ export default function MapScreen() {
           });
         });
         setCommunityNotes(fresh);
+        cacheSet(`notes:${navTrail.id}`, fresh);
       }
     );
     return unsub;
@@ -1544,10 +1641,12 @@ export default function MapScreen() {
         title: selectedTrail.title,
         lat: selectedTrail.coords.latitude,
         lng: selectedTrail.coords.longitude,
+        route: selectedTrail.routeCoordinates,
       },
       {
         onAlreadySaved: () => {
           setDownloading(false);
+          setOfflineReady(true);
           Alert.alert(
             "Already saved",
             "This trail area is already available offline."
@@ -1555,6 +1654,7 @@ export default function MapScreen() {
         },
         onComplete: () => {
           setDownloading(false);
+          setOfflineReady(true);
           Alert.alert(
             "Saved offline!",
             "Trail map downloaded. Works without cell service now."
@@ -2002,7 +2102,7 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {showUsfsOverlay && (
+        {showUsfsOverlay && isOnline && (
           <RasterSource
             id="usfs-mvum"
             tiles={USFS_MVUM_TILES}
@@ -2016,12 +2116,38 @@ export default function MapScreen() {
             />
           </RasterSource>
         )}
+        {showUsfsOverlay && !isOnline && offlineSnapshot?.mvumUri && (
+          <ImageSource
+            id="usfs-mvum-offline"
+            url={offlineSnapshot.mvumUri}
+            coordinates={snapshotCorners(offlineSnapshot.bounds)}
+          >
+            <Layer
+              id="usfs-mvum-offline-layer"
+              type="raster"
+              paint={{ "raster-opacity": 0.75 }}
+            />
+          </ImageSource>
+        )}
 
         {/* ── BLM land-ownership (SMA) raster overlay ───────────────────────
              All categories → fused tile cache (fast). Only BLM → dedicated
              BLM-only cache (fast, crisp BLM boundaries). Custom subset →
              dynamic ArcGIS export tiles filtered server-side (slower). */}
-        {showBlmOverlay && smaSelected.length > 0 && (() => {
+        {showBlmOverlay && !isOnline && offlineSnapshot?.smaUri && (
+          <ImageSource
+            id="blm-sma-offline"
+            url={offlineSnapshot.smaUri}
+            coordinates={snapshotCorners(offlineSnapshot.bounds)}
+          >
+            <Layer
+              id="blm-sma-offline-layer"
+              type="raster"
+              paint={{ "raster-opacity": 0.45 }}
+            />
+          </ImageSource>
+        )}
+        {showBlmOverlay && isOnline && smaSelected.length > 0 && (() => {
           const allSelected = smaSelected.length === SMA_CATEGORIES.length;
           const onlyBlm = smaSelected.length === 1 && smaSelected[0] === "blm";
           const srcKey = allSelected ? "all" : [...smaSelected].sort().join("-");
@@ -2544,6 +2670,13 @@ export default function MapScreen() {
       />
 
       {/* BOTTOM STACK: nav progress (when navigating) + group ride / record + SOS ── stacked via normal flex flow so they never overlap regardless of content height */}
+      {!isOnline && (
+        <View pointerEvents="none" style={[styles.offlineBanner, { top: insets.top + 10 }]}>
+          <MaterialIcons name="cloud-off" size={13} color="#FFD166" />
+          <Text style={styles.offlineBannerText}>OFFLINE — SAVED MAPS IN USE</Text>
+        </View>
+      )}
+
       <View pointerEvents="box-none" style={[styles.bottomStack, { bottom: tabBarHeight + 16 }]}>
         {/* LAND OWNERSHIP LEGEND POPOUT — first child of the stack so flex flow
             guarantees it can never overlap RECORD/SOS/nav HUD below it */}
@@ -3436,6 +3569,7 @@ export default function MapScreen() {
         onUploadPhoto={uploadPhoto}
         downloading={downloading}
         onDownload={downloadTrailArea}
+        offlineReady={offlineReady}
         completedTrails={completedTrails}
         riddenTrailIds={riddenTrailIds}
         completing={completing}
@@ -4108,6 +4242,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   feedbackBtnText: { fontSize: 11, fontWeight: "800", letterSpacing: 1, color: "#5A5A4A" },
+  offlineBanner: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(20,20,20,0.92)",
+    borderColor: "rgba(255,209,102,0.5)",
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  offlineBannerText: {
+    color: "#FFD166",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
   stateListRow: {
     flexDirection: "row",
     alignItems: "center",
