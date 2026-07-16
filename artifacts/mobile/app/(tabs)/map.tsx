@@ -26,6 +26,7 @@ import {
   Layer,
   ImageSource,
   type PressEventWithFeatures,
+  type ViewStateChangeEvent,
 } from "@maplibre/maplibre-react-native";
 import {
   MAPTILER_KEY,
@@ -666,6 +667,9 @@ export default function MapScreen() {
   );
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
   const [smaVectorData, setSmaVectorData] = useState<SmaVectorCollection | null>(null);
+  // [west, south, east, north] — updated on every map region change
+  const [mapViewport, setMapViewport] = useState<[number, number, number, number] | null>(null);
+  const viewportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBlmCampgrounds, setShowBlmCampgrounds] = useState(false);
   const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
   const [blmCampgroundsLoading, setBlmCampgroundsLoading] = useState(false);
@@ -1055,28 +1059,34 @@ export default function MapScreen() {
   }, [showBlmOverlay, selectedTrail, userLocation, isOnline, offlineSnapshot]);
 
   // ── BLM SMA vector fetch ─────────────────────────────────────────────────────
-  // Fetches land-ownership polygons from the BLM SMA FeatureServer for the area
-  // around the user/trail so they render as crisp vector stroke outlines instead
-  // of pixelated raster export tiles.  Uses 24h caching in blm-api.ts.
+  // Fetches land-ownership polygons for the visible map viewport.
+  // mapViewport drives the bbox so boundaries update whenever the user pans,
+  // regardless of GPS location or selected trail.
   useEffect(() => {
     if (!showBlmOverlay || !isOnline) { setSmaVectorData(null); return; }
     let cancelled = false;
-    const center = userLocation
-      ? { lat: userLocation.latitude, lng: userLocation.longitude }
-      : selectedTrail
-      ? { lat: selectedTrail.coords.latitude, lng: selectedTrail.coords.longitude }
-      : { lat: 36.7783, lng: -119.4179 };
-    const pad = 0.6; // ~40 miles at mid-latitudes
-    fetchSmaPolygons(
-      center.lng - pad, center.lat - pad,
-      center.lng + pad, center.lat + pad,
-      smaSelected,
-    )
+
+    // Use the live viewport if available; fall back to trail/GPS/CA center on first load
+    let west: number, south: number, east: number, north: number;
+    if (mapViewport) {
+      [west, south, east, north] = mapViewport;
+    } else {
+      const center = userLocation
+        ? { lat: userLocation.latitude, lng: userLocation.longitude }
+        : selectedTrail
+        ? { lat: selectedTrail.coords.latitude, lng: selectedTrail.coords.longitude }
+        : { lat: 36.7783, lng: -119.4179 };
+      const pad = 0.6;
+      west = center.lng - pad; south = center.lat - pad;
+      east = center.lng + pad; north = center.lat + pad;
+    }
+
+    fetchSmaPolygons(west, south, east, north, smaSelected)
       .then(data => { if (!cancelled) setSmaVectorData(data); })
       .catch(() => {});
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showBlmOverlay, smaSelected, selectedTrail, userLocation, isOnline]);
+  }, [showBlmOverlay, smaSelected, mapViewport, isOnline]);
 
   // ── Group Ride: check for active ride on the selected trail ─────────────────
   useEffect(() => {
@@ -2029,6 +2039,14 @@ export default function MapScreen() {
         style={styles.map}
         mapStyle={mapStyle}
         onDidFinishLoadingStyle={() => setMapStyleLoaded(true)}
+        onRegionDidChange={(e: NativeSyntheticEvent<ViewStateChangeEvent>) => {
+          const b = e.nativeEvent.bounds; // [west, south, east, north]
+          if (!b) return;
+          if (viewportTimeoutRef.current) clearTimeout(viewportTimeoutRef.current);
+          viewportTimeoutRef.current = setTimeout(() => {
+            setMapViewport([b[0], b[1], b[2], b[3]]);
+          }, 600);
+        }}
       >
         <Camera
           ref={cameraRef}
