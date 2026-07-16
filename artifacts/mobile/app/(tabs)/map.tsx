@@ -2178,16 +2178,7 @@ export default function MapScreen() {
               type="fill"
               paint={{
                 "fill-color": ["get", "strokeColor"],
-                "fill-opacity": 0.08,
-              }}
-            />
-            <Layer
-              id="blm-sma-vector-line"
-              type="line"
-              paint={{
-                "line-color": ["get", "strokeColor"],
-                "line-width": 1.5,
-                "line-opacity": 0.9,
+                "fill-opacity": 0.45,
               }}
             />
           </GeoJSONSource>
