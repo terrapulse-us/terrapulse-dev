@@ -19,5 +19,6 @@ export * from './assistantMessageInput';
 export * from './assistantMessageRole';
 export * from './assistantStructuredData';
 export * from './assistantVehicleProfile';
+export * from './assistantVehicleProfileDrivetrain';
 export * from './healthStatus';
 export * from './userIdHeaderParameter';

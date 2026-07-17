@@ -102,6 +102,17 @@ export interface AssistantConversationWithMessages {
 }
 
 /**
+ * Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability.
+ */
+export type AssistantVehicleProfileDrivetrain = typeof AssistantVehicleProfileDrivetrain[keyof typeof AssistantVehicleProfileDrivetrain];
+
+
+export const AssistantVehicleProfileDrivetrain = {
+  '2x4': '2x4',
+  '4x4': '4x4',
+} as const;
+
+/**
  * Structured vehicle specs used for deterministic trail-fit checks. Omitted fields are treated as unknown/stock.
  */
 export interface AssistantVehicleProfile {
@@ -109,6 +120,8 @@ export interface AssistantVehicleProfile {
   tireDiameterIn?: number;
   hasLockers?: boolean;
   hasLowRange?: boolean;
+  /** Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability. */
+  drivetrain?: AssistantVehicleProfileDrivetrain;
 }
 
 export interface AssistantMessageInput {

@@ -23,18 +23,44 @@ export const fitCheckToolDef = {
 interface FitResult {
   found: true;
   trail: string;
-  requirements: { minLiftIn: number; lockersRecommended: boolean; longTravel: boolean };
+  requirements: {
+    minLiftIn: number;
+    lockersRecommended: boolean;
+    longTravel: boolean;
+    fourWheelDriveRecommended: boolean;
+  };
   vehicle: AssistantVehicleProfile;
   fits: boolean;
   reasons: string[];
 }
 
+// A trail effectively demands 4WD when it recommends lift/lockers/long-travel
+// hardware, or when its difficulty is 5/10 or above — those grades involve
+// terrain (loose climbs, rocks, deep sand) a two-wheel-drive rig can't
+// reliably clear. Exception: "Stock OK"/"Stock Friendly" trails (SVRAs, dune
+// parks, OHV recreation areas) explicitly welcome dirt bikes, quads, and 2WD
+// rigs — the stock-friendly designation outranks the numeric rating there.
+function trailNeeds4wd(trail: Trail): boolean {
+  if (trail.minLiftIn > 0 || trail.lockersRecommended || trail.longTravel) return true;
+  if (/^stock/i.test(trail.suspension)) return false;
+  return trail.difficultyRating >= 5;
+}
+
 function evaluateFit(trail: Trail, vehicle: AssistantVehicleProfile): FitResult {
   const liftIn = vehicle.liftIn ?? 0;
   const hasLockers = vehicle.hasLockers ?? false;
+  const needs4wd = trailNeeds4wd(trail);
 
   const reasons: string[] = [];
   let fits = true;
+
+  if (vehicle.drivetrain === "2x4" && needs4wd) {
+    fits = false;
+    reasons.push(
+      `This trail (${trail.difficulty}) calls for 4-wheel drive; your vehicle is 2WD (2x4). ` +
+      "Two-wheel-drive rigs should not attempt it regardless of other mods.",
+    );
+  }
 
   if (trail.minLiftIn > 0 && liftIn < trail.minLiftIn) {
     fits = false;
@@ -56,6 +82,11 @@ function evaluateFit(trail: Trail, vehicle: AssistantVehicleProfile): FitResult 
 
   if (fits && reasons.length === 0) {
     reasons.push("Your vehicle meets or exceeds this trail's recommended lift and locker requirements.");
+    if (needs4wd && !vehicle.drivetrain) {
+      reasons.push(
+        "Note: this assumes a 4WD vehicle — the user's drivetrain isn't on file. If they drive a 2WD rig, this trail is NOT suitable; suggest they set their drivetrain in My Garage.",
+      );
+    }
   }
 
   return {
@@ -65,6 +96,7 @@ function evaluateFit(trail: Trail, vehicle: AssistantVehicleProfile): FitResult 
       minLiftIn: trail.minLiftIn,
       lockersRecommended: trail.lockersRecommended,
       longTravel: trail.longTravel,
+      fourWheelDriveRecommended: needs4wd,
     },
     vehicle,
     fits,
@@ -96,6 +128,7 @@ export function runFitCheck(
         minLiftIn: trail.minLiftIn,
         lockersRecommended: trail.lockersRecommended,
         longTravel: trail.longTravel,
+        fourWheelDriveRecommended: trailNeeds4wd(trail),
       },
       message:
         "The user hasn't saved a vehicle profile (lift height, lockers) yet, so a fit check " +

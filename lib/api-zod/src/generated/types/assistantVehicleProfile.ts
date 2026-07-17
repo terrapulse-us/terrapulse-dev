@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AssistantVehicleProfileDrivetrain } from './assistantVehicleProfileDrivetrain';
 
 /**
  * Structured vehicle specs used for deterministic trail-fit checks. Omitted fields are treated as unknown/stock.
@@ -14,4 +15,6 @@ export interface AssistantVehicleProfile {
   tireDiameterIn?: number;
   hasLockers?: boolean;
   hasLowRange?: boolean;
+  /** Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability. */
+  drivetrain?: AssistantVehicleProfileDrivetrain;
 }

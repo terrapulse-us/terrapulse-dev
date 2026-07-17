@@ -44,6 +44,8 @@ import { cacheGet, cacheSet } from "@/lib/offline-cache";
 
 type VehicleType = "truck" | "sxs" | "dirtbike" | "quad" | "other";
 
+type Drivetrain = "2x4" | "4x4";
+
 interface Vehicle {
   id: string;
   type: VehicleType;
@@ -59,6 +61,7 @@ interface Vehicle {
   tireDiameterIn?: number;
   hasLockers?: boolean;
   hasLowRange?: boolean;
+  drivetrain?: Drivetrain;
   createdAt?: number;
 }
 
@@ -134,13 +137,16 @@ function AddVehicleModal({
   const [tireDiameterIn, setTireDiameterIn] = useState("");
   const [hasLockers, setHasLockers] = useState(false);
   const [hasLowRange, setHasLowRange] = useState(false);
+  // null = not specified — deliberately NOT defaulted, so the AI assistant
+  // never assumes 4WD the user didn't actually claim.
+  const [drivetrain, setDrivetrain] = useState<Drivetrain | null>(null);
   const [mods, setMods] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setType("truck"); setMake(""); setModel(""); setYear(""); setNickname("");
     setTireSize(""); setSuspension(""); setLiftIn(""); setTireDiameterIn("");
-    setHasLockers(false); setHasLowRange(false); setMods("");
+    setHasLockers(false); setHasLowRange(false); setDrivetrain(null); setMods("");
   };
 
   const handleSave = async () => {
@@ -163,6 +169,8 @@ function AddVehicleModal({
         tireDiameterIn: parseFloat(tireDiameterIn) || 0,
         hasLockers,
         hasLowRange,
+        // Firestore rejects undefined values — only include when chosen
+        ...(drivetrain ? { drivetrain } : {}),
       });
       reset();
     } finally {
@@ -230,6 +238,29 @@ function AddVehicleModal({
             <Text style={[styles.sectionDividerLabel, { color: colors.mutedForeground, borderTopColor: colors.border }]}>
               SPECS — USED BY AI ASSISTANT
             </Text>
+
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>DRIVETRAIN</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+              {(["4x4", "2x4"] as Drivetrain[]).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[
+                    styles.typePill,
+                    {
+                      flex: 1,
+                      justifyContent: "center",
+                      backgroundColor: drivetrain === d ? colors.accent : colors.secondary,
+                      borderColor: drivetrain === d ? colors.accent : colors.border,
+                    },
+                  ]}
+                  onPress={() => setDrivetrain(d)}
+                >
+                  <Text style={{ color: drivetrain === d ? "#fff" : colors.mutedForeground, fontWeight: "700", fontSize: 11 }}>
+                    {d === "4x4" ? "4X4 — FOUR-WHEEL DRIVE" : "2X4 — TWO-WHEEL DRIVE"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             {(
               [
@@ -343,6 +374,10 @@ function EditVehicleModal({
   const [tireDiameterIn, setTireDiameterIn] = useState("");
   const [hasLockers, setHasLockers] = useState(false);
   const [hasLowRange, setHasLowRange] = useState(false);
+  // null = not specified — legacy vehicles saved before this field existed
+  // stay "unknown" unless the user actively picks, so editing another spec
+  // never silently claims 4WD.
+  const [drivetrain, setDrivetrain] = useState<Drivetrain | null>(null);
   const [mods, setMods] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -359,6 +394,7 @@ function EditVehicleModal({
       setTireDiameterIn(vehicle.tireDiameterIn ? String(vehicle.tireDiameterIn) : "");
       setHasLockers(vehicle.hasLockers ?? false);
       setHasLowRange(vehicle.hasLowRange ?? false);
+      setDrivetrain(vehicle.drivetrain ?? null);
       setMods(vehicle.mods ?? "");
     }
   }, [vehicle]);
@@ -383,6 +419,8 @@ function EditVehicleModal({
         tireDiameterIn: parseFloat(tireDiameterIn) || 0,
         hasLockers,
         hasLowRange,
+        // Firestore rejects undefined values — only include when chosen
+        ...(drivetrain ? { drivetrain } : {}),
       });
     } finally {
       setSaving(false);
@@ -437,6 +475,29 @@ function EditVehicleModal({
             <Text style={[styles.sectionDividerLabel, { color: colors.mutedForeground, borderTopColor: colors.border }]}>
               SPECS — USED BY AI ASSISTANT
             </Text>
+
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>DRIVETRAIN</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+              {(["4x4", "2x4"] as Drivetrain[]).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[
+                    styles.typePill,
+                    {
+                      flex: 1,
+                      justifyContent: "center",
+                      backgroundColor: drivetrain === d ? colors.accent : colors.secondary,
+                      borderColor: drivetrain === d ? colors.accent : colors.border,
+                    },
+                  ]}
+                  onPress={() => setDrivetrain(d)}
+                >
+                  <Text style={{ color: drivetrain === d ? "#fff" : colors.mutedForeground, fontWeight: "700", fontSize: 11 }}>
+                    {d === "4x4" ? "4X4 — FOUR-WHEEL DRIVE" : "2X4 — TWO-WHEEL DRIVE"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             {(
               [
@@ -563,6 +624,7 @@ export default function GarageScreen() {
           mods: v.mods ?? "", liftIn: v.liftIn ?? 0,
           tireDiameterIn: v.tireDiameterIn ?? 0,
           hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
+          drivetrain: v.drivetrain ?? null,
         },
       }, { merge: true });
     }
@@ -582,6 +644,7 @@ export default function GarageScreen() {
           mods: vehicle.mods ?? "", liftIn: vehicle.liftIn ?? 0,
           tireDiameterIn: vehicle.tireDiameterIn ?? 0,
           hasLockers: vehicle.hasLockers ?? false, hasLowRange: vehicle.hasLowRange ?? false,
+          drivetrain: vehicle.drivetrain ?? null,
         },
       }, { merge: true });
     } catch {
@@ -600,6 +663,7 @@ export default function GarageScreen() {
           mods: v.mods ?? "", liftIn: v.liftIn ?? 0,
           tireDiameterIn: v.tireDiameterIn ?? 0,
           hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
+          drivetrain: v.drivetrain ?? null,
         },
       }, { merge: true });
     }

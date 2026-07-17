@@ -105,13 +105,17 @@ export default function AssistantScreen() {
     if (!uid) return;
     const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
       const specs = snap.data()?.vehicleSpecs as
-        | { liftIn?: number; tireDiameterIn?: number; hasLockers?: boolean; hasLowRange?: boolean }
+        | { liftIn?: number; tireDiameterIn?: number; hasLockers?: boolean; hasLowRange?: boolean; drivetrain?: string | null }
         | undefined;
       setVehicleProfile({
         liftIn: specs?.liftIn || undefined,
         tireDiameterIn: specs?.tireDiameterIn || undefined,
         hasLockers: !!specs?.hasLockers,
         hasLowRange: !!specs?.hasLowRange,
+        drivetrain:
+          specs?.drivetrain === "2x4" || specs?.drivetrain === "4x4"
+            ? specs.drivetrain
+            : undefined,
       });
     });
     return unsub;

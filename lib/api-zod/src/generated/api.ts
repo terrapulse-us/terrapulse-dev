@@ -123,7 +123,8 @@ export const SendAssistantMessageBody = zod.object({
   "liftIn": zod.number().optional(),
   "tireDiameterIn": zod.number().optional(),
   "hasLockers": zod.boolean().optional(),
-  "hasLowRange": zod.boolean().optional()
+  "hasLowRange": zod.boolean().optional(),
+  "drivetrain": zod.enum(['2x4', '4x4']).optional().describe('Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability.')
 }).optional().describe('Structured vehicle specs used for deterministic trail-fit checks. Omitted fields are treated as unknown\/stock.')
 })
 

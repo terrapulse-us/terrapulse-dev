@@ -243,6 +243,10 @@ components:
           type: boolean
         hasLowRange:
           type: boolean
+        drivetrain:
+          type: string
+          enum: ["2x4", "4x4"]
+          description: Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability.
     AssistantMessageInput:
       type: object
       properties:
