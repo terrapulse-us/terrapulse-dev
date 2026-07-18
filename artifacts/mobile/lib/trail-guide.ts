@@ -67,6 +67,19 @@ export interface TrailGuide {
   startCoord: [number, number]; // [lng, lat] for the map marker
 }
 
+// ─── Formatting helpers ────────────────────────────────────────────────────────
+
+// USFS SURFACE_TYPE values arrive as "CODE - DESCRIPTION" (e.g.
+// "NAT - NATIVE MATERIAL", "AGG - CRUSHED AGGREGATE OR GRAVEL"). Strip the
+// code prefix and title-case the description so it fits inside stat chips.
+export function prettySurface(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const stripped = raw.includes(" - ") ? raw.split(" - ").slice(1).join(" - ") : raw;
+  const cleaned = stripped.replace(/_/g, " ").trim();
+  if (!cleaned) return undefined;
+  return cleaned.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+}
+
 // ─── Conversion helpers ────────────────────────────────────────────────────────
 
 export function fromUsfsFeature(f: UsfsFeature): TrailGuide {
@@ -78,7 +91,7 @@ export function fromUsfsFeature(f: UsfsFeature): TrailGuide {
     source: "usfs-mvum",
     name: featureDisplayName(f),
     subtitle: formatTerraUse(f.properties.ALLOWED_TERRA_USE),
-    surface: f.properties.SURFACE_TYPE ?? undefined,
+    surface: prettySurface(f.properties.SURFACE_TYPE),
     lengthMiles: miles ? Number(miles) : undefined,
     allowedUse: formatTerraUse(f.properties.ALLOWED_TERRA_USE),
     routeCoordinates: route ?? undefined,
@@ -94,8 +107,8 @@ export function fromUsfsNfsFeature(f: UsfsNfsFeature): TrailGuide {
     id: `nfs-${f.properties.TRAIL_CN ?? f.properties.TRAIL_NO ?? Math.random()}`,
     source: "usfs-nfs",
     name: nfsFeatureDisplayName(f),
-    subtitle: [nfsTrailClass(f), f.properties.SURFACE_TYPE].filter(Boolean).join(" · "),
-    surface: f.properties.SURFACE_TYPE ?? undefined,
+    subtitle: [nfsTrailClass(f), prettySurface(f.properties.SURFACE_TYPE)].filter(Boolean).join(" · "),
+    surface: prettySurface(f.properties.SURFACE_TYPE),
     lengthMiles: miles ? Number(miles) : undefined,
     trailClass: nfsTrailClass(f),
     allowedUse: f.properties.ALLOWED_TERRA_USE
@@ -115,8 +128,8 @@ export function fromOsmFeature(f: OsmFeature): TrailGuide {
     id: `osm-${f.properties.id}`,
     source: "osm",
     name: osmFeatureDisplayName(f),
-    subtitle: [osmFeatureType(f), osmFeatureSurface(f)].join(" · "),
-    surface: osmFeatureSurface(f),
+    subtitle: [osmFeatureType(f), prettySurface(osmFeatureSurface(f))].filter(Boolean).join(" · "),
+    surface: prettySurface(osmFeatureSurface(f)),
     lengthMiles: miles ?? undefined,
     allowedUse: f.properties["4wd_only"] === "yes" ? "4WD Only" :
                 f.properties.motor_vehicle === "designated" ? "Designated OHV" : "Motorized",

@@ -35,9 +35,18 @@ function StatChip({ icon, label, value, color }: {
   return (
     <View style={[chipStyles.chip, { backgroundColor: colors.background, borderColor: colors.border }]}>
       <MaterialIcons name={icon} size={13} color={color} />
-      <View>
-        <Text style={[chipStyles.chipLabel, { color: colors.mutedForeground }]}>{label}</Text>
-        <Text style={[chipStyles.chipValue, { color: colors.foreground }]}>{value}</Text>
+      <View style={chipStyles.chipTextWrap}>
+        <Text style={[chipStyles.chipLabel, { color: colors.mutedForeground }]} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text
+          style={[chipStyles.chipValue, { color: colors.foreground }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -55,6 +64,7 @@ const chipStyles = StyleSheet.create({
     flex: 1,
     minWidth: 90,
   },
+  chipTextWrap: { flex: 1, minWidth: 0 },
   chipLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
   chipValue: { fontSize: 12, fontWeight: "700", marginTop: 1 },
 });
