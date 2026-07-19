@@ -1,46 +1,54 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import Svg, { Polyline } from "react-native-svg";
+import { View, Text, Image, StyleSheet } from "react-native";
 
 interface Props {
   color?: string;
   size?: "sm" | "md" | "lg";
 }
 
+// Full stacked logo (mountain mark + wordmark), transparent background
+const LOGO_FULL = require("@/assets/images/logo-full.png");
+// Mountain mark only, transparent background
+const LOGO_MARK = require("@/assets/images/logo-mark.png");
+
+// Source aspect ratios (width / height)
+const FULL_ASPECT = 1572 / 1009;
+const MARK_ASPECT = 1166 / 666;
+
 export default function TerraPulseLogo({
   color = "#1E3A1E",
   size = "md",
 }: Props) {
-  const scale = size === "sm" ? 0.75 : size === "lg" ? 1.35 : 1;
-  const iconW = 32 * scale;
-  const iconH = 22 * scale;
+  if (size === "lg") {
+    // Large: the full stacked logo (login / loading screens)
+    const width = 220;
+    return (
+      <Image
+        source={LOGO_FULL}
+        style={{ width, height: width / FULL_ASPECT }}
+        resizeMode="contain"
+      />
+    );
+  }
+
+  // Compact: mountain mark + wordmark text (screen headers)
+  const scale = size === "sm" ? 0.75 : 1;
+  const markH = 26 * scale;
   const fontSize = 15 * scale;
   const letterSpacing = 2 * scale;
 
   return (
     <View style={styles.row}>
-      <Svg
-        width={iconW}
-        height={iconH}
-        viewBox="0 0 32 22"
-        style={{ marginRight: 6 * scale }}
-      >
-        {/* Mountain silhouette — two peaks, stroke only */}
-        <Polyline
-          points="0,22 9,5 15,13 21,2 32,22"
-          fill="none"
-          stroke={color}
-          strokeWidth={2.2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </Svg>
-      <Text
-        style={[
-          styles.wordmark,
-          { color, fontSize, letterSpacing },
-        ]}
-      >
+      <Image
+        source={LOGO_MARK}
+        style={{
+          width: markH * MARK_ASPECT,
+          height: markH,
+          marginRight: 7 * scale,
+        }}
+        resizeMode="contain"
+      />
+      <Text style={[styles.wordmark, { color, fontSize, letterSpacing }]}>
         TERRAPULSE
       </Text>
     </View>
