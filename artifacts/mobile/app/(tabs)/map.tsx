@@ -638,6 +638,15 @@ export default function MapScreen() {
   // In-app straight-line guide to an SOS rider (not road routing — a bearing
   // line for off-road riders already in the area)
   const [sosGuideTarget, setSosGuideTarget] = useState<{ uid: string; lat: number; lng: number; displayName: string } | null>(null);
+  // Unread-activity badge on the SOS button while MY beacon is active: counts
+  // chat messages from other riders + responders, minus what I've already seen
+  // (opening my own beacon sheet marks everything seen). Listeners run even
+  // while the sheet is closed — that's the whole point of the badge.
+  const [myBeaconMsgCount, setMyBeaconMsgCount] = useState(0);
+  const [myBeaconResps, setMyBeaconResps] = useState<SosResponder[]>([]);
+  const [myBeaconSeen, setMyBeaconSeen] = useState(0);
+  const myPrevRespUidsRef = useRef<Set<string> | null>(null);
+  const sosUnread = Math.max(0, myBeaconMsgCount + myBeaconResps.length - myBeaconSeen);
 
   // ── Wingman crew locations ────────────────────────────────────────────────
   const [crewForWingman, setCrewForWingman] = useState<{ uid: string; displayName: string; wingmanEnabled: boolean }[]>([]);
@@ -846,6 +855,27 @@ export default function MapScreen() {
     setSosActive(false);
     setSosNote("");
   }, [user]);
+
+  // Open MY OWN beacon's detail sheet (chat + responders + deactivate). Used
+  // by the SOS button while active and by the "new responder" alert.
+  const openMyBeaconSheet = useCallback(() => {
+    if (!user) return;
+    const mine = activeBeacons.find((b) => b.uid === user.uid);
+    if (mine) {
+      setSelectedBeacon(mine);
+    } else if (userLocation) {
+      // Position sync hasn't landed in the broadcast snapshot yet — build the
+      // sheet from local state so the rider is never locked out of their chat.
+      setSelectedBeacon({
+        uid: user.uid,
+        displayName: user.displayName ?? "Unknown Rider",
+        lat: userLocation.latitude,
+        lng: userLocation.longitude,
+        note: sosNote,
+        updatedAt: Date.now(),
+      });
+    }
+  }, [user, activeBeacons, userLocation, sosNote]);
 
   // ── SOS beacon chat + responders ──────────────────────────────────────────
   const sendBeaconMessage = useCallback(async () => {
@@ -1547,6 +1577,85 @@ export default function MapScreen() {
       unsubResps();
     };
   }, [selectedBeacon?.uid]);
+
+  // My-beacon activity badge — while MY SOS is active, listen to my own chat +
+  // responder subcollections even when the sheet is closed, so the SOS button
+  // can show an unread count and we can alert when rescue responds.
+  useEffect(() => {
+    if (!sosActive || !user) {
+      setMyBeaconMsgCount(0);
+      setMyBeaconResps([]);
+      setMyBeaconSeen(0);
+      myPrevRespUidsRef.current = null;
+      return;
+    }
+    const unsubMsgs = onSnapshot(
+      collection(db, "sos_beacons", user.uid, "messages"),
+      (snap) => {
+        // Count only real messages from OTHER riders — system "on the way"
+        // messages are already counted via the responders listener.
+        let n = 0;
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          if (data.uid !== user.uid && data.system !== true) n += 1;
+        });
+        setMyBeaconMsgCount(n);
+      },
+      () => setMyBeaconMsgCount(0)
+    );
+    const unsubResps = onSnapshot(
+      collection(db, "sos_beacons", user.uid, "responders"),
+      (snap) => {
+        const resps: SosResponder[] = [];
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          resps.push({
+            uid: d.id,
+            displayName: (data.displayName as string) ?? "Unknown Rider",
+          });
+        });
+        setMyBeaconResps(resps);
+      },
+      () => setMyBeaconResps([])
+    );
+    return () => {
+      unsubMsgs();
+      unsubResps();
+    };
+  }, [sosActive, user?.uid]);
+
+  // Mark my beacon's activity seen whenever my own sheet is open (and keep it
+  // marked seen as new items stream in while I'm looking at them).
+  useEffect(() => {
+    if (!user || selectedBeacon?.uid !== user.uid) return;
+    setMyBeaconSeen(myBeaconMsgCount + myBeaconResps.length);
+  }, [selectedBeacon?.uid, user?.uid, myBeaconMsgCount, myBeaconResps.length]);
+
+  // Pop a one-time alert when a NEW responder appears while my sheet is closed
+  // — "rescue is on the way" is the one signal a rider in distress must never
+  // miss. The first snapshot after activation only sets the baseline, so any
+  // leftover responder docs (e.g. a failed cleanup from a previous SOS) don't
+  // fire a spurious alert. Note: sosActive lives in memory only — if the app
+  // is killed while a beacon is active, the badge/alerts don't resume on
+  // relaunch (pre-existing limitation of the beacon system).
+  useEffect(() => {
+    if (!sosActive || !user) return;
+    const prev = myPrevRespUidsRef.current;
+    myPrevRespUidsRef.current = new Set(myBeaconResps.map((r) => r.uid));
+    if (prev === null) return;
+    const newOnes = myBeaconResps.filter((r) => !prev.has(r.uid));
+    if (newOnes.length === 0) return;
+    if (selectedBeacon?.uid === user.uid) return; // already looking at the sheet
+    const names = newOnes.map((r) => r.displayName).join(", ");
+    Alert.alert(
+      "Rescue Is On The Way!",
+      `${names} ${newOnes.length === 1 ? "is" : "are"} coming to help you.`,
+      [
+        { text: "OK", style: "cancel" },
+        { text: "Open Chat", onPress: openMyBeaconSheet },
+      ]
+    );
+  }, [myBeaconResps, sosActive, user?.uid, selectedBeacon?.uid, openMyBeaconSheet]);
 
   // Keep the SOS guide target synced to the live beacon position, and end the
   // guide automatically if the beacon goes offline (rider deactivated it).
@@ -3155,18 +3264,9 @@ export default function MapScreen() {
             ]}
             onPress={() => {
               if (sosActive) {
-                Alert.alert(
-                  "Deactivate Beacon?",
-                  "Your SOS beacon will be turned off and removed from the map.",
-                  [
-                    { text: "Keep Active", style: "cancel" },
-                    {
-                      text: "Deactivate",
-                      style: "destructive",
-                      onPress: deactivateSos,
-                    },
-                  ]
-                );
+                // Open my own beacon sheet — chat, responders, and the
+                // DEACTIVATE button all live there.
+                openMyBeaconSheet();
               } else {
                 setSosNoteInput("");
                 setShowSosModal(true);
@@ -3181,6 +3281,13 @@ export default function MapScreen() {
             />
             {sosActive && (
               <Text style={styles.sosBtnActiveText}>LIVE</Text>
+            )}
+            {sosActive && sosUnread > 0 && (
+              <View style={styles.sosBadge}>
+                <Text style={styles.sosBadgeText}>
+                  {sosUnread > 9 ? "9+" : sosUnread}
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -5148,6 +5255,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.5,
+  },
+  sosBadge: {
+    position: "absolute",
+    top: -7,
+    right: -7,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#E53935",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sosBadgeText: {
+    color: "#E53935",
+    fontSize: 10,
+    fontWeight: "900",
   },
   sosHeaderIcon: {
     width: 36,
