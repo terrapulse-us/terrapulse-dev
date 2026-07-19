@@ -1,6 +1,6 @@
 # TerraPulse
 
-Nationwide (all 50 states, 402 trails) off-road trail finder mobile app with live streaming, GPS telemetry, community features, and a leaderboard.
+Nationwide (all 50 states, 538 trails: 462 OHV + 76 hiking) off-road and hiking trail finder mobile app with live streaming, GPS telemetry, community features, and a leaderboard.
 
 ## Run & Operate
 
