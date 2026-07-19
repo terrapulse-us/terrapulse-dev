@@ -60,7 +60,7 @@ Nationwide (all 50 states, 402 trails) off-road trail finder mobile app with liv
 
 ## User preferences
 
-- Do NOT automatically push to GitHub `main` after a task. Ask for explicit confirmation before running `git push origin main` — a past auto-push caused confusion (2026-07-05). If the user wants an EAS build triggered, confirm first, then push.
+- Do NOT automatically push to GitHub `main` after a task, and do NOT ask about it. The user handles all git pushes themselves. If the user wants an EAS build triggered, confirm first, then push.
 
 ## Building Android APKs
 
