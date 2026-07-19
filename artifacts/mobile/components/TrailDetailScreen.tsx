@@ -53,6 +53,12 @@ export interface TrailForDetail {
   state: string;
   vehicleTypes?: VehicleType[];
   routeCoordinates?: Array<{ lat: number; lng: number }>;
+  category?: "ohv" | "hiking";
+  distanceMi?: number;
+  elevGainFt?: number;
+  estimatedTimeHours?: number;
+  petFriendly?: boolean;
+  permitRequired?: boolean;
 }
 
 interface TrailEvent {
@@ -577,22 +583,73 @@ export default function TrailDetailScreen({
                 <DifficultyBar rating={trail.difficultyRating} />
               </View>
 
-              {/* Specs */}
-              <View style={s.specsRow}>
-                <View style={[s.specCard, { backgroundColor: colors.card }]}>
-                  <Feather name="truck" size={18} color={colors.accent} />
-                  <Text style={[s.label, { color: colors.mutedForeground }]}>VEHICLE SIZE</Text>
-                  <Text style={[s.value, { color: colors.foreground }]}>{trail.size}</Text>
+              {/* Hiking-specific: distance + elevation */}
+              {trail.category === "hiking" && (trail.distanceMi != null || trail.elevGainFt != null) && (
+                <View style={s.specsRow}>
+                  {trail.distanceMi != null && (
+                    <View style={[s.specCard, { backgroundColor: colors.card }]}>
+                      <MaterialIcons name="straighten" size={18} color={colors.accent} />
+                      <Text style={[s.label, { color: colors.mutedForeground }]}>DISTANCE</Text>
+                      <Text style={[s.value, { color: colors.foreground }]}>{trail.distanceMi} mi one-way</Text>
+                    </View>
+                  )}
+                  {trail.elevGainFt != null && (
+                    <View style={[s.specCard, { backgroundColor: colors.card }]}>
+                      <MaterialIcons name="trending-up" size={18} color={colors.accent} />
+                      <Text style={[s.label, { color: colors.mutedForeground }]}>ELEV. GAIN</Text>
+                      <Text style={[s.value, { color: colors.foreground }]}>{trail.elevGainFt.toLocaleString()} ft</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={[s.specCard, { backgroundColor: colors.card }]}>
-                  <Feather name="settings" size={18} color={colors.accent} />
-                  <Text style={[s.label, { color: colors.mutedForeground }]}>SUSPENSION</Text>
-                  <Text style={[s.value, { color: colors.foreground }]}>{trail.suspension}</Text>
+              )}
+
+              {/* Hiking-specific: time, pets, permit */}
+              {trail.category === "hiking" && (trail.estimatedTimeHours != null || trail.petFriendly != null || trail.permitRequired != null) && (
+                <View style={[s.card, { backgroundColor: colors.card }]}>
+                  <Text style={[s.label, { color: colors.mutedForeground }]}>TRAIL DETAILS</Text>
+                  {trail.estimatedTimeHours != null && (
+                    <View style={[s.hikingDetailRow]}>
+                      <MaterialIcons name="schedule" size={15} color={colors.mutedForeground} />
+                      <Text style={[s.hikingDetailText, { color: colors.foreground }]}>~{trail.estimatedTimeHours}h round trip</Text>
+                    </View>
+                  )}
+                  {trail.petFriendly != null && (
+                    <View style={s.hikingDetailRow}>
+                      <MaterialIcons name={trail.petFriendly ? "pets" : "do-not-disturb"} size={15} color={trail.petFriendly ? colors.success : colors.mutedForeground} />
+                      <Text style={[s.hikingDetailText, { color: trail.petFriendly ? colors.success : colors.mutedForeground }]}>
+                        {trail.petFriendly ? "Dog-friendly" : "No pets allowed"}
+                      </Text>
+                    </View>
+                  )}
+                  {trail.permitRequired != null && (
+                    <View style={s.hikingDetailRow}>
+                      <MaterialIcons name="confirmation-number" size={15} color={trail.permitRequired ? colors.destructive : colors.success} />
+                      <Text style={[s.hikingDetailText, { color: trail.permitRequired ? colors.destructive : colors.success }]}>
+                        {trail.permitRequired ? "Permit required" : "No permit required"}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              </View>
+              )}
+
+              {/* OHV Specs */}
+              {trail.category !== "hiking" && (
+                <View style={s.specsRow}>
+                  <View style={[s.specCard, { backgroundColor: colors.card }]}>
+                    <Feather name="truck" size={18} color={colors.accent} />
+                    <Text style={[s.label, { color: colors.mutedForeground }]}>VEHICLE SIZE</Text>
+                    <Text style={[s.value, { color: colors.foreground }]}>{trail.size}</Text>
+                  </View>
+                  <View style={[s.specCard, { backgroundColor: colors.card }]}>
+                    <Feather name="settings" size={18} color={colors.accent} />
+                    <Text style={[s.label, { color: colors.mutedForeground }]}>SUSPENSION</Text>
+                    <Text style={[s.value, { color: colors.foreground }]}>{trail.suspension}</Text>
+                  </View>
+                </View>
+              )}
 
               {/* Permitted Vehicle Types */}
-              {trail.vehicleTypes && trail.vehicleTypes.length > 0 && (
+              {trail.category !== "hiking" && trail.vehicleTypes && trail.vehicleTypes.length > 0 && (
                 <View style={[s.card, { backgroundColor: colors.card }]}>
                   <Text style={[s.label, { color: colors.mutedForeground }]}>PERMITTED VEHICLES</Text>
                   <View style={s.vehicleRow}>
@@ -1227,6 +1284,8 @@ const s = StyleSheet.create({
   card: { borderRadius: 12, padding: 14, marginBottom: 12 },
   specsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   specCard: { flex: 1, borderRadius: 12, padding: 14, gap: 6 },
+  hikingDetailRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  hikingDetailText: { fontSize: 13, fontWeight: "600" },
   vehicleRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   vehicleBadge: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   vehicleEmoji: { fontSize: 14 },

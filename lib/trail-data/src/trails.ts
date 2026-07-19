@@ -44,6 +44,9 @@ export function deriveVehicleTypes(size: string): VehicleType[] {
   // Dirt bike specific keywords
   if (s.includes('dirt bike') || s.includes('moto')) v.add('dirtbike');
 
+  // Foot traffic / hiking trails have no vehicle types
+  if (s.includes('foot traffic')) return [];
+
   // Plain "All Sizes" (without a specific vehicle qualifier already matched)
   // → trail is open to all vehicle types
   if (s.includes('all sizes') && v.size === 0) {
@@ -71,6 +74,16 @@ export interface Trail {
   minLiftIn: number;
   lockersRecommended: boolean;
   longTravel: boolean;
+  /** "hiking" for foot-traffic trails; undefined / "ohv" for off-road vehicle trails. */
+  category?: "ohv" | "hiking";
+  /** One-way distance in miles (hiking trails). */
+  distanceMi?: number;
+  /** Total elevation gain in feet. */
+  elevGainFt?: number;
+  /** Estimated round-trip time in hours. */
+  estimatedTimeHours?: number;
+  petFriendly?: boolean;
+  permitRequired?: boolean;
 }
 
 type TrailInput = Omit<Trail, 'vehicleTypes' | 'minLiftIn' | 'lockersRecommended' | 'longTravel'>;
@@ -746,6 +759,22 @@ const _TRAIL_DATA: TrailInput[] = [
   // Wyoming — BLM OHV areas
   { id: "wy-9",  title: "Basin Gardens ORV Area",               state: "WY", coords: { latitude: 44.4204,  longitude: -108.0000 }, difficulty: "5/10 Moderate",     difficultyRating: 5,  size: "All Sizes",                  suspension: "Stock OK",                region: "Big Horn County" },
   { id: "wy-10", title: "Killpecker Sand Dunes OHV",            state: "WY", coords: { latitude: 41.9839,  longitude: -109.0921 }, difficulty: "3/10 Beginner",     difficultyRating: 3,  size: "All Sizes / Sand Vehicles",  suspension: "Stock Friendly",          region: "Sweetwater County" },
+
+  // ── HIKING TRAILS ────────────────────────────────────────────────────────────
+  // category: "hiking" — foot traffic only; vehicle fields are N/A.
+  // distanceMi = one-way; estimatedTimeHours = round-trip.
+  { id: "hike-ca-1", title: "Half Dome",                    state: "CA", coords: { latitude: 37.7459,  longitude: -119.5332 }, difficulty: "10/10 Hardcore",   difficultyRating: 10, size: "Foot Traffic", suspension: "N/A", region: "Yosemite National Park",         category: "hiking", distanceMi: 8,    elevGainFt: 4800, estimatedTimeHours: 12, petFriendly: false, permitRequired: true  },
+  { id: "hike-ca-2", title: "Mt. Whitney Trail",            state: "CA", coords: { latitude: 36.5786,  longitude: -118.2920 }, difficulty: "9/10 Extreme",    difficultyRating: 9,  size: "Foot Traffic", suspension: "N/A", region: "Inyo National Forest",           category: "hiking", distanceMi: 11,   elevGainFt: 6100, estimatedTimeHours: 14, petFriendly: false, permitRequired: true  },
+  { id: "hike-ut-1", title: "Angels Landing",               state: "UT", coords: { latitude: 37.2690,  longitude: -112.9460 }, difficulty: "9/10 Extreme",    difficultyRating: 9,  size: "Foot Traffic", suspension: "N/A", region: "Zion National Park",             category: "hiking", distanceMi: 2.7,  elevGainFt: 1488, estimatedTimeHours: 5,  petFriendly: false, permitRequired: true  },
+  { id: "hike-az-1", title: "Bright Angel Trail",           state: "AZ", coords: { latitude: 36.0564,  longitude: -112.1432 }, difficulty: "6/10 Challenging", difficultyRating: 6,  size: "Foot Traffic", suspension: "N/A", region: "Grand Canyon National Park",     category: "hiking", distanceMi: 4.6,  elevGainFt: 3060, estimatedTimeHours: 6,  petFriendly: false, permitRequired: false },
+  { id: "hike-az-2", title: "Havasupai Falls",              state: "AZ", coords: { latitude: 36.2553,  longitude: -112.6979 }, difficulty: "5/10 Moderate",   difficultyRating: 5,  size: "Foot Traffic", suspension: "N/A", region: "Havasupai Tribal Land",          category: "hiking", distanceMi: 10,   elevGainFt: 2000, estimatedTimeHours: 5,  petFriendly: false, permitRequired: true  },
+  { id: "hike-wa-1", title: "The Enchantments",             state: "WA", coords: { latitude: 47.5311,  longitude: -120.8209 }, difficulty: "9/10 Extreme",    difficultyRating: 9,  size: "Foot Traffic", suspension: "N/A", region: "Okanogan-Wenatchee NF",          category: "hiking", distanceMi: 9,    elevGainFt: 4500, estimatedTimeHours: 12, petFriendly: false, permitRequired: true  },
+  { id: "hike-mt-1", title: "Highline Trail (Glacier NP)",  state: "MT", coords: { latitude: 48.6969,  longitude: -113.7172 }, difficulty: "6/10 Challenging", difficultyRating: 6,  size: "Foot Traffic", suspension: "N/A", region: "Glacier National Park",          category: "hiking", distanceMi: 14.5, elevGainFt: 2200, estimatedTimeHours: 8,  petFriendly: false, permitRequired: false },
+  { id: "hike-ga-1", title: "Appalachian Trail — Springer", state: "GA", coords: { latitude: 34.6276,  longitude: -84.1938  }, difficulty: "4/10 Moderate",   difficultyRating: 4,  size: "Foot Traffic", suspension: "N/A", region: "Chattahoochee-Oconee NF",       category: "hiking", distanceMi: 4.4,  elevGainFt: 1600, estimatedTimeHours: 4,  petFriendly: true,  permitRequired: false },
+  { id: "hike-hi-1", title: "Kalalau Trail",                state: "HI", coords: { latitude: 22.2165,  longitude: -159.6474 }, difficulty: "9/10 Extreme",    difficultyRating: 9,  size: "Foot Traffic", suspension: "N/A", region: "Nā Pali Coast State Park",      category: "hiking", distanceMi: 11,   elevGainFt: 2000, estimatedTimeHours: 12, petFriendly: false, permitRequired: true  },
+  { id: "hike-co-1", title: "Maroon Bells Four Pass Loop",  state: "CO", coords: { latitude: 39.0709,  longitude: -106.9890 }, difficulty: "8/10 Very Hard",  difficultyRating: 8,  size: "Foot Traffic", suspension: "N/A", region: "White River National Forest",    category: "hiking", distanceMi: 26,   elevGainFt: 7000, estimatedTimeHours: 16, petFriendly: false, permitRequired: true  },
+  { id: "hike-wy-1", title: "Cascade Canyon Trail (Tetons)", state: "WY", coords: { latitude: 43.7478, longitude: -110.8027 },  difficulty: "4/10 Moderate",   difficultyRating: 4,  size: "Foot Traffic", suspension: "N/A", region: "Grand Teton National Park",      category: "hiking", distanceMi: 4.5,  elevGainFt: 1000, estimatedTimeHours: 4,  petFriendly: false, permitRequired: false },
+  { id: "hike-or-1", title: "Crater Lake Rim Trail",        state: "OR", coords: { latitude: 42.9446,  longitude: -122.1090 }, difficulty: "5/10 Moderate",   difficultyRating: 5,  size: "Foot Traffic", suspension: "N/A", region: "Crater Lake National Park",      category: "hiking", distanceMi: 33,   elevGainFt: 4600, estimatedTimeHours: 20, petFriendly: false, permitRequired: false },
 ];
 
 export const ALL_TRAILS: Trail[] = _TRAIL_DATA.map(t => ({

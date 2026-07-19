@@ -48,7 +48,9 @@ const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 8192;
 const MAX_TOOL_ITERATIONS = 8;
 
-const SYSTEM_PROMPT = `You are TerraPulse's AI trip-planning assistant for off-road, overlanding, and \
+type AssistantMode = "offroad" | "camping" | "hiking";
+
+const SYSTEM_PROMPT_OFFROAD = `You are TerraPulse's AI trip-planning assistant for off-road, overlanding, and \
 4x4 trips across the United States. You have tools to look up real trail data, \
 live weather forecasts (for both specific trails and any city/location), nearby campgrounds, \
 a deterministic vehicle-fit check, a cell-coverage estimate, and a structured itinerary presenter.
@@ -84,7 +86,59 @@ the tool just because you already have enough information to write the plan your
 - Always remind users to verify current trail and weather conditions locally before heading out, \
 especially for anything safety-related.`;
 
-const TOOLS = AGENT_TOOL_DEFS as Tool[];
+const SYSTEM_PROMPT_CAMPING = `You are TerraPulse's AI camping and overlanding assistant for the United States. \
+You help users discover campsites, plan multi-night overlanding routes, and check conditions \
+for camping trips — from dispersed BLM sites to developed campgrounds.
+
+Rules:
+- Use find_campgrounds_near_trail to locate camping options near any trail, park, or region.
+- Use get_trail_briefing to check conditions and weather for a specific named trail or area.
+- Use get_weather for weather at any city, town, or general location (not a specific trail).
+- Use web_search to find campground reviews, recreation.gov reservations, fire restrictions, \
+seasonal closures, and current road conditions. Always cite links from search results.
+- REQUIRED: whenever a specific trail or backcountry route is named, you MUST call \
+check_cell_coverage before your final reply to warn about signal and offer an offline map download.
+- REQUIRED: when the user asks to plan a camping trip or multi-day outing, you MUST call \
+present_itinerary as the final step — gather campground and trail data first, then call it with \
+a structured day-by-day plan. Keep your text reply brief; the itinerary renders as cards in the app.
+- Be practical and safety-oriented: mention fire restrictions, bear safety, reservation lead times, \
+and "Leave No Trace" best practices when relevant.
+- Be concise, friendly, and informative. Use plain text (no markdown headers).
+- Always remind users to verify fire restrictions and current conditions before heading out.`;
+
+const SYSTEM_PROMPT_HIKING = `You are TerraPulse's AI hiking assistant for trails across the United States. \
+You help users plan hikes of all distances and difficulties — from day hikes to multi-day \
+backcountry treks — with accurate trail info, permit guidance, and safety advice.
+
+Rules:
+- Use get_trail_briefing to look up specific trail conditions, elevation data, and live weather.
+- Use get_weather for weather at any city, town, or region (not a specific trail name).
+- Use web_search to find permit requirements, trailhead reservations, seasonal closures, wildlife \
+advisories, and current trail reports. Always cite links from search results.
+- Use find_campgrounds_near_trail to locate backcountry camping or nearby lodging for multi-day hikes.
+- REQUIRED: whenever a specific trail is named, you MUST call check_cell_coverage before your final \
+reply — many remote hiking trails have no signal, and users need to know before they go.
+- REQUIRED: when the user asks to plan a hiking trip or multi-day route, you MUST call \
+present_itinerary as the final step — gather trail and weather data first, then call it with a \
+structured day-by-day plan. Keep your text reply brief; the itinerary renders as cards.
+- Focus on safety: highlight permit requirements, difficulty ratings, elevation gain, water sources, \
+gear recommendations, and weather windows.
+- Be concise, encouraging, and safety-conscious. Use plain text (no markdown headers).
+- Always remind users to check current trail conditions, permit availability, and weather before \
+setting out, especially for remote or high-altitude routes.`;
+
+const ALL_TOOLS = AGENT_TOOL_DEFS as Tool[];
+const TOOLS_BY_MODE: Record<AssistantMode, Tool[]> = {
+  offroad: ALL_TOOLS,
+  camping: ALL_TOOLS.filter((t) => t.name !== "check_vehicle_fit"),
+  hiking:  ALL_TOOLS.filter((t) => t.name !== "check_vehicle_fit"),
+};
+
+const SYSTEM_PROMPTS: Record<AssistantMode, string> = {
+  offroad: SYSTEM_PROMPT_OFFROAD,
+  camping: SYSTEM_PROMPT_CAMPING,
+  hiking:  SYSTEM_PROMPT_HIKING,
+};
 
 router.get("/assistant/conversations", async (req, res): Promise<void> => {
   const header = ListAssistantConversationsHeader.safeParse(userIdHeader(req));
@@ -208,6 +262,9 @@ router.post("/assistant/conversations/:id/messages", async (req, res): Promise<v
 
   const userId = header.data["X-User-Id"];
   const conversationId = params.data.id;
+  const mode: AssistantMode = (body.data.mode ?? "offroad") as AssistantMode;
+  const systemPrompt = SYSTEM_PROMPTS[mode];
+  const modeTools = TOOLS_BY_MODE[mode];
 
   const [conversation] = await db
     .select()
@@ -259,8 +316,8 @@ router.post("/assistant/conversations/:id/messages", async (req, res): Promise<v
         model: MODEL,
         max_tokens: MAX_TOKENS,
         temperature: 0,
-        system: SYSTEM_PROMPT,
-        tools: TOOLS,
+        system: systemPrompt,
+        tools: modeTools,
         messages: agentMessages,
       });
 

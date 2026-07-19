@@ -16,6 +16,7 @@ export * from './assistantItinerary';
 export * from './assistantItineraryDay';
 export * from './assistantMessage';
 export * from './assistantMessageInput';
+export * from './assistantMessageInputMode';
 export * from './assistantMessageRole';
 export * from './assistantStructuredData';
 export * from './assistantVehicleProfile';

@@ -125,7 +125,8 @@ export const SendAssistantMessageBody = zod.object({
   "hasLockers": zod.boolean().optional(),
   "hasLowRange": zod.boolean().optional(),
   "drivetrain": zod.enum(['2x4', '4x4']).optional().describe('Drive configuration. 2x4 (two-wheel drive) vehicles are flagged unfit for trails that demand 4WD capability.')
-}).optional().describe('Structured vehicle specs used for deterministic trail-fit checks. Omitted fields are treated as unknown\/stock.')
+}).optional().describe('Structured vehicle specs used for deterministic trail-fit checks. Omitted fields are treated as unknown\/stock.'),
+  "mode": zod.enum(['offroad', 'camping', 'hiking']).optional().describe('Assistant personality — controls which system prompt and tools are used. \"offroad\" (default): full OHV trip-planning with vehicle-fit check. \"camping\": overlanding & campsite focus, no vehicle-fit check. \"hiking\": foot-traffic trails, weather, permits focus; no vehicle-fit check.\n')
 })
 
 

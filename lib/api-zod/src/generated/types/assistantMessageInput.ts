@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AssistantMessageInputMode } from './assistantMessageInputMode';
 import type { AssistantVehicleProfile } from './assistantVehicleProfile';
 
 export interface AssistantMessageInput {
   content: string;
   vehicleProfile?: AssistantVehicleProfile;
+  /** Assistant personality — controls which system prompt and tools are used. "offroad" (default): full OHV trip-planning with vehicle-fit check. "camping": overlanding & campsite focus, no vehicle-fit check. "hiking": foot-traffic trails, weather, permits focus; no vehicle-fit check.
+   */
+  mode?: AssistantMessageInputMode;
 }

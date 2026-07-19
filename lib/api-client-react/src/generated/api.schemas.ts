@@ -124,9 +124,25 @@ export interface AssistantVehicleProfile {
   drivetrain?: AssistantVehicleProfileDrivetrain;
 }
 
+/**
+ * Assistant personality — controls which system prompt and tools are used. "offroad" (default): full OHV trip-planning with vehicle-fit check. "camping": overlanding & campsite focus, no vehicle-fit check. "hiking": foot-traffic trails, weather, permits focus; no vehicle-fit check.
+
+ */
+export type AssistantMessageInputMode = typeof AssistantMessageInputMode[keyof typeof AssistantMessageInputMode];
+
+
+export const AssistantMessageInputMode = {
+  offroad: 'offroad',
+  camping: 'camping',
+  hiking: 'hiking',
+} as const;
+
 export interface AssistantMessageInput {
   content: string;
   vehicleProfile?: AssistantVehicleProfile;
+  /** Assistant personality — controls which system prompt and tools are used. "offroad" (default): full OHV trip-planning with vehicle-fit check. "camping": overlanding & campsite focus, no vehicle-fit check. "hiking": foot-traffic trails, weather, permits focus; no vehicle-fit check.
+   */
+  mode?: AssistantMessageInputMode;
 }
 
 export interface AssistantError {

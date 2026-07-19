@@ -254,6 +254,14 @@ components:
           type: string
         vehicleProfile:
           $ref: "#/components/schemas/AssistantVehicleProfile"
+        mode:
+          type: string
+          enum: ["offroad", "camping", "hiking"]
+          description: >
+            Assistant personality — controls which system prompt and tools are used.
+            "offroad" (default): full OHV trip-planning with vehicle-fit check.
+            "camping": overlanding & campsite focus, no vehicle-fit check.
+            "hiking": foot-traffic trails, weather, permits focus; no vehicle-fit check.
       required:
         - content
     AssistantItineraryDay:

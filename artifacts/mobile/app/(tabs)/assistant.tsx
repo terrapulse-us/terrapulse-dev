@@ -29,7 +29,7 @@ import {
   type AssistantCoverageWarning,
 } from "@workspace/api-client-react";
 import "@/lib/api-client";
-import { streamAssistantMessage, type AssistantStreamEvent } from "@/lib/assistant-api";
+import { streamAssistantMessage, type AssistantStreamEvent, type AssistantMode } from "@/lib/assistant-api";
 import { downloadTrailArea } from "@/lib/offline-maps";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -55,6 +55,30 @@ const TOOL_LABELS: Record<string, string> = {
   present_itinerary: "Building your itinerary…",
 };
 
+const MODE_OPTIONS: Array<{ id: AssistantMode; emoji: string; label: string }> = [
+  { id: "offroad", emoji: "🏔️", label: "Offroad" },
+  { id: "camping", emoji: "⛺", label: "Camping" },
+  { id: "hiking",  emoji: "🥾", label: "Hiking" },
+];
+
+const MODE_TITLES: Record<AssistantMode, string> = {
+  offroad: "Offroad Chat",
+  camping: "Camping Chat",
+  hiking:  "Hiking Chat",
+};
+
+const MODE_EMPTY_TEXT: Record<AssistantMode, string> = {
+  offroad: "Ask about a trail's conditions, whether your rig can handle it, or nearby camping.",
+  camping: "Ask about campgrounds, dispersed camping spots, fire restrictions, or overlanding routes.",
+  hiking:  "Ask about a hike's conditions, permits, gear recommendations, or best seasons.",
+};
+
+const MODE_PLACEHOLDER: Record<AssistantMode, string> = {
+  offroad: "Ask about a trail, weather, or camping…",
+  camping: "Ask about campgrounds, road conditions, or trip planning…",
+  hiking:  "Ask about a hike, permits, gear, or weather…",
+};
+
 export default function AssistantScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -64,7 +88,9 @@ export default function AssistantScreen() {
   const queryClient = useQueryClient();
 
   const [vehicleProfile, setVehicleProfile] = useState<AssistantVehicleProfile>({});
-  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [mode, setMode] = useState<AssistantMode>("offroad");
+  const [conversationIds, setConversationIds] = useState<Record<AssistantMode, number | null>>({ offroad: null, camping: null, hiking: null });
+  const conversationId = conversationIds[mode];
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [streamingText, setStreamingText] = useState("");
@@ -133,17 +159,23 @@ export default function AssistantScreen() {
   });
 
   useEffect(() => {
-    if (!uid || loadingList || conversationId !== null) return;
-    if (conversations && conversations.length > 0) {
-      setConversationId(conversations[0].id);
-    } else if (conversations && conversations.length === 0 && !createConversation.isPending) {
-      createConversation.mutate(
-        { data: { title: "Trip Chat" } },
-        { onSuccess: (created) => setConversationId(created.id) },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, loadingList, conversations, conversationId]);
+    if (!uid || loadingList || conversations === undefined) return;
+    setConversationIds(prev => {
+      const next = { ...prev };
+      if (next.offroad === null && conversations.length > 0) {
+        next.offroad = conversations[0].id;
+      }
+      if (next.camping === null) {
+        const found = conversations.find(c => c.title === "Camping Chat");
+        if (found) next.camping = found.id;
+      }
+      if (next.hiking === null) {
+        const found = conversations.find(c => c.title === "Hiking Chat");
+        if (found) next.hiking = found.id;
+      }
+      return next;
+    });
+  }, [uid, loadingList, conversations]);
 
   const { data: conversation, isLoading: loadingConversation } = useGetAssistantConversation(
     conversationId ?? 0,
@@ -160,10 +192,10 @@ export default function AssistantScreen() {
     if (sending) return;
     setErrorMsg(null);
     createConversation.mutate(
-      { data: { title: "Trip Chat" } },
+      { data: { title: MODE_TITLES[mode] } },
       {
         onSuccess: (created) => {
-          setConversationId(created.id);
+          setConversationIds(prev => ({ ...prev, [mode]: created.id }));
           setStreamingText("");
           setActiveTool(null);
         },
@@ -215,9 +247,9 @@ export default function AssistantScreen() {
     let cid = conversationId;
     if (cid === null) {
       try {
-        const created = await createConversation.mutateAsync({ data: { title: "Trip Chat" } });
+        const created = await createConversation.mutateAsync({ data: { title: MODE_TITLES[mode] } });
         cid = created.id;
-        setConversationId(created.id);
+        setConversationIds(prev => ({ ...prev, [mode]: created.id }));
       } catch {
         setErrorMsg("Could not start a conversation. Please check your connection and try again.");
         setSending(false);
@@ -266,6 +298,7 @@ export default function AssistantScreen() {
             setErrorMsg(event.message);
           }
         },
+        mode,
       );
     } finally {
       setSending(false);
@@ -413,6 +446,20 @@ export default function AssistantScreen() {
         </Text>
       </View>
 
+      <View style={styles.modeRow}>
+        {MODE_OPTIONS.map(({ id, emoji, label }) => (
+          <TouchableOpacity
+            key={id}
+            style={[styles.modeBtn, mode === id && styles.modeBtnActive]}
+            onPress={() => { if (mode !== id) { setMode(id); setErrorMsg(null); } }}
+            disabled={sending}
+          >
+            <Text style={styles.modeBtnEmoji}>{emoji}</Text>
+            <Text style={[styles.modeBtnText, mode === id && styles.modeBtnTextActive]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {!!errorMsg && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>{errorMsg}</Text>
@@ -426,9 +473,7 @@ export default function AssistantScreen() {
       ) : messages.length === 0 ? (
         <View style={styles.centerFill}>
           <Feather name="compass" size={36} color={colors.mutedForeground} />
-          <Text style={styles.emptyText}>
-            Ask about a trail's conditions, whether your rig can handle it, or nearby camping.
-          </Text>
+          <Text style={styles.emptyText}>{MODE_EMPTY_TEXT[mode]}</Text>
         </View>
       ) : (
         <FlatList
@@ -445,7 +490,7 @@ export default function AssistantScreen() {
           style={styles.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Ask about a trail, weather, or camping…"
+          placeholder={MODE_PLACEHOLDER[mode]}
           placeholderTextColor={colors.mutedForeground}
           multiline
           editable={!sending}
@@ -522,6 +567,39 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       lineHeight: 15,
       color: colors.mutedForeground,
       fontWeight: "600",
+    },
+    modeRow: {
+      flexDirection: "row",
+      marginHorizontal: 16,
+      marginBottom: 8,
+      gap: 8,
+    },
+    modeBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      paddingVertical: 7,
+      borderRadius: colors.radius,
+      backgroundColor: colors.secondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modeBtnActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    modeBtnEmoji: {
+      fontSize: 13,
+    },
+    modeBtnText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.mutedForeground,
+    },
+    modeBtnTextActive: {
+      color: colors.primaryForeground,
     },
     errorBanner: {
       backgroundColor: colors.destructive,

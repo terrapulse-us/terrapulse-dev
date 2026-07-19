@@ -14,6 +14,8 @@ export type AssistantStreamEvent =
   | { type: "done"; toolsUsed: string[] }
   | { type: "error"; message: string };
 
+export type AssistantMode = "offroad" | "camping" | "hiking";
+
 /**
  * Streams a single agent turn over SSE. Resolves once the stream ends
  * (after a "done" or "error" event, or the connection closing).
@@ -24,6 +26,7 @@ export async function streamAssistantMessage(
   content: string,
   vehicleProfile: AssistantVehicleProfile | undefined,
   onEvent: (event: AssistantStreamEvent) => void,
+  mode: AssistantMode = "offroad",
 ): Promise<void> {
   if (!apiServerUrl) {
     onEvent({ type: "error", message: "API server is not configured." });
@@ -40,7 +43,7 @@ export async function streamAssistantMessage(
         "Content-Type": "application/json",
         "X-User-Id": userId,
       },
-      body: JSON.stringify({ content, vehicleProfile }),
+      body: JSON.stringify({ content, vehicleProfile, mode }),
     });
   } catch (err) {
     onEvent({

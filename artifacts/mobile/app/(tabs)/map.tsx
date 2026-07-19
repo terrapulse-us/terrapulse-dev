@@ -560,8 +560,8 @@ export default function MapScreen() {
 
   const hasActiveFilters = selectedState !== "All States" || vehicleTypeFilter.size > 0;
 
-  const filteredTrails = useMemo(() => {
-    let trails = getTrailsByState(selectedState);
+  const ohvTrails = useMemo(() => {
+    let trails = getTrailsByState(selectedState).filter(t => t.category !== "hiking");
     if (vehicleTypeFilter.size > 0) {
       trails = trails.filter(t =>
         (t.vehicleTypes ?? []).some(vt => vehicleTypeFilter.has(vt))
@@ -569,6 +569,10 @@ export default function MapScreen() {
     }
     return trails;
   }, [selectedState, vehicleTypeFilter]);
+
+  const hikingTrails = useMemo(() => {
+    return getTrailsByState(selectedState).filter(t => t.category === "hiking");
+  }, [selectedState]);
 
   const [showTrailSearch, setShowTrailSearch] = useState(false);
   const [selectedTrail, setSelectedTrail] = useState<UserTrail | null>(null);
@@ -699,6 +703,7 @@ export default function MapScreen() {
   const [usfsGeoJSON, setUsfsGeoJSON] = useState<UsfsCollection | null>(null);
   const [usfsLoading, setUsfsLoading] = useState(false);
 
+  const [showHikingTrails, setShowHikingTrails] = useState(true);
   const [showNfsOverlay, setShowNfsOverlay] = useState(false);
   const [nfsGeoJSON, setNfsGeoJSON] = useState<UsfsNfsCollection | null>(null);
   const [nfsLoading, setNfsLoading] = useState(false);
@@ -2425,7 +2430,7 @@ export default function MapScreen() {
           <UserLocation />
         )}
 
-        {filteredTrails.map((trail) => (
+        {ohvTrails.map((trail) => (
           <Marker
             key={trail.id}
             lngLat={[trail.coords.longitude, trail.coords.latitude]}
@@ -2453,6 +2458,16 @@ export default function MapScreen() {
                 { backgroundColor: markerColor(trail.difficultyRating) },
               ]}
             />
+          </Marker>
+        ))}
+
+        {showHikingTrails && hikingTrails.map((trail) => (
+          <Marker
+            key={trail.id}
+            lngLat={[trail.coords.longitude, trail.coords.latitude]}
+            onPress={() => setSelectedTrail(enrichWithRoute(trail as UserTrail))}
+          >
+            <View style={styles.hikingMarker} />
           </Marker>
         ))}
 
@@ -2835,7 +2850,8 @@ export default function MapScreen() {
             <Text
               style={[styles.topSub, { color: colors.mutedForeground }]}
             >
-              {filteredTrails.length +
+              {ohvTrails.length +
+                (showHikingTrails ? hikingTrails.length : 0) +
                 (usfsGeoJSON?.features.length ?? 0) +
                 (osmGeoJSON?.features.length ?? 0) +
                 (nfsGeoJSON?.features.length ?? 0) +
@@ -3885,6 +3901,24 @@ export default function MapScreen() {
               {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#fff" : "#5A9A5A"} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
+            {/* Hiking trails marker toggle */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, showHikingTrails ? styles.overlayToggleHikingActive : styles.overlayToggleInactive, { borderColor: showHikingTrails ? "#2E7D32" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowHikingTrails((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="hiking" size={20} color={showHikingTrails ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showHikingTrails ? "#fff" : "#2A2A1E" }]}>
+                  {`HIKING TRAILS${showHikingTrails ? `  (${hikingTrails.length})` : ""}`}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showHikingTrails ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  National parks &amp; wilderness hikes
+                </Text>
+              </View>
+              <MaterialIcons name={showHikingTrails ? "toggle-on" : "toggle-off"} size={28} color={showHikingTrails ? "#fff" : "#A8A89A"} />
+            </TouchableOpacity>
+
             {/* OSM toggle */}
             <TouchableOpacity
               style={[styles.overlayToggle, showOsmOverlay ? styles.overlayToggleOsmActive : styles.overlayToggleInactive, { borderColor: showOsmOverlay ? "#3DAA5C" : "#C8C2B8", marginTop: 8 }]}
@@ -4721,6 +4755,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#000",
   },
+  hikingMarker: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#2E7D32",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
   topBar: {
     position: "absolute",
     top: 0,
@@ -5117,6 +5159,7 @@ const styles = StyleSheet.create({
   overlayToggleBlmActive:     { backgroundColor: "#D4860A" },
   overlayToggleBlmCampActive: { backgroundColor: "#795548" },
   overlayToggleNfsActive:     { backgroundColor: "#2D6A4F" },
+  overlayToggleHikingActive:  { backgroundColor: "#2E7D32" },
   overlayToggleRidbActive:    { backgroundColor: "#7B3F9E" },
   blmCampMarker: {
     width: 26,
