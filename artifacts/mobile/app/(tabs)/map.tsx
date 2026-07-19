@@ -3476,12 +3476,78 @@ export default function MapScreen() {
                 </View>
               )}
 
+              {/* ACTION BUTTONS — kept ABOVE the chat so they're always visible
+                  (the chat used to push them below the bottom screen edge) */}
+              {selectedBeacon.uid === user?.uid ? (
+                <TouchableOpacity
+                  style={[styles.sosActionBtn, { marginTop: 12, backgroundColor: "#E53935", borderColor: "#E53935" }]}
+                  onPress={() => {
+                    setSelectedBeacon(null);
+                    Alert.alert(
+                      "Deactivate Beacon?",
+                      "Your SOS beacon will be turned off.",
+                      [
+                        { text: "Keep Active", style: "cancel" },
+                        { text: "Deactivate", style: "destructive", onPress: deactivateSos },
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="cancel" size={16} color="#fff" />
+                  <Text style={[styles.sosActionBtnText, { color: "#fff" }]}>DEACTIVATE MY BEACON</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  {(() => {
+                    const alreadyResponding = beaconResponders.some((r) => r.uid === user?.uid);
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.sosActionBtn,
+                          { marginTop: 12 },
+                          alreadyResponding
+                            ? { backgroundColor: "rgba(67,160,71,0.12)", borderColor: "#43A047" }
+                            : { backgroundColor: "#43A047", borderColor: "#43A047" },
+                        ]}
+                        onPress={respondToBeacon}
+                        disabled={respondingToBeacon || alreadyResponding}
+                        activeOpacity={0.8}
+                      >
+                        {respondingToBeacon ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <MaterialIcons
+                              name={alreadyResponding ? "check-circle" : "volunteer-activism"}
+                              size={16}
+                              color={alreadyResponding ? "#43A047" : "#fff"}
+                            />
+                            <Text style={[styles.sosActionBtnText, { color: alreadyResponding ? "#43A047" : "#fff" }]}>
+                              {alreadyResponding ? "YOU'RE RESPONDING" : "RESCUE IS ON THE WAY"}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })()}
+                  <TouchableOpacity
+                    style={[styles.sosActionBtn, { marginTop: 8, backgroundColor: colors.background, borderColor: colors.border }]}
+                    onPress={() => getDirectionsToBeacon(selectedBeacon)}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="directions" size={16} color={colors.foreground} />
+                    <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>GET DIRECTIONS</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
               {/* CHAT with the SOS rider */}
               <Text style={[styles.sosChipHeading, { color: colors.mutedForeground, marginTop: 12 }]}>CHAT</Text>
               <View style={[styles.sosChatBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <ScrollView
                   ref={beaconChatScrollRef}
-                  style={{ maxHeight: 170 }}
+                  style={{ maxHeight: 140 }}
                   contentContainerStyle={{ padding: 10, gap: 8 }}
                   keyboardShouldPersistTaps="handled"
                 >
@@ -3541,70 +3607,6 @@ export default function MapScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {selectedBeacon.uid === user?.uid ? (
-                <TouchableOpacity
-                  style={[styles.sosActionBtn, { marginTop: 14, backgroundColor: "#E53935", borderColor: "#E53935" }]}
-                  onPress={() => {
-                    setSelectedBeacon(null);
-                    Alert.alert(
-                      "Deactivate Beacon?",
-                      "Your SOS beacon will be turned off.",
-                      [
-                        { text: "Keep Active", style: "cancel" },
-                        { text: "Deactivate", style: "destructive", onPress: deactivateSos },
-                      ]
-                    );
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons name="cancel" size={16} color="#fff" />
-                  <Text style={[styles.sosActionBtnText, { color: "#fff" }]}>DEACTIVATE MY BEACON</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  {(() => {
-                    const alreadyResponding = beaconResponders.some((r) => r.uid === user?.uid);
-                    return (
-                      <TouchableOpacity
-                        style={[
-                          styles.sosActionBtn,
-                          { marginTop: 14 },
-                          alreadyResponding
-                            ? { backgroundColor: "rgba(67,160,71,0.12)", borderColor: "#43A047" }
-                            : { backgroundColor: "#43A047", borderColor: "#43A047" },
-                        ]}
-                        onPress={respondToBeacon}
-                        disabled={respondingToBeacon || alreadyResponding}
-                        activeOpacity={0.8}
-                      >
-                        {respondingToBeacon ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <>
-                            <MaterialIcons
-                              name={alreadyResponding ? "check-circle" : "volunteer-activism"}
-                              size={16}
-                              color={alreadyResponding ? "#43A047" : "#fff"}
-                            />
-                            <Text style={[styles.sosActionBtnText, { color: alreadyResponding ? "#43A047" : "#fff" }]}>
-                              {alreadyResponding ? "YOU'RE RESPONDING" : "RESCUE IS ON THE WAY"}
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })()}
-                  <TouchableOpacity
-                    style={[styles.sosActionBtn, { marginTop: 8, backgroundColor: colors.background, borderColor: colors.border }]}
-                    onPress={() => getDirectionsToBeacon(selectedBeacon)}
-                    activeOpacity={0.8}
-                  >
-                    <MaterialIcons name="directions" size={16} color={colors.foreground} />
-                    <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>GET DIRECTIONS</Text>
-                  </TouchableOpacity>
-                </>
-              )}
             </TouchableOpacity>
             </KeyboardAvoidingView>
           </TouchableOpacity>
