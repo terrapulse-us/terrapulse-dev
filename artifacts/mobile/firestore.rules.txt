@@ -183,6 +183,34 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == uid;
       allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // ── Chat with the SOS rider ──────────────────────────────────────
+      // Any signed-in rider can read the thread and post messages (authored
+      // as themselves). The beacon owner can delete any message (cleanup on
+      // deactivate); authors can delete their own.
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+                      && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() <= 500;
+        allow delete: if request.auth != null
+                      && (request.auth.uid == uid
+                          || request.auth.uid == resource.data.uid);
+      }
+
+      // ── "Rescue is on the way" responders ────────────────────────────
+      // One doc per responder, keyed by the responder's own UID. Riders can
+      // only add/remove themselves; the beacon owner can delete any (cleanup
+      // on deactivate).
+      match /responders/{responderUid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+                              && request.auth.uid == responderUid;
+        allow delete: if request.auth != null
+                      && (request.auth.uid == uid
+                          || request.auth.uid == responderUid);
+      }
     }
 
     // ── live_streams/{uid} ───────────────────────────────────────────────

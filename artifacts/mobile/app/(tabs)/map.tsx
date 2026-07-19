@@ -12,6 +12,7 @@ import {
   Switch,
   Platform,
   Linking,
+  KeyboardAvoidingView,
   type NativeSyntheticEvent,
 } from "react-native";
 import {
@@ -71,6 +72,7 @@ import {
   arrayUnion,
   query,
   where,
+  getDocs,
 } from "firebase/firestore";
 import {
   ref,
@@ -260,6 +262,24 @@ interface SosBeacon {
   lng: number;
   note: string;
   updatedAt: number;
+}
+
+// Chat messages under sos_beacons/{uid}/messages — visible to all riders so
+// helpers can coordinate with the rider in distress.
+interface SosChatMessage {
+  id: string;
+  uid: string;
+  displayName: string;
+  text: string;
+  system?: boolean;
+  createdAt: number;
+}
+
+// Responders under sos_beacons/{uid}/responders — riders who tapped
+// "Rescue is on the way", keyed by their own uid.
+interface SosResponder {
+  uid: string;
+  displayName: string;
 }
 
 interface CommunityNote {
@@ -608,6 +628,16 @@ export default function MapScreen() {
   const [sosActivating, setSosActivating] = useState(false);
   const [activeBeacons, setActiveBeacons] = useState<SosBeacon[]>([]);
   const [selectedBeacon, setSelectedBeacon] = useState<SosBeacon | null>(null);
+  // SOS chat + responders (subcollections of the selected beacon)
+  const [beaconMessages, setBeaconMessages] = useState<SosChatMessage[]>([]);
+  const [beaconResponders, setBeaconResponders] = useState<SosResponder[]>([]);
+  const [beaconMsgInput, setBeaconMsgInput] = useState("");
+  const [sendingBeaconMsg, setSendingBeaconMsg] = useState(false);
+  const [respondingToBeacon, setRespondingToBeacon] = useState(false);
+  const beaconChatScrollRef = useRef<ScrollView | null>(null);
+  // In-app straight-line guide to an SOS rider (not road routing — a bearing
+  // line for off-road riders already in the area)
+  const [sosGuideTarget, setSosGuideTarget] = useState<{ uid: string; lat: number; lng: number; displayName: string } | null>(null);
 
   // ── Wingman crew locations ────────────────────────────────────────────────
   const [crewForWingman, setCrewForWingman] = useState<{ uid: string; displayName: string; wingmanEnabled: boolean }[]>([]);
@@ -801,9 +831,121 @@ export default function MapScreen() {
     try {
       await setDoc(doc(db, "sos_beacons", user.uid), { active: false }, { merge: true });
     } catch { /* best-effort */ }
+    // Best-effort cleanup of the chat + responder subcollections so the next
+    // activation starts fresh (no backend cleanup job exists).
+    try {
+      const [msgs, resps] = await Promise.all([
+        getDocs(collection(db, "sos_beacons", user.uid, "messages")),
+        getDocs(collection(db, "sos_beacons", user.uid, "responders")),
+      ]);
+      await Promise.all([
+        ...msgs.docs.map((d) => deleteDoc(d.ref).catch(() => {})),
+        ...resps.docs.map((d) => deleteDoc(d.ref).catch(() => {})),
+      ]);
+    } catch { /* best-effort */ }
     setSosActive(false);
     setSosNote("");
   }, [user]);
+
+  // ── SOS beacon chat + responders ──────────────────────────────────────────
+  const sendBeaconMessage = useCallback(async () => {
+    if (!user || !selectedBeacon) return;
+    const text = beaconMsgInput.trim();
+    if (!text) return;
+    setSendingBeaconMsg(true);
+    try {
+      await addDoc(collection(db, "sos_beacons", selectedBeacon.uid, "messages"), {
+        uid: user.uid,
+        displayName: user.displayName ?? "Unknown Rider",
+        text,
+        system: false,
+        createdAt: serverTimestamp(),
+        createdAtFallback: Date.now(),
+      });
+      setBeaconMsgInput("");
+    } catch {
+      Alert.alert("Message Failed", "Could not send. Check your connection.");
+    } finally {
+      setSendingBeaconMsg(false);
+    }
+  }, [user, selectedBeacon, beaconMsgInput]);
+
+  const respondToBeacon = useCallback(async () => {
+    if (!user || !selectedBeacon) return;
+    const name = user.displayName ?? "Unknown Rider";
+    setRespondingToBeacon(true);
+    try {
+      await setDoc(
+        doc(db, "sos_beacons", selectedBeacon.uid, "responders", user.uid),
+        {
+          uid: user.uid,
+          displayName: name,
+          respondedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      // System chat message so the SOS rider sees it immediately in the thread
+      await addDoc(collection(db, "sos_beacons", selectedBeacon.uid, "messages"), {
+        uid: user.uid,
+        displayName: name,
+        text: `${name} is on the way to help!`,
+        system: true,
+        createdAt: serverTimestamp(),
+        createdAtFallback: Date.now(),
+      });
+    } catch {
+      Alert.alert("Failed", "Could not send your response. Check your connection.");
+    } finally {
+      setRespondingToBeacon(false);
+    }
+  }, [user, selectedBeacon]);
+
+  // ── Directions to an SOS rider ────────────────────────────────────────────
+  const openBeaconInMapsApp = useCallback((beacon: SosBeacon) => {
+    const label = encodeURIComponent(`SOS: ${beacon.displayName}`);
+    const url = Platform.select({
+      ios: `maps:?q=${label}&ll=${beacon.lat},${beacon.lng}`,
+      android: `geo:${beacon.lat},${beacon.lng}?q=${beacon.lat},${beacon.lng}(${label})`,
+    });
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://maps.google.com/?q=${beacon.lat},${beacon.lng}`).catch(() => {});
+      });
+    }
+  }, []);
+
+  const getDirectionsToBeacon = useCallback((beacon: SosBeacon) => {
+    Alert.alert(
+      "Get Directions",
+      `How do you want to reach ${beacon.displayName}?`,
+      [
+        {
+          text: "Guide on Trail Map",
+          onPress: () => {
+            setSelectedBeacon(null);
+            setSosGuideTarget({ uid: beacon.uid, lat: beacon.lat, lng: beacon.lng, displayName: beacon.displayName });
+            setFollowUser(false);
+            // Fit both the rider and the beacon in view when we know both
+            if (userLocation) {
+              cameraRef.current?.fitBounds(
+                [
+                  Math.min(userLocation.longitude, beacon.lng) - 0.01,
+                  Math.min(userLocation.latitude, beacon.lat) - 0.01,
+                  Math.max(userLocation.longitude, beacon.lng) + 0.01,
+                  Math.max(userLocation.latitude, beacon.lat) + 0.01,
+                ],
+                { padding: { top: 120, right: 50, bottom: 160, left: 50 }, duration: 800 }
+              );
+            } else {
+              cameraRef.current?.flyTo({ center: [beacon.lng, beacon.lat], zoom: 13, duration: 800 });
+            }
+          },
+        },
+        { text: "Open in Maps App", onPress: () => openBeaconInMapsApp(beacon) },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  }, [userLocation, openBeaconInMapsApp]);
 
   // Wrapper used by the existing TrailDetailScreen onNavigate prop
   const startNavigation = useCallback(() => {
@@ -1348,6 +1490,75 @@ export default function MapScreen() {
     );
     return unsub;
   }, []);
+
+  // SOS chat + responders — live while the beacon detail sheet is open.
+  // Sorted client-side on createdAtFallback so ordering never misfires while
+  // serverTimestamp() is still resolving (same pattern as Community Notes).
+  useEffect(() => {
+    if (!selectedBeacon) {
+      setBeaconMessages([]);
+      setBeaconResponders([]);
+      setBeaconMsgInput("");
+      return;
+    }
+    const unsubMsgs = onSnapshot(
+      collection(db, "sos_beacons", selectedBeacon.uid, "messages"),
+      (snap) => {
+        const msgs: SosChatMessage[] = [];
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          if (typeof data.text === "string" && typeof data.uid === "string") {
+            msgs.push({
+              id: d.id,
+              uid: data.uid,
+              displayName: (data.displayName as string) ?? "Unknown Rider",
+              text: data.text,
+              system: data.system === true,
+              createdAt:
+                (data.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ??
+                (typeof data.createdAtFallback === "number" ? data.createdAtFallback : Date.now()),
+            });
+          }
+        });
+        msgs.sort((a, b) => a.createdAt - b.createdAt);
+        setBeaconMessages(msgs);
+        // Keep the newest message visible
+        setTimeout(() => beaconChatScrollRef.current?.scrollToEnd({ animated: true }), 80);
+      },
+      () => setBeaconMessages([])
+    );
+    const unsubResps = onSnapshot(
+      collection(db, "sos_beacons", selectedBeacon.uid, "responders"),
+      (snap) => {
+        const resps: SosResponder[] = [];
+        snap.forEach((d) => {
+          const data = d.data() as Record<string, unknown>;
+          resps.push({
+            uid: d.id,
+            displayName: (data.displayName as string) ?? "Unknown Rider",
+          });
+        });
+        setBeaconResponders(resps);
+      },
+      () => setBeaconResponders([])
+    );
+    return () => {
+      unsubMsgs();
+      unsubResps();
+    };
+  }, [selectedBeacon?.uid]);
+
+  // Keep the SOS guide target synced to the live beacon position, and end the
+  // guide automatically if the beacon goes offline (rider deactivated it).
+  useEffect(() => {
+    if (!sosGuideTarget) return;
+    const live = activeBeacons.find((b) => b.uid === sosGuideTarget.uid);
+    if (!live) {
+      setSosGuideTarget(null);
+    } else if (live.lat !== sosGuideTarget.lat || live.lng !== sosGuideTarget.lng) {
+      setSosGuideTarget({ uid: live.uid, lat: live.lat, lng: live.lng, displayName: live.displayName });
+    }
+  }, [activeBeacons, sosGuideTarget]);
 
   // While SOS is active, sync the rider's position to Firestore on every
   // location update so nearby riders see the live beacon move.
@@ -2411,6 +2622,35 @@ export default function MapScreen() {
           );
         })}
 
+        {/* SOS guide — straight bearing line from me to the rider in distress */}
+        {mapStyleLoaded && sosGuideTarget && userLocation && (
+          <GeoJSONSource
+            id="sos-guide"
+            data={{
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: [
+                  [userLocation.longitude, userLocation.latitude],
+                  [sosGuideTarget.lng, sosGuideTarget.lat],
+                ],
+              },
+              properties: {},
+            } as never}
+          >
+            <Layer
+              id="sos-guide-line"
+              type="line"
+              paint={{
+                "line-color": "#E53935",
+                "line-width": 3,
+                "line-opacity": 0.9,
+                "line-dasharray": [1.5, 1.5] as never,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
         {/* SOS Beacons — visible to all riders at all times */}
         {activeBeacons.map((beacon) => (
           <Marker
@@ -2822,6 +3062,38 @@ export default function MapScreen() {
           </View>
         )}
 
+        {/* SOS GUIDE HUD — active while guiding to a rider in distress */}
+        {sosGuideTarget && (
+          <View style={[styles.sosGuideHud, { backgroundColor: colors.card, borderColor: "#E53935" }]}>
+            <View style={[styles.sosPingDot, { marginRight: 2 }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sosGuideTitle, { color: "#E53935" }]} numberOfLines={1}>
+                GUIDING TO {sosGuideTarget.displayName.toUpperCase()}
+              </Text>
+              <Text style={[styles.sosGuideSub, { color: colors.mutedForeground }]}>
+                {userLocation
+                  ? (() => {
+                      const d = latLngDistMiles(
+                        userLocation.latitude,
+                        userLocation.longitude,
+                        sosGuideTarget.lat,
+                        sosGuideTarget.lng
+                      );
+                      return d < 0.1 ? `${Math.round(d * 5280)} FT AWAY · STRAIGHT-LINE` : `${d.toFixed(1)} MI AWAY · STRAIGHT-LINE`;
+                    })()
+                  : "WAITING FOR GPS…"}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
+              onPress={() => setSosGuideTarget(null)}
+              activeOpacity={0.8}
+            >
+              <Feather name="x" size={15} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.bottomBtns}>
           {activeRide ? (
             <View style={[styles.recordBtn, { backgroundColor: colors.card, borderColor: "#1E88E5", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
@@ -3021,6 +3293,10 @@ export default function MapScreen() {
             activeOpacity={1}
             onPress={() => setSelectedBeacon(null)}
           >
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              pointerEvents="box-none"
+            >
             <TouchableOpacity
               activeOpacity={1}
               style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#E53935", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
@@ -3080,9 +3356,88 @@ export default function MapScreen() {
                 ) : null}
               </View>
 
+              {/* RESCUE ON THE WAY — responder names, visible to everyone */}
+              {beaconResponders.length > 0 && (
+                <View style={[styles.sosRespondersBox, { backgroundColor: "rgba(67,160,71,0.10)", borderColor: "rgba(67,160,71,0.4)" }]}>
+                  <MaterialIcons name="volunteer-activism" size={16} color="#43A047" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.sosRespondersTitle, { color: "#43A047" }]}>RESCUE IS ON THE WAY</Text>
+                    <Text style={[styles.sosRespondersNames, { color: colors.foreground }]}>
+                      {beaconResponders.map((r) => r.displayName).join(", ")}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* CHAT with the SOS rider */}
+              <Text style={[styles.sosChipHeading, { color: colors.mutedForeground, marginTop: 12 }]}>CHAT</Text>
+              <View style={[styles.sosChatBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <ScrollView
+                  ref={beaconChatScrollRef}
+                  style={{ maxHeight: 170 }}
+                  contentContainerStyle={{ padding: 10, gap: 8 }}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {beaconMessages.length === 0 ? (
+                    <Text style={[styles.sosChatEmpty, { color: colors.mutedForeground }]}>
+                      {selectedBeacon.uid === user?.uid
+                        ? "Messages from riders coming to help will appear here."
+                        : `Send ${selectedBeacon.displayName.split(" ")[0]} a message — they see this chat live.`}
+                    </Text>
+                  ) : (
+                    beaconMessages.map((m) =>
+                      m.system ? (
+                        <Text key={m.id} style={[styles.sosChatSystem, { color: "#43A047" }]}>
+                          {m.text}
+                        </Text>
+                      ) : (
+                        <View
+                          key={m.id}
+                          style={[
+                            styles.sosChatBubble,
+                            m.uid === user?.uid
+                              ? { alignSelf: "flex-end", backgroundColor: "rgba(229,57,53,0.12)" }
+                              : { alignSelf: "flex-start", backgroundColor: colors.card },
+                          ]}
+                        >
+                          <Text style={[styles.sosChatName, { color: m.uid === selectedBeacon.uid ? "#E53935" : colors.mutedForeground }]}>
+                            {m.uid === user?.uid ? "You" : m.displayName}
+                          </Text>
+                          <Text style={[styles.sosChatText, { color: colors.foreground }]}>{m.text}</Text>
+                        </View>
+                      )
+                    )
+                  )}
+                </ScrollView>
+                <View style={[styles.sosChatInputRow, { borderTopColor: colors.border }]}>
+                  <TextInput
+                    style={[styles.sosChatInput, { color: colors.foreground }]}
+                    placeholder="Type a message…"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={beaconMsgInput}
+                    onChangeText={setBeaconMsgInput}
+                    onSubmitEditing={sendBeaconMessage}
+                    returnKeyType="send"
+                    editable={!sendingBeaconMsg}
+                  />
+                  <TouchableOpacity
+                    onPress={sendBeaconMessage}
+                    disabled={sendingBeaconMsg || !beaconMsgInput.trim()}
+                    style={[styles.sosChatSendBtn, { backgroundColor: beaconMsgInput.trim() ? "#E53935" : colors.border }]}
+                    activeOpacity={0.8}
+                  >
+                    {sendingBeaconMsg ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <MaterialIcons name="send" size={16} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {selectedBeacon.uid === user?.uid ? (
                 <TouchableOpacity
-                  style={[styles.sosActionBtn, { marginTop: 16, backgroundColor: "#E53935", borderColor: "#E53935" }]}
+                  style={[styles.sosActionBtn, { marginTop: 14, backgroundColor: "#E53935", borderColor: "#E53935" }]}
                   onPress={() => {
                     setSelectedBeacon(null);
                     Alert.alert(
@@ -3100,15 +3455,51 @@ export default function MapScreen() {
                   <Text style={[styles.sosActionBtnText, { color: "#fff" }]}>DEACTIVATE MY BEACON</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={[styles.sosActionBtn, { marginTop: 16, backgroundColor: colors.background, borderColor: colors.border }]}
-                  onPress={() => setSelectedBeacon(null)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>CLOSE</Text>
-                </TouchableOpacity>
+                <>
+                  {(() => {
+                    const alreadyResponding = beaconResponders.some((r) => r.uid === user?.uid);
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.sosActionBtn,
+                          { marginTop: 14 },
+                          alreadyResponding
+                            ? { backgroundColor: "rgba(67,160,71,0.12)", borderColor: "#43A047" }
+                            : { backgroundColor: "#43A047", borderColor: "#43A047" },
+                        ]}
+                        onPress={respondToBeacon}
+                        disabled={respondingToBeacon || alreadyResponding}
+                        activeOpacity={0.8}
+                      >
+                        {respondingToBeacon ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <MaterialIcons
+                              name={alreadyResponding ? "check-circle" : "volunteer-activism"}
+                              size={16}
+                              color={alreadyResponding ? "#43A047" : "#fff"}
+                            />
+                            <Text style={[styles.sosActionBtnText, { color: alreadyResponding ? "#43A047" : "#fff" }]}>
+                              {alreadyResponding ? "YOU'RE RESPONDING" : "RESCUE IS ON THE WAY"}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })()}
+                  <TouchableOpacity
+                    style={[styles.sosActionBtn, { marginTop: 8, backgroundColor: colors.background, borderColor: colors.border }]}
+                    onPress={() => getDirectionsToBeacon(selectedBeacon)}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="directions" size={16} color={colors.foreground} />
+                    <Text style={[styles.sosActionBtnText, { color: colors.foreground }]}>GET DIRECTIONS</Text>
+                  </TouchableOpacity>
+                </>
               )}
             </TouchableOpacity>
+            </KeyboardAvoidingView>
           </TouchableOpacity>
         )}
       </Modal>
@@ -4855,6 +5246,99 @@ const styles = StyleSheet.create({
   sosDetailStatValue: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  sosRespondersBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  sosRespondersTitle: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  sosRespondersNames: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  sosChatBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  sosChatEmpty: {
+    fontSize: 12,
+    fontStyle: "italic",
+    lineHeight: 17,
+  },
+  sosChatSystem: {
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  sosChatBubble: {
+    maxWidth: "82%",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  sosChatName: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
+  sosChatText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sosChatInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderTopWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  sosChatInput: {
+    flex: 1,
+    fontSize: 13,
+    paddingVertical: 4,
+  },
+  sosChatSendBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sosGuideHud: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginBottom: 8,
+  },
+  sosGuideTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  sosGuideSub: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginTop: 1,
   },
   rideHud: {
     position: "absolute",
