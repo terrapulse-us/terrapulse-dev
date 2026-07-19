@@ -647,6 +647,9 @@ export default function MapScreen() {
   const [myBeaconSeen, setMyBeaconSeen] = useState(0);
   const myPrevRespUidsRef = useRef<Set<string> | null>(null);
   const sosUnread = Math.max(0, myBeaconMsgCount + myBeaconResps.length - myBeaconSeen);
+  // Proximity alert — track which beacon UIDs we've already seen so we only
+  // alert on genuinely NEW activations, not ones present when the app opened.
+  const prevBeaconUidsRef = useRef<Set<string> | null>(null);
 
   // ── Wingman crew locations ────────────────────────────────────────────────
   const [crewForWingman, setCrewForWingman] = useState<{ uid: string; displayName: string; wingmanEnabled: boolean }[]>([]);
@@ -656,6 +659,10 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  // Keep a ref to userLocation so the proximity-alert effect (which watches
+  // activeBeacons only) can read the freshest position without re-subscribing.
+  const userLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  useEffect(() => { userLocationRef.current = userLocation; }, [userLocation]);
   const hasAutoFlownRef = useRef(false);
   // Gate all GeoJSONSource renders until the map style has finished loading.
   // Registering sources before onDidFinishLoadingStyle silently fails on Android.
@@ -1520,6 +1527,41 @@ export default function MapScreen() {
     );
     return unsub;
   }, []);
+
+  // Proximity alert — fires when a NEW beacon appears within 30 miles.
+  // First snapshot after mount just sets the baseline (no alert for beacons
+  // already active when the app opened). Own beacon is always ignored.
+  useEffect(() => {
+    const prev = prevBeaconUidsRef.current;
+    prevBeaconUidsRef.current = new Set(activeBeacons.map((b) => b.uid));
+    if (prev === null) return; // baseline — no alert
+    const loc = userLocationRef.current;
+    for (const beacon of activeBeacons) {
+      if (prev.has(beacon.uid)) continue;         // already knew about it
+      if (beacon.uid === user?.uid) continue;      // that's me
+      const dist = loc
+        ? latLngDistMiles(loc.latitude, loc.longitude, beacon.lat, beacon.lng)
+        : null;
+      if (dist !== null && dist > 30) continue;   // too far
+      const distStr = dist === null
+        ? ""
+        : dist < 0.1
+          ? ` · ${Math.round(dist * 5280)} ft away`
+          : ` · ${dist.toFixed(1)} mi away`;
+      const noteStr = beacon.note ? `\n"${beacon.note}"` : "";
+      Alert.alert(
+        "🚨 Nearby SOS Beacon",
+        `${beacon.displayName} has activated an emergency beacon${distStr}.${noteStr}\n\nCan you help?`,
+        [
+          { text: "Dismiss", style: "cancel" },
+          {
+            text: "View Beacon",
+            onPress: () => setSelectedBeacon(beacon),
+          },
+        ]
+      );
+    }
+  }, [activeBeacons, user?.uid]);
 
   // SOS chat + responders — live while the beacon detail sheet is open.
   // Sorted client-side on createdAtFallback so ordering never misfires while
