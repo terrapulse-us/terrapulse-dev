@@ -49,8 +49,9 @@ export interface ModLinkResult {
 }
 
 router.post("/mods/search", async (req, res): Promise<void> => {
-  const { prompt, vehicleYear, vehicleMake, vehicleModel } = req.body as {
+  const { prompt, kind, vehicleYear, vehicleMake, vehicleModel } = req.body as {
     prompt?: string;
+    kind?: string;
     vehicleYear?: string;
     vehicleMake?: string;
     vehicleModel?: string;
@@ -61,15 +62,22 @@ router.post("/mods/search", async (req, res): Promise<void> => {
     return;
   }
 
-  const vehicleStr = [vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
+  // "gear" = outdoor camping/hiking gear search (no vehicle context);
+  // anything else defaults to the original off-road mods search.
+  const isGear = kind === "gear";
+  const vehicleStr = isGear ? "" : [vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
   const contextQuery = vehicleStr ? `${prompt} for ${vehicleStr}` : prompt;
+
+  const reviewSites = isGear
+    ? "site:rei.com OR site:backcountry.com OR site:moosejaw.com OR site:cabelas.com OR site:basspro.com OR site:amazon.com"
+    : "site:amazon.com OR site:extremeterrain.com OR site:quadratec.com OR site:summitracing.com OR site:carid.com OR site:autozone.com";
 
   try {
     // Two parallel searches: one buying-intent, one editorial/review.
     // We intentionally do NOT ask Claude to produce URLs — only Tavily URLs are used.
     const [buyResults, reviewResults] = await Promise.all([
-      tavilySearch(`buy ${contextQuery}`, 6),
-      tavilySearch(`${contextQuery} review site:amazon.com OR site:extremeterrain.com OR site:quadratec.com OR site:summitracing.com OR site:carid.com OR site:autozone.com`, 6),
+      tavilySearch(`buy ${isGear ? `${contextQuery} camping hiking gear` : contextQuery}`, 6),
+      tavilySearch(`${contextQuery} review ${reviewSites}`, 6),
     ]);
 
     // Merge and deduplicate by hostname so each retailer appears at most once.
@@ -91,7 +99,7 @@ router.post("/mods/search", async (req, res): Promise<void> => {
 
     // Claude writes a 1-line description per result using the Tavily snippet.
     // It never touches or invents URLs — those come verbatim from Tavily.
-    const descPrompt = `For each search result below, write ONE short sentence (max 15 words) describing what the product page is about, focusing on the off-road/vehicle mod angle. Return a JSON array of objects with a single "d" field, in the same order as the input.
+    const descPrompt = `For each search result below, write ONE short sentence (max 15 words) describing what the product page is about, focusing on the ${isGear ? "outdoor camping/hiking gear" : "off-road/vehicle mod"} angle. Return a JSON array of objects with a single "d" field, in the same order as the input.
 
 ${top.map((r, i) => `${i + 1}. "${r.title}" — ${r.content.slice(0, 200)}`).join("\n")}
 

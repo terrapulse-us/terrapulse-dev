@@ -93,8 +93,8 @@ const HUB_TITLE: Record<ActivityMode, string> = {
 
 const HUB_SECTIONS: Record<ActivityMode, GarageSection[]> = {
   offroad: ["rides", "maps", "crew", "mods"],
-  camping: ["campsites", "maps", "crew"],
-  hiking: ["gear", "maps", "crew"],
+  camping: ["campsites", "maps", "crew", "mods"],
+  hiking: ["gear", "maps", "crew", "mods"],
 };
 
 interface ModResult {
@@ -593,6 +593,10 @@ export default function GarageScreen() {
     setSection((prev) =>
       HUB_SECTIONS[mode].includes(prev) ? prev : HUB_SECTIONS[mode][0],
     );
+    // Mods vs gear searches are mode-specific — clear stale results on switch
+    setModResults([]);
+    setModPrompt("");
+    setModsError("");
   }, [mode]);
 
   // ── Vehicles ──────────────────────────────────────────────────────────────
@@ -705,6 +709,7 @@ export default function GarageScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
+          kind: mode === "offroad" ? "mods" : "gear",
           vehicleYear: vehicle?.year,
           vehicleMake: vehicle?.make,
           vehicleModel: vehicle?.model,
@@ -728,7 +733,7 @@ export default function GarageScreen() {
     } finally {
       setModsLoading(false);
     }
-  }, []);
+  }, [mode]);
 
   const deleteVehicle = useCallback((vehicle: Vehicle) => {
     Alert.alert(
@@ -920,6 +925,13 @@ export default function GarageScreen() {
     }
   }, [user]);
 
+  // Vehicle context only applies to offroad mods searches — gear searches
+  // (camping/hiking) are generic and don't send rig specs.
+  const activeModVehicle: Vehicle | null =
+    mode === "offroad"
+      ? modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null
+      : null;
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -937,7 +949,9 @@ export default function GarageScreen() {
             rides:     { icon: "truck",                 label: "MY RIDES" },
             maps:      { icon: "map",                   label: "MAPS" },
             crew:      { icon: "users",                 label: "MY CREW" },
-            mods:      { icon: "tool",                  label: "FIND MODS" },
+            mods:      mode === "offroad"
+              ? { icon: "tool",         label: "FIND MODS" }
+              : { icon: "shopping-bag", label: "FIND GEAR" },
             campsites: { icon: "tent", mci: true,       label: "CAMPSITES" },
             gear:      { icon: "bag-personal-outline", mci: true, label: "MY GEAR" },
           };
@@ -1247,8 +1261,8 @@ export default function GarageScreen() {
           {/* Search panel */}
           <View style={[styles.modSearchPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
             {/* Vehicle context pill */}
-            {vehicles.length > 0 && (() => {
-              const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0];
+            {mode === "offroad" && activeModVehicle && (() => {
+              const av = activeModVehicle;
               return (
                 <TouchableOpacity
                   style={[styles.modVehiclePill, { backgroundColor: colors.secondary, borderColor: colors.border }]}
@@ -1269,7 +1283,13 @@ export default function GarageScreen() {
                 style={[styles.modPromptInput, { backgroundColor: colors.secondary, borderColor: colors.border, color: colors.foreground }]}
                 value={modPrompt}
                 onChangeText={setModPrompt}
-                placeholder={'What mods are you looking for? (e.g. 35" tires, skid plates, roof rack...)'}
+                placeholder={
+                  mode === "offroad"
+                    ? 'What mods are you looking for? (e.g. 35" tires, skid plates, roof rack...)'
+                    : mode === "camping"
+                      ? "What gear do you need? (e.g. 4-season tent, camp stove, sleeping pads...)"
+                      : "What gear do you need? (e.g. trekking poles, daypack, water filter...)"
+                }
                 placeholderTextColor={colors.mutedForeground}
                 multiline
                 returnKeyType="search"
@@ -1277,8 +1297,7 @@ export default function GarageScreen() {
                 onSubmitEditing={() => {
                   const trimmed = modPrompt.trim();
                   if (!trimmed || modsLoading) return;
-                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
-                  void searchMods(trimmed, av);
+                  void searchMods(trimmed, activeModVehicle);
                 }}
               />
               <TouchableOpacity
@@ -1286,8 +1305,7 @@ export default function GarageScreen() {
                 onPress={() => {
                   const trimmed = modPrompt.trim();
                   if (!trimmed || modsLoading) return;
-                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
-                  void searchMods(trimmed, av);
+                  void searchMods(trimmed, activeModVehicle);
                 }}
                 disabled={modsLoading || !modPrompt.trim()}
               >
@@ -1317,8 +1335,7 @@ export default function GarageScreen() {
                 onPress={() => {
                   const trimmed = modPrompt.trim();
                   if (!trimmed) return;
-                  const av = modVehicle ?? vehicles.find((v) => v.isFavorite) ?? vehicles[0] ?? null;
-                  void searchMods(trimmed, av);
+                  void searchMods(trimmed, activeModVehicle);
                 }}
               >
                 <Feather name="refresh-cw" size={14} color="#fff" />
@@ -1363,10 +1380,16 @@ export default function GarageScreen() {
             </ScrollView>
           ) : (
             <View style={styles.emptyCenter}>
-              <Feather name="tool" size={40} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Find Mods</Text>
+              <Feather name={mode === "offroad" ? "tool" : "shopping-bag"} size={40} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                {mode === "offroad" ? "Find Mods" : "Find Gear"}
+              </Text>
               <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-                Describe what you're looking for — suspension lift, 35" tires, skid plates, recovery gear — and we'll pull real product links from across the web.
+                {mode === "offroad"
+                  ? `Describe what you're looking for — suspension lift, 35" tires, skid plates, recovery gear — and we'll pull real product links from across the web.`
+                  : mode === "camping"
+                    ? `Describe what you need — tents, sleeping bags, camp stoves, coolers — and we'll pull real product links from across the web.`
+                    : `Describe what you need — boots, packs, trekking poles, water filters — and we'll pull real product links from across the web.`}
               </Text>
             </View>
           )}
