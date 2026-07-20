@@ -452,6 +452,30 @@ const ACTIVITY_OPTIONS: { key: ActivityMode; emoji: string; label: string }[] = 
   { key: "hiking", emoji: "🥾", label: "HIKING" },
 ];
 
+type CampTerrain = "woods" | "desert" | "mountain" | "lakeside";
+
+const CAMP_TERRAIN_OPTIONS: { key: CampTerrain; label: string }[] = [
+  { key: "woods", label: "🌲 DEEP WOODS" },
+  { key: "desert", label: "🏜️ DESERT" },
+  { key: "mountain", label: "⛰️ MOUNTAIN" },
+  { key: "lakeside", label: "🌊 LAKESIDE" },
+];
+
+// Keyword classification over campground name + description (BLM + Recreation.gov)
+const CAMP_TERRAIN_KEYWORDS: Record<CampTerrain, RegExp> = {
+  woods: /\b(forests?|woods?|pines?|cedars?|oaks?|groves?|timber|redwoods?|sequoias?|aspens?|junipers?|firs?|spruce)\b/i,
+  desert: /\b(deserts?|dunes?|sands?|mojave|sonoran|mesas?|arid|sagebrush|joshua|cactus|badlands|playa)\b/i,
+  mountain: /\b(mountains?|mtn\.?s?|peaks?|summits?|ridges?|alpine|sierras?|foothills?|highlands?|canyons?)\b/i,
+  lakeside: /\b(lakes?|rivers?|creeks?|reservoirs?|shores?|beach|bay|ponds?|falls|waterfront|marinas?|springs?)\b/i,
+};
+
+function campTerrainMatches(text: string, filter: Set<CampTerrain>): boolean {
+  for (const t of filter) {
+    if (CAMP_TERRAIN_KEYWORDS[t].test(text)) return true;
+  }
+  return false;
+}
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -569,6 +593,9 @@ export default function MapScreen() {
   const [hikeDifficultyFilter, setHikeDifficultyFilter] = useState<Set<HikeExperience>>(new Set());
   const [hikeMaxMiles, setHikeMaxMiles] = useState<number | null>(null);
 
+  // Camping-mode terrain filter (keyword match on campground name/description)
+  const [campTerrainFilter, setCampTerrainFilter] = useState<Set<CampTerrain>>(new Set());
+
   const toggleVehicleFilter = useCallback((vt: VehicleType) => {
     setVehicleTypeFilter(prev => {
       const next = new Set(prev);
@@ -581,6 +608,7 @@ export default function MapScreen() {
   const hasActiveFilters =
     selectedState !== "All States" ||
     (activityMode === "offroad" && vehicleTypeFilter.size > 0) ||
+    (activityMode === "camping" && campTerrainFilter.size > 0) ||
     (activityMode === "hiking" && (hikeDifficultyFilter.size > 0 || hikeMaxMiles != null));
 
   const ohvTrails = useMemo(() => {
@@ -775,6 +803,20 @@ export default function MapScreen() {
 
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
   const [showRidbOverlay, setShowRidbOverlay] = useState(false);
+
+  const visibleBlmCampgrounds = useMemo(() => {
+    if (activityMode !== "camping" || campTerrainFilter.size === 0) return blmCampgrounds;
+    return blmCampgrounds.filter((c) =>
+      campTerrainMatches(`${c.name} ${c.description ?? ""}`, campTerrainFilter)
+    );
+  }, [blmCampgrounds, activityMode, campTerrainFilter]);
+
+  const visibleRidbFacilities = useMemo(() => {
+    if (activityMode !== "camping" || campTerrainFilter.size === 0) return ridbFacilities;
+    return ridbFacilities.filter((f) =>
+      campTerrainMatches(`${f.FacilityName} ${f.FacilityDescription ?? ""}`, campTerrainFilter)
+    );
+  }, [ridbFacilities, activityMode, campTerrainFilter]);
 
   const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
   const [showNpsOverlay, setShowNpsOverlay] = useState(false);
@@ -2658,7 +2700,7 @@ export default function MapScreen() {
         ))}
 
         {/* ── BLM Campground markers ─────────────────────────────────────── */}
-        {showBlmCampgrounds && blmCampgrounds.map((camp) => (
+        {showBlmCampgrounds && visibleBlmCampgrounds.map((camp) => (
           <Marker
             key={`blm-camp-${camp.id}`}
             lngLat={[camp.lng, camp.lat]}
@@ -2735,7 +2777,7 @@ export default function MapScreen() {
         })}
 
         {/* ── RIDB trailhead markers ────────────────────────────────────── */}
-        {ridbFacilities.map((f, i) => {
+        {visibleRidbFacilities.map((f, i) => {
           const coord = ridbFacilityCoord(f);
           if (!coord) return null;
           return (
@@ -2892,7 +2934,7 @@ export default function MapScreen() {
                 (usfsGeoJSON?.features.length ?? 0) +
                 (osmGeoJSON?.features.length ?? 0) +
                 (nfsGeoJSON?.features.length ?? 0) +
-                ridbFacilities.length +
+                visibleRidbFacilities.length +
                 npsParks.length} TRAILS ·{" "}
               {selectedState === "All States"
                 ? "NATIONWIDE"
@@ -3879,9 +3921,13 @@ export default function MapScreen() {
           activeOpacity={1}
           onPress={() => setShowLayerPicker(false)}
         >
-          <View style={[styles.layerSheet, styles.layerSheetLight]}>
+          <View style={[styles.layerSheet, styles.layerSheetLight, { maxHeight: "85%" }]}>
             <View style={styles.modalHandleLight} />
             <Text style={styles.layerTitleLight}>MAP LAYERS</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+            >
             <View style={styles.layerGrid}>
               {LAYER_OPTIONS.map((opt) => {
                 const active = mapLayer === opt.id;
@@ -3978,28 +4024,6 @@ export default function MapScreen() {
               </TouchableOpacity>
             )}
 
-            {/* BLM camping layer — camping mode only, stubbed until campground data lands */}
-            {activityMode === "camping" && (
-              <TouchableOpacity
-                style={[styles.overlayToggle, styles.overlayToggleInactive, { borderColor: "#C8C2B8", marginTop: 8, opacity: 0.65 }]}
-                onPress={() =>
-                  Alert.alert(
-                    "Coming soon",
-                    "BLM camping areas and Recreation.gov campgrounds are on the way. This layer will light up once the data is live."
-                  )
-                }
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="cabin" size={20} color="#6B6B5A" />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.overlayLabel, { color: "#2A2A1E" }]}>BLM CAMPING</Text>
-                  <Text style={[styles.overlaySubLabel, { color: "#7A7A6A" }]}>
-                    Dispersed camping areas — coming soon
-                  </Text>
-                </View>
-                <MaterialIcons name="toggle-off" size={28} color="#A8A89A" />
-              </TouchableOpacity>
-            )}
 
             {/* OSM toggle */}
             <TouchableOpacity
@@ -4051,7 +4075,7 @@ export default function MapScreen() {
               <MaterialCommunityIcons name="tent" size={20} color={showBlmCampgrounds ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showBlmCampgrounds ? "#fff" : "#2A2A1E" }]}>
-                  BLM CAMPGROUNDS{blmCampgroundsLoading ? "  ⏳" : blmCampgrounds.length > 0 ? `  (${blmCampgrounds.length})` : ""}
+                  BLM CAMPGROUNDS{blmCampgroundsLoading ? "  ⏳" : visibleBlmCampgrounds.length > 0 ? `  (${visibleBlmCampgrounds.length})` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showBlmCampgrounds ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
                   Federal campgrounds &amp; developed campsites within 40 mi (brown)
@@ -4089,7 +4113,7 @@ export default function MapScreen() {
               <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showRidbOverlay ? "#fff" : "#2A2A1E" }]}>
-                  RECREATION.GOV TRAILHEADS{ridbFacilities.length > 0 ? `  (${ridbFacilities.length})` : ""}
+                  RECREATION.GOV TRAILHEADS{visibleRidbFacilities.length > 0 ? `  (${visibleRidbFacilities.length})` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showRidbOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
                   {ridbHasApiKey() ? "Official federal trailheads + OHV facilities (purple)" : "Add EXPO_PUBLIC_RIDB_API_KEY to enable"}
@@ -4115,6 +4139,7 @@ export default function MapScreen() {
               </View>
               {npsLoading ? <ActivityIndicator size="small" color={showNpsOverlay ? "#fff" : "#1B5E20"} /> : <MaterialIcons name={showNpsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNpsOverlay ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -4131,9 +4156,13 @@ export default function MapScreen() {
           activeOpacity={1}
           onPress={() => setShowFilterMenu(false)}
         >
-          <View style={[styles.layerSheet, styles.layerSheetLight, { paddingBottom: insets.bottom + 36 }]}>
+          <View style={[styles.layerSheet, styles.layerSheetLight, { maxHeight: "85%" }]}>
             <View style={styles.modalHandleLight} />
             <Text style={styles.layerTitleLight}>FILTERS</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+            >
 
             <Text style={styles.overlaysSectionTitle}>ACTIVITY</Text>
             <View style={styles.vehicleFilterGrid}>
@@ -4198,21 +4227,37 @@ export default function MapScreen() {
               <>
                 <Text style={styles.overlaysSectionTitle}>TERRAIN</Text>
                 <View style={styles.vehicleFilterGrid}>
-                  {["🌲 DEEP WOODS", "🏜️ DESERT", "⛰️ MOUNTAIN", "🌊 LAKESIDE"].map((label) => (
-                    <TouchableOpacity
-                      key={label}
-                      style={[styles.vehiclePill, { backgroundColor: "#EDE7DC", borderColor: "#D0C9BC", opacity: 0.55 }]}
-                      onPress={() =>
-                        Alert.alert("Coming soon", "Terrain filters will go live with the campground data.")
-                      }
-                      activeOpacity={0.75}
-                    >
-                      <Text style={[styles.vehiclePillText, { color: "#2A2A1E" }]}>{label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {CAMP_TERRAIN_OPTIONS.map((opt) => {
+                    const active = campTerrainFilter.has(opt.key);
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[
+                          styles.vehiclePill,
+                          {
+                            backgroundColor: active ? "#795548" : "#EDE7DC",
+                            borderColor: active ? "#795548" : "#D0C9BC",
+                          },
+                        ]}
+                        onPress={() =>
+                          setCampTerrainFilter((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(opt.key)) next.delete(opt.key);
+                            else next.add(opt.key);
+                            return next;
+                          })
+                        }
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
                 <Text style={[styles.overlaySubLabel, { color: "#7A7A6A", marginTop: 2 }]}>
-                  Campground data coming soon — terrain filters will unlock then
+                  Filters BLM CAMPGROUNDS &amp; RECREATION.GOV markers by terrain — turn those layers on to see campsites
                 </Text>
               </>
             )}
@@ -4326,6 +4371,7 @@ export default function MapScreen() {
               <MaterialIcons name="feedback" size={16} color="#5A5A4A" />
               <Text style={styles.feedbackBtnText}>SEND FEEDBACK</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
