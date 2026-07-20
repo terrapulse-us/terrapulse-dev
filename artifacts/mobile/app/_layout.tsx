@@ -17,6 +17,7 @@ import { Text, View } from "react-native";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
+import { ActivityModeProvider } from "@/context/ActivityModeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -101,13 +102,15 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <AuthProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" />
-                <Stack.Screen name="login" />
-                <Stack.Screen name="adventure" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="user/[uid]" />
-              </Stack>
+              <ActivityModeProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="login" />
+                  <Stack.Screen name="adventure" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="user/[uid]" />
+                </Stack>
+              </ActivityModeProvider>
             </AuthProvider>
 
             {SHOW_OTA_PILL && <OtaPill label={label} badgeColor={badgeColor} />}

@@ -30,11 +30,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityMode } from "@/context/ActivityModeContext";
 import type { AssistantMode } from "@/lib/assistant-api";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
-export const ADVENTURE_MODE_KEY = "adventure.mode";
 export const ADVENTURE_REMEMBER_KEY = "adventure.remember";
 
 type SkyPhase = "dawn" | "day" | "dusk" | "night";
@@ -356,7 +356,7 @@ export default function AdventureScreen() {
   const salutation = getSalutation(now.getHours());
 
   const [name, setName] = useState("");
-  const [mode, setModeState] = useState<AssistantMode>("offroad");
+  const { mode, setMode } = useActivityMode();
   const [remember, setRemember] = useState(false);
   const [prompt, setPrompt] = useState("");
 
@@ -392,24 +392,13 @@ export default function AdventureScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [savedMode, savedRemember] = await Promise.all([
-          AsyncStorage.getItem(ADVENTURE_MODE_KEY),
-          AsyncStorage.getItem(ADVENTURE_REMEMBER_KEY),
-        ]);
-        if (savedMode === "offroad" || savedMode === "camping" || savedMode === "hiking") {
-          setModeState(savedMode);
-        }
+        const savedRemember = await AsyncStorage.getItem(ADVENTURE_REMEMBER_KEY);
         setRemember(savedRemember === "1");
       } catch {
         // non-fatal — defaults stand
       }
     })();
   }, []);
-
-  const setMode = (m: AssistantMode) => {
-    setModeState(m);
-    AsyncStorage.setItem(ADVENTURE_MODE_KEY, m).catch(() => {});
-  };
 
   const toggleRemember = (v: boolean) => {
     setRemember(v);

@@ -33,6 +33,7 @@ import "@/lib/api-client";
 import { streamAssistantMessage, type AssistantStreamEvent, type AssistantMode } from "@/lib/assistant-api";
 import { downloadTrailArea } from "@/lib/offline-maps";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
 import { db } from "@/lib/firebase";
 import FormattedMessageText from "@/components/FormattedMessageText";
@@ -103,6 +104,13 @@ export default function AssistantScreen() {
   const [downloadingTrailId, setDownloadingTrailId] = useState<string | null>(null);
   const [downloadedTrailIds, setDownloadedTrailIds] = useState<Set<string>>(new Set());
   const listRef = useRef<FlatList<DisplayMessage>>(null);
+
+  // Follow the app-wide activity mode (adventure page pills / map filter switcher)
+  const { mode: activityMode } = useActivityMode();
+  useEffect(() => {
+    setMode(activityMode);
+    setErrorMsg(null);
+  }, [activityMode]);
 
   // Params handed off from the Adventure start page: preselect mode + prefill prompt
   const params = useLocalSearchParams<{ mode?: string; prompt?: string }>();

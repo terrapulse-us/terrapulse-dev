@@ -18,6 +18,7 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "f
 import { router } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
 import { ALL_TRAILS } from "@/lib/trails";
 
@@ -45,6 +46,10 @@ export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
+  const { mode } = useActivityMode();
+  const TERM = mode === "camping" ? "EXPLORER" : mode === "hiking" ? "TRAVELER" : "RIDER";
+  const termLower = TERM.toLowerCase();
+  const termTitle = TERM.charAt(0) + termLower.slice(1);
   const [riders, setRiders] = useState<PublicUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -72,7 +77,7 @@ export default function CommunityScreen() {
     try {
       const reqRef = await addDoc(collection(db, "friendRequests"), {
         fromUid: user.uid,
-        fromName: user.displayName || user.email?.split("@")[0] || "Rider",
+        fromName: user.displayName || user.email?.split("@")[0] || termTitle,
         fromPhoto: user.photoURL || null,
         toUid: target.uid,
         status: "pending",
@@ -81,9 +86,9 @@ export default function CommunityScreen() {
       await addDoc(collection(db, "users", target.uid, "notifications"), {
         type: "friend_request",
         title: "Friend Request",
-        body: `${user.displayName || user.email?.split("@")[0] || "A rider"} wants to join your crew.`,
+        body: `${user.displayName || user.email?.split("@")[0] || `A ${termLower}`} wants to join your crew.`,
         fromUid: user.uid,
-        fromName: user.displayName || user.email?.split("@")[0] || "Rider",
+        fromName: user.displayName || user.email?.split("@")[0] || termTitle,
         fromPhoto: user.photoURL || null,
         requestId: reqRef.id,
         read: false,
@@ -241,7 +246,7 @@ export default function CommunityScreen() {
         <TerraPulseLogo color={colors.primary} size="md" />
         <View style={{ alignItems: "flex-end" }}>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {riders.length} RIDER{riders.length !== 1 ? "S" : ""}
+            {riders.length} {TERM}{riders.length !== 1 ? "S" : ""}
           </Text>
         </View>
       </View>
@@ -252,7 +257,7 @@ export default function CommunityScreen() {
           <Feather name="search" size={14} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search riders or rigs..."
+            placeholder={mode === "offroad" ? "Search riders or rigs..." : `Search ${termLower}s...`}
             placeholderTextColor={colors.mutedForeground}
             value={search}
             onChangeText={setSearch}
@@ -269,13 +274,13 @@ export default function CommunityScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.accent} size="large" />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>LOADING RIDERS...</Text>
+          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>LOADING {TERM}S...</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.center}>
           <Feather name="users" size={48} color={colors.border} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-            {search ? "No riders match" : "No public riders yet"}
+            {search ? `No ${termLower}s match` : `No public ${termLower}s yet`}
           </Text>
           <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
             {search

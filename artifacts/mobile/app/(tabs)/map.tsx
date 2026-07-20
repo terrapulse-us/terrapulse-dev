@@ -84,6 +84,7 @@ import { checkPublicLand, type LandCheckResult } from "@/lib/land-check";
 import TrailSearchModal from "@/components/TrailSearchModal";
 import { markTrailComplete, markTrailContributed } from "@/lib/achievements";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
 import {
   ALL_TRAILS,
@@ -437,11 +438,26 @@ const stateNameToCode = Object.fromEntries(
     .map(([code, name]) => [name.toUpperCase(), code])
 ) as Record<string, string>;
 
+type HikeExperience = "easy" | "moderate" | "hard";
+
+function hikeExperienceBand(rating: number): HikeExperience {
+  if (rating <= 3) return "easy";
+  if (rating <= 6) return "moderate";
+  return "hard";
+}
+
+const ACTIVITY_OPTIONS: { key: ActivityMode; emoji: string; label: string }[] = [
+  { key: "offroad", emoji: "🚙", label: "OFFROAD" },
+  { key: "camping", emoji: "⛺", label: "CAMPING" },
+  { key: "hiking", emoji: "🥾", label: "HIKING" },
+];
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { user, logout } = useAuth();
+  const { mode: activityMode, setMode: setActivityMode } = useActivityMode();
   const cameraRef = useRef<CameraRef>(null);
 
 
@@ -549,6 +565,10 @@ export default function MapScreen() {
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
 
+  // Hiking-mode filters (experience band derived from difficultyRating, max miles)
+  const [hikeDifficultyFilter, setHikeDifficultyFilter] = useState<Set<HikeExperience>>(new Set());
+  const [hikeMaxMiles, setHikeMaxMiles] = useState<number | null>(null);
+
   const toggleVehicleFilter = useCallback((vt: VehicleType) => {
     setVehicleTypeFilter(prev => {
       const next = new Set(prev);
@@ -558,21 +578,33 @@ export default function MapScreen() {
     });
   }, []);
 
-  const hasActiveFilters = selectedState !== "All States" || vehicleTypeFilter.size > 0;
+  const hasActiveFilters =
+    selectedState !== "All States" ||
+    (activityMode === "offroad" && vehicleTypeFilter.size > 0) ||
+    (activityMode === "hiking" && (hikeDifficultyFilter.size > 0 || hikeMaxMiles != null));
 
   const ohvTrails = useMemo(() => {
     let trails = getTrailsByState(selectedState).filter(t => t.category !== "hiking");
-    if (vehicleTypeFilter.size > 0) {
+    if (activityMode === "offroad" && vehicleTypeFilter.size > 0) {
       trails = trails.filter(t =>
         (t.vehicleTypes ?? []).some(vt => vehicleTypeFilter.has(vt))
       );
     }
     return trails;
-  }, [selectedState, vehicleTypeFilter]);
+  }, [selectedState, vehicleTypeFilter, activityMode]);
 
   const hikingTrails = useMemo(() => {
-    return getTrailsByState(selectedState).filter(t => t.category === "hiking");
-  }, [selectedState]);
+    let trails = getTrailsByState(selectedState).filter(t => t.category === "hiking");
+    if (activityMode === "hiking") {
+      if (hikeDifficultyFilter.size > 0) {
+        trails = trails.filter(t => hikeDifficultyFilter.has(hikeExperienceBand(t.difficultyRating)));
+      }
+      if (hikeMaxMiles != null) {
+        trails = trails.filter(t => t.distanceMi == null || t.distanceMi <= hikeMaxMiles);
+      }
+    }
+    return trails;
+  }, [selectedState, activityMode, hikeDifficultyFilter, hikeMaxMiles]);
 
   const [showTrailSearch, setShowTrailSearch] = useState(false);
   const [selectedTrail, setSelectedTrail] = useState<UserTrail | null>(null);
@@ -704,6 +736,11 @@ export default function MapScreen() {
   const [usfsLoading, setUsfsLoading] = useState(false);
 
   const [showHikingTrails, setShowHikingTrails] = useState(true);
+  const [showDrivingTrails, setShowDrivingTrails] = useState(true);
+  // Mode-scoped marker visibility: hiking markers only exist in hiking mode;
+  // OHV ("driving") markers are always on in offroad mode, toggleable elsewhere.
+  const ohvVisible = activityMode === "offroad" || showDrivingTrails;
+  const hikingVisible = activityMode === "hiking" && showHikingTrails;
   const [showNfsOverlay, setShowNfsOverlay] = useState(false);
   const [nfsGeoJSON, setNfsGeoJSON] = useState<UsfsNfsCollection | null>(null);
   const [nfsLoading, setNfsLoading] = useState(false);
@@ -2430,7 +2467,7 @@ export default function MapScreen() {
           <UserLocation />
         )}
 
-        {ohvTrails.map((trail) => (
+        {ohvVisible && ohvTrails.map((trail) => (
           <Marker
             key={trail.id}
             lngLat={[trail.coords.longitude, trail.coords.latitude]}
@@ -2461,7 +2498,7 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {showHikingTrails && hikingTrails.map((trail) => (
+        {hikingVisible && hikingTrails.map((trail) => (
           <Marker
             key={trail.id}
             lngLat={[trail.coords.longitude, trail.coords.latitude]}
@@ -2850,8 +2887,8 @@ export default function MapScreen() {
             <Text
               style={[styles.topSub, { color: colors.mutedForeground }]}
             >
-              {ohvTrails.length +
-                (showHikingTrails ? hikingTrails.length : 0) +
+              {(ohvVisible ? ohvTrails.length : 0) +
+                (hikingVisible ? hikingTrails.length : 0) +
                 (usfsGeoJSON?.features.length ?? 0) +
                 (osmGeoJSON?.features.length ?? 0) +
                 (nfsGeoJSON?.features.length ?? 0) +
@@ -3901,23 +3938,68 @@ export default function MapScreen() {
               {usfsLoading ? <ActivityIndicator size="small" color={showUsfsOverlay ? "#fff" : "#5A9A5A"} /> : <MaterialIcons name={showUsfsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showUsfsOverlay ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
-            {/* Hiking trails marker toggle */}
-            <TouchableOpacity
-              style={[styles.overlayToggle, showHikingTrails ? styles.overlayToggleHikingActive : styles.overlayToggleInactive, { borderColor: showHikingTrails ? "#2E7D32" : "#C8C2B8", marginTop: 8 }]}
-              onPress={() => setShowHikingTrails((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <MaterialIcons name="hiking" size={20} color={showHikingTrails ? "#fff" : "#6B6B5A"} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: showHikingTrails ? "#fff" : "#2A2A1E" }]}>
-                  {`HIKING TRAILS${showHikingTrails ? `  (${hikingTrails.length})` : ""}`}
-                </Text>
-                <Text style={[styles.overlaySubLabel, { color: showHikingTrails ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  National parks &amp; wilderness hikes
-                </Text>
-              </View>
-              <MaterialIcons name={showHikingTrails ? "toggle-on" : "toggle-off"} size={28} color={showHikingTrails ? "#fff" : "#A8A89A"} />
-            </TouchableOpacity>
+            {/* Driving trails marker toggle — camping & hiking modes only (always on in offroad) */}
+            {activityMode !== "offroad" && (
+              <TouchableOpacity
+                style={[styles.overlayToggle, showDrivingTrails ? styles.overlayToggleBlmCampActive : styles.overlayToggleInactive, { borderColor: showDrivingTrails ? "#795548" : "#C8C2B8", marginTop: 8 }]}
+                onPress={() => setShowDrivingTrails((v) => !v)}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="directions-car" size={20} color={showDrivingTrails ? "#fff" : "#6B6B5A"} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.overlayLabel, { color: showDrivingTrails ? "#fff" : "#2A2A1E" }]}>
+                    {`DRIVING TRAILS${showDrivingTrails ? `  (${ohvTrails.length})` : ""}`}
+                  </Text>
+                  <Text style={[styles.overlaySubLabel, { color: showDrivingTrails ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                    OHV &amp; 4x4 routes to reach your spot
+                  </Text>
+                </View>
+                <MaterialIcons name={showDrivingTrails ? "toggle-on" : "toggle-off"} size={28} color={showDrivingTrails ? "#fff" : "#A8A89A"} />
+              </TouchableOpacity>
+            )}
+
+            {/* Hiking trails marker toggle — hiking mode only */}
+            {activityMode === "hiking" && (
+              <TouchableOpacity
+                style={[styles.overlayToggle, showHikingTrails ? styles.overlayToggleHikingActive : styles.overlayToggleInactive, { borderColor: showHikingTrails ? "#2E7D32" : "#C8C2B8", marginTop: 8 }]}
+                onPress={() => setShowHikingTrails((v) => !v)}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="hiking" size={20} color={showHikingTrails ? "#fff" : "#6B6B5A"} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.overlayLabel, { color: showHikingTrails ? "#fff" : "#2A2A1E" }]}>
+                    {`HIKING TRAILS${showHikingTrails ? `  (${hikingTrails.length})` : ""}`}
+                  </Text>
+                  <Text style={[styles.overlaySubLabel, { color: showHikingTrails ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                    National parks &amp; wilderness hikes
+                  </Text>
+                </View>
+                <MaterialIcons name={showHikingTrails ? "toggle-on" : "toggle-off"} size={28} color={showHikingTrails ? "#fff" : "#A8A89A"} />
+              </TouchableOpacity>
+            )}
+
+            {/* BLM camping layer — camping mode only, stubbed until campground data lands */}
+            {activityMode === "camping" && (
+              <TouchableOpacity
+                style={[styles.overlayToggle, styles.overlayToggleInactive, { borderColor: "#C8C2B8", marginTop: 8, opacity: 0.65 }]}
+                onPress={() =>
+                  Alert.alert(
+                    "Coming soon",
+                    "BLM camping areas and Recreation.gov campgrounds are on the way. This layer will light up once the data is live."
+                  )
+                }
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="cabin" size={20} color="#6B6B5A" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.overlayLabel, { color: "#2A2A1E" }]}>BLM CAMPING</Text>
+                  <Text style={[styles.overlaySubLabel, { color: "#7A7A6A" }]}>
+                    Dispersed camping areas — coming soon
+                  </Text>
+                </View>
+                <MaterialIcons name="toggle-off" size={28} color="#A8A89A" />
+              </TouchableOpacity>
+            )}
 
             {/* OSM toggle */}
             <TouchableOpacity
@@ -4053,32 +4135,161 @@ export default function MapScreen() {
             <View style={styles.modalHandleLight} />
             <Text style={styles.layerTitleLight}>FILTERS</Text>
 
-            <Text style={styles.overlaysSectionTitle}>VEHICLE TYPE</Text>
+            <Text style={styles.overlaysSectionTitle}>ACTIVITY</Text>
             <View style={styles.vehicleFilterGrid}>
-              {(Object.keys(VEHICLE_TYPE_CONFIG) as VehicleType[]).map((vt) => {
-                const cfg = VEHICLE_TYPE_CONFIG[vt];
-                const active = vehicleTypeFilter.has(vt);
+              {ACTIVITY_OPTIONS.map((opt) => {
+                const active = activityMode === opt.key;
                 return (
                   <TouchableOpacity
-                    key={vt}
+                    key={opt.key}
                     style={[
                       styles.vehiclePill,
                       {
-                        backgroundColor: active ? cfg.color : "#EDE7DC",
-                        borderColor: active ? cfg.color : "#D0C9BC",
+                        backgroundColor: active ? colors.accent : "#EDE7DC",
+                        borderColor: active ? colors.accent : "#D0C9BC",
                       },
                     ]}
-                    onPress={() => toggleVehicleFilter(vt)}
+                    onPress={() => setActivityMode(opt.key)}
                     activeOpacity={0.75}
                   >
-                    <Text style={styles.vehiclePillEmoji}>{cfg.emoji}</Text>
+                    <Text style={styles.vehiclePillEmoji}>{opt.emoji}</Text>
                     <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
-                      {cfg.shortLabel}
+                      {opt.label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+
+            <View style={styles.overlayDividerLight} />
+
+            {activityMode === "offroad" && (
+              <>
+                <Text style={styles.overlaysSectionTitle}>VEHICLE TYPE</Text>
+                <View style={styles.vehicleFilterGrid}>
+                  {(Object.keys(VEHICLE_TYPE_CONFIG) as VehicleType[]).map((vt) => {
+                    const cfg = VEHICLE_TYPE_CONFIG[vt];
+                    const active = vehicleTypeFilter.has(vt);
+                    return (
+                      <TouchableOpacity
+                        key={vt}
+                        style={[
+                          styles.vehiclePill,
+                          {
+                            backgroundColor: active ? cfg.color : "#EDE7DC",
+                            borderColor: active ? cfg.color : "#D0C9BC",
+                          },
+                        ]}
+                        onPress={() => toggleVehicleFilter(vt)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.vehiclePillEmoji}>{cfg.emoji}</Text>
+                        <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                          {cfg.shortLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {activityMode === "camping" && (
+              <>
+                <Text style={styles.overlaysSectionTitle}>TERRAIN</Text>
+                <View style={styles.vehicleFilterGrid}>
+                  {["🌲 DEEP WOODS", "🏜️ DESERT", "⛰️ MOUNTAIN", "🌊 LAKESIDE"].map((label) => (
+                    <TouchableOpacity
+                      key={label}
+                      style={[styles.vehiclePill, { backgroundColor: "#EDE7DC", borderColor: "#D0C9BC", opacity: 0.55 }]}
+                      onPress={() =>
+                        Alert.alert("Coming soon", "Terrain filters will go live with the campground data.")
+                      }
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.vehiclePillText, { color: "#2A2A1E" }]}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[styles.overlaySubLabel, { color: "#7A7A6A", marginTop: 2 }]}>
+                  Campground data coming soon — terrain filters will unlock then
+                </Text>
+              </>
+            )}
+
+            {activityMode === "hiking" && (
+              <>
+                <Text style={styles.overlaysSectionTitle}>EXPERIENCE LEVEL</Text>
+                <View style={styles.vehicleFilterGrid}>
+                  {(
+                    [
+                      { key: "easy" as const, label: "🟢 EASY" },
+                      { key: "moderate" as const, label: "🟡 MODERATE" },
+                      { key: "hard" as const, label: "🔴 HARD" },
+                    ]
+                  ).map((opt) => {
+                    const active = hikeDifficultyFilter.has(opt.key);
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[
+                          styles.vehiclePill,
+                          {
+                            backgroundColor: active ? "#2E7D32" : "#EDE7DC",
+                            borderColor: active ? "#2E7D32" : "#D0C9BC",
+                          },
+                        ]}
+                        onPress={() =>
+                          setHikeDifficultyFilter((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(opt.key)) next.delete(opt.key);
+                            else next.add(opt.key);
+                            return next;
+                          })
+                        }
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.overlaysSectionTitle}>MAX DISTANCE</Text>
+                <View style={styles.vehicleFilterGrid}>
+                  {(
+                    [
+                      { miles: null, label: "ANY" },
+                      { miles: 5, label: "UNDER 5 MI" },
+                      { miles: 10, label: "UNDER 10 MI" },
+                      { miles: 15, label: "UNDER 15 MI" },
+                    ] as { miles: number | null; label: string }[]
+                  ).map((opt) => {
+                    const active = hikeMaxMiles === opt.miles;
+                    return (
+                      <TouchableOpacity
+                        key={opt.label}
+                        style={[
+                          styles.vehiclePill,
+                          {
+                            backgroundColor: active ? "#2E7D32" : "#EDE7DC",
+                            borderColor: active ? "#2E7D32" : "#D0C9BC",
+                          },
+                        ]}
+                        onPress={() => setHikeMaxMiles(opt.miles)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
 
             <View style={styles.overlayDividerLight} />
             <Text style={styles.overlaysSectionTitle}>STATE</Text>

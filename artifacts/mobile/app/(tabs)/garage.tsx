@@ -36,6 +36,7 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
 import { apiServerUrl } from "@/lib/api-client";
 import { cacheGet, cacheSet } from "@/lib/offline-cache";
@@ -82,7 +83,19 @@ interface CrewMember {
   location?: { lat: number; lng: number; updatedAt: number; active: boolean };
 }
 
-type GarageSection = "rides" | "maps" | "crew" | "mods";
+type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "gear";
+
+const HUB_TITLE: Record<ActivityMode, string> = {
+  offroad: "MY GARAGE",
+  camping: "MY TENT",
+  hiking: "MY RUCKSACK",
+};
+
+const HUB_SECTIONS: Record<ActivityMode, GarageSection[]> = {
+  offroad: ["rides", "maps", "crew", "mods"],
+  camping: ["campsites", "maps", "crew"],
+  hiking: ["gear", "maps", "crew"],
+};
 
 interface ModResult {
   title: string;
@@ -572,7 +585,15 @@ export default function GarageScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
-  const [section, setSection] = useState<GarageSection>("rides");
+  const { mode } = useActivityMode();
+  const [section, setSection] = useState<GarageSection>(HUB_SECTIONS["offroad"][0]);
+
+  // Snap to a valid section whenever the activity mode changes
+  useEffect(() => {
+    setSection((prev) =>
+      HUB_SECTIONS[mode].includes(prev) ? prev : HUB_SECTIONS[mode][0],
+    );
+  }, [mode]);
 
   // ── Vehicles ──────────────────────────────────────────────────────────────
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -905,18 +926,20 @@ export default function GarageScreen() {
       {/* HEADER */}
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TerraPulseLogo color={colors.primary} size="md" />
-        <Text style={[styles.headerTitle, { color: colors.accent }]}>MY GARAGE</Text>
+        <Text style={[styles.headerTitle, { color: colors.accent }]}>{HUB_TITLE[mode]}</Text>
       </View>
 
       {/* SECTION TABS */}
       <View style={[styles.sectionTabs, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {(["rides", "maps", "crew", "mods"] as GarageSection[]).map((s) => {
+        {HUB_SECTIONS[mode].map((s) => {
           const active = section === s;
-          const cfg = {
-            rides: { icon: "truck" as const,  label: "MY RIDES" },
-            maps:  { icon: "map" as const,    label: "MAPS" },
-            crew:  { icon: "users" as const,  label: "MY CREW" },
-            mods:  { icon: "tool" as const,   label: "FIND MODS" },
+          const cfg: Record<GarageSection, { icon: string; mci?: boolean; label: string }> = {
+            rides:     { icon: "truck",                 label: "MY RIDES" },
+            maps:      { icon: "map",                   label: "MAPS" },
+            crew:      { icon: "users",                 label: "MY CREW" },
+            mods:      { icon: "tool",                  label: "FIND MODS" },
+            campsites: { icon: "tent", mci: true,       label: "CAMPSITES" },
+            gear:      { icon: "bag-personal-outline", mci: true, label: "MY GEAR" },
           };
           return (
             <TouchableOpacity
@@ -924,7 +947,11 @@ export default function GarageScreen() {
               style={[styles.sectionTab, active && { borderBottomWidth: 2, borderBottomColor: colors.accent }]}
               onPress={() => setSection(s)}
             >
-              <Feather name={cfg[s].icon} size={16} color={active ? colors.accent : colors.mutedForeground} />
+              {cfg[s].mci ? (
+                <MaterialCommunityIcons name={cfg[s].icon as never} size={16} color={active ? colors.accent : colors.mutedForeground} />
+              ) : (
+                <Feather name={cfg[s].icon as never} size={16} color={active ? colors.accent : colors.mutedForeground} />
+              )}
               <Text style={[styles.sectionTabText, { color: active ? colors.accent : colors.mutedForeground }]}>
                 {cfg[s].label}
               </Text>
@@ -932,6 +959,42 @@ export default function GarageScreen() {
           );
         })}
       </View>
+
+      {/* ── CAMPSITES (camping mode stub) ───────────────────────────────── */}
+      {section === "campsites" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.emptyCenter}>
+            <MaterialCommunityIcons name="tent" size={48} color={colors.border} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved campsites yet</Text>
+            <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+              Campground data from Recreation.gov and BLM camping areas is coming soon —
+              you&apos;ll be able to save your favorite spots right here.
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ── MY GEAR (hiking mode stub) ──────────────────────────────────── */}
+      {section === "gear" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.emptyCenter}>
+            <MaterialCommunityIcons name="bag-personal-outline" size={48} color={colors.border} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Your rucksack is empty</Text>
+            <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+              Gear checklists and packing lists for your hikes are coming soon.
+              Browse hiking trails on the map to plan your next trek.
+            </Text>
+          </View>
+        </ScrollView>
+      )}
 
       {/* ── MY RIDES ────────────────────────────────────────────────────── */}
       {section === "rides" && (
