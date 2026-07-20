@@ -1,0 +1,27 @@
+To get those realistic 3D mountains like onX Maps, you need to use Mapbox's Terrain property paired with a Digital Elevation Model (DEM) tileset. By default, Mapbox renders maps in 2D. The DEM tileset provides raw elevation data that Mapbox uses to physically extrude the map's surface, creating actual 3D geometry.Here is exactly what you need to configure in Mapbox GL JS (or the equivalent Mobile SDKs) to enable this:1. Add the DEM SourceYou first need to feed the elevation data into your map. Mapbox provides a global elevation tileset called mapbox-terrain-dem-v1. You add this as a raster-dem source.2. Enable the Terrain PropertyOnce the source is added, you call setTerrain to tell the map to use that elevation data. This property accepts an exaggeration multiplier — setting it to 1 is true-to-life, while 1.5 makes the elevation changes more pronounced and easier to read on a small screen.3. Pitch the Camera3D terrain still looks completely flat if you are looking straight down at it. You need to angle the camera (pitch) to at least 60-80 degrees to actually see the elevation profile.4. Add a Sky Layer (Optional)When you pitch the camera up to look at mountains, you will often see the edge of the map. Adding a sky layer creates a realistic atmosphere and horizon line, giving the map much more depth.Here is how the implementation looks in Mapbox GL JS:JavaScriptmap.on('style.load', () => {
+    // 1. Add the Mapbox DEM source
+    map.addSource('mapbox-dem', {
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 512,
+        'maxzoom': 14
+    });
+
+    // 2. Enable 3D terrain and set exaggeration
+    map.setTerrain({ 
+        'source': 'mapbox-dem', 
+        'exaggeration': 1.5 
+    });
+    
+    // 3. Add a sky layer for a realistic horizon
+    map.addLayer({
+        'id': 'sky',
+        'type': 'sky',
+        'paint': {
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [0.0, 0.0],
+            'sky-atmosphere-sun-intensity': 15
+        }
+    });
+});
+Make sure your map initialization sets the pitch high enough (e.g., pitch: 80) so the 3D effect is immediately visible when the map loads.
