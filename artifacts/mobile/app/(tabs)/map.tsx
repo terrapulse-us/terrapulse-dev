@@ -2553,9 +2553,16 @@ export default function MapScreen() {
         {mapStyleLoaded && ridePoints.length > 1 && (
           <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
             <Layer
+              id="ride-line-casing"
+              type="line"
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{ "line-color": "#FFFFFF", "line-width": 6.5, "line-opacity": 0.9 }}
+            />
+            <Layer
               id="ride-line"
               type="line"
-              paint={{ "line-color": "#FF5500", "line-width": 3, "line-opacity": 0.9 }}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{ "line-color": "#FF5500", "line-width": 4, "line-opacity": 0.95 }}
             />
           </GeoJSONSource>
         )}
@@ -2563,9 +2570,16 @@ export default function MapScreen() {
         {mapStyleLoaded && trailPoints.length > 1 && (
           <GeoJSONSource id="trail-recording" data={trailRecordingGeoJSON}>
             <Layer
+              id="trail-recording-line-casing"
+              type="line"
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{ "line-color": "#FFFFFF", "line-width": 6.5, "line-opacity": 0.9 }}
+            />
+            <Layer
               id="trail-recording-line"
               type="line"
-              paint={{ "line-color": "#00E676", "line-width": 3, "line-opacity": 0.9 }}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{ "line-color": "#00C853", "line-width": 4, "line-opacity": 0.95 }}
             />
           </GeoJSONSource>
         )}
@@ -2573,9 +2587,24 @@ export default function MapScreen() {
         {mapStyleLoaded && selectedUserTrailGeoJSON && (
           <GeoJSONSource id="selected-user-trail" data={selectedUserTrailGeoJSON}>
             <Layer
+              id="selected-user-trail-line-casing"
+              type="line"
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#FFFFFF",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 13, 7.5, 16, 11] as never,
+                "line-opacity": 0.9,
+              }}
+            />
+            <Layer
               id="selected-user-trail-line"
               type="line"
-              paint={{ "line-color": "#FF9800", "line-width": 3, "line-opacity": 0.85 }}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#FF9800",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 3, 13, 4.5, 16, 7] as never,
+                "line-opacity": 0.95,
+              }}
             />
           </GeoJSONSource>
         )}
@@ -2583,12 +2612,23 @@ export default function MapScreen() {
         {mapStyleLoaded && allTrailRoutesGeoJSON.features.length > 0 && (
           <GeoJSONSource id="all-trail-routes" data={allTrailRoutesGeoJSON as never}>
             <Layer
+              id="all-trail-routes-line-casing"
+              type="line"
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#FFFFFF",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 3.5, 12, 5.5, 16, 8] as never,
+                "line-opacity": 0.7,
+              }}
+            />
+            <Layer
               id="all-trail-routes-line"
               type="line"
+              layout={{ "line-cap": "round", "line-join": "round" }}
               paint={{
                 "line-color": ["get", "color"] as never,
-                "line-width": 3.5,
-                "line-opacity": 0.78,
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 12, 3.5, 16, 5.5] as never,
+                "line-opacity": 0.9,
               }}
             />
           </GeoJSONSource>
@@ -2720,12 +2760,22 @@ export default function MapScreen() {
             <Layer
               id="osm-trails-casing"
               type="line"
-              paint={{ "line-color": "#1B5E20", "line-width": 5, "line-opacity": 0.5 }}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#FFFFFF",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 3, 12, 5, 16, 7.5] as never,
+                "line-opacity": 0.65,
+              }}
             />
             <Layer
               id="osm-trails-line"
               type="line"
-              paint={{ "line-color": "#4CAF50", "line-width": 3, "line-opacity": 0.95 }}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#388E3C",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.8, 12, 3, 16, 5] as never,
+                "line-opacity": 0.95,
+              }}
             />
           </GeoJSONSource>
         )}
@@ -2760,7 +2810,13 @@ export default function MapScreen() {
             <Layer
               id="nfs-trails-line"
               type="line"
-              paint={{ "line-color": "#2D6A4F", "line-width": 1.8, "line-opacity": 0.9 }}
+              layout={{ "line-join": "round" }}
+              paint={{
+                "line-color": "#2D6A4F",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.2, 12, 1.8, 16, 3] as never,
+                "line-opacity": 0.9,
+                "line-dasharray": [2.5, 1.75] as never,
+              }}
             />
           </GeoJSONSource>
         )}
@@ -2804,7 +2860,13 @@ export default function MapScreen() {
             <Layer
               id="usfs-routes-line"
               type="line"
-              paint={{ "line-color": "#1A6B9E", "line-width": 2.5, "line-opacity": 0.85 }}
+              layout={{ "line-join": "round" }}
+              paint={{
+                "line-color": "#1A6B9E",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.6, 12, 2.5, 16, 4] as never,
+                "line-opacity": 0.85,
+                "line-dasharray": [3, 1.5] as never,
+              }}
             />
           </GeoJSONSource>
         )}
