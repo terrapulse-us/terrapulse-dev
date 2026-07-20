@@ -20,8 +20,9 @@ export const STANDARD_STYLE_URL = mtStyle("outdoor-v2");
 export const SATELLITE_STYLE_URL = mtStyle("hybrid");
 // MapTiler Topo v2 — topographic focus with elevation contours
 export const TOPO_STYLE_URL = mtStyle("topo-v2");
-// Terrain 3D reuses outdoor-v2 base, then we inject the terrain DEM at runtime
-export const TERRAIN3D_STYLE_URL = STANDARD_STYLE_URL;
+// Terrain 3D drapes hybrid satellite over the terrain DEM (injected at
+// runtime in map.tsx). This URL is only the flat fallback if that fetch fails.
+export const TERRAIN3D_STYLE_URL = SATELLITE_STYLE_URL;
 
 // Offline packs are ALWAYS created from the topo style (the app's default map
 // layer). When connectivity drops, map.tsx forces the layer back to "topo" so

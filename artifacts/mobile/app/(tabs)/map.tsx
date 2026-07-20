@@ -327,11 +327,40 @@ async function fetchHdStyle(url: string): Promise<Record<string, unknown>> {
 }
 
 /**
- * Fetch outdoor-v2 style JSON (HD-patched) and inject a MapTiler terrain-DEM
- * source + terrain exaggeration so MapLibre renders true 3D elevation.
+ * MapTiler's built-in hillshade layers ship washed-out gray tones at low
+ * intensity, which reads flat. Replace their paint with deep warm shadows,
+ * bright warm highlights, and stronger zoom-scaled exaggeration so relief
+ * pops the way onX/AllTrails terrain does. Paint-only change — sources and
+ * tiles are untouched, so offline packs still serve the same resources.
+ */
+function enhanceHillshade(style: Record<string, unknown>): Record<string, unknown> {
+  const layers = (style.layers as { type?: string; paint?: Record<string, unknown> }[]) ?? [];
+  for (const layer of layers) {
+    if (layer.type === "hillshade") {
+      layer.paint = {
+        ...layer.paint,
+        "hillshade-exaggeration": [
+          "interpolate", ["linear"], ["zoom"],
+          5, 0.75, 12, 0.6, 16, 0.45,
+        ],
+        "hillshade-shadow-color": "#3B2A18",
+        "hillshade-highlight-color": "#FFF9EC",
+        "hillshade-accent-color": "#8A6844",
+        "hillshade-illumination-direction": 315,
+        "hillshade-illumination-anchor": "map",
+      };
+    }
+  }
+  return style;
+}
+
+/**
+ * Fetch hybrid-satellite style JSON (HD-patched) and inject a MapTiler
+ * terrain-DEM source + terrain exaggeration so MapLibre drapes real imagery
+ * over true 3D elevation — the "Google Earth" look.
  */
 async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>> {
-  const url = `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
+  const url = `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`;
   const style = await fetchHdStyle(url);
 
   // Inject raster-dem source from MapTiler terrain-rgb-v2 at 512 px
@@ -353,15 +382,18 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   const insertIdx = layers.findIndex(
     (l) => (l as { type: string }).type === "symbol"
   );
+  // Over satellite imagery the shading should accent relief, not repaint it:
+  // near-black shadows + pure white highlights deepen what the imagery
+  // already shows. (The 3D slider overrides exaggeration at runtime.)
   const hillshadeLayer = {
     id: "terrain-hillshade",
     type: "hillshade",
     source: "terrain-dem",
     paint: {
-      "hillshade-exaggeration": 0.55,
-      "hillshade-shadow-color": "#2D1B0E",
-      "hillshade-highlight-color": "#FFF8EE",
-      "hillshade-accent-color": "#7A5C3A",
+      "hillshade-exaggeration": 0.45,
+      "hillshade-shadow-color": "#0D0A06",
+      "hillshade-highlight-color": "#FFFFFF",
+      "hillshade-accent-color": "#3B2A18",
       "hillshade-illumination-direction": 315,
       "hillshade-illumination-anchor": "map",
     },
@@ -547,8 +579,11 @@ export default function MapScreen() {
     let cancelled = false;
     fetchHdStyle(url)
       .then((s) => {
+        // Deepen terrain shading on the cartographic layers (satellite
+        // imagery already carries its own real shadows).
+        const styled = mapLayer === "satellite" ? s : enhanceHillshade(s);
         if (!cancelled)
-          setHdStyleCache((prev) => ({ ...prev, [mapLayer]: s }));
+          setHdStyleCache((prev) => ({ ...prev, [mapLayer]: styled }));
       })
       .catch(() => { /* falls back to URL string */ });
     return () => { cancelled = true; };
@@ -563,8 +598,8 @@ export default function MapScreen() {
       case "terrain3d":
         if (terrain3dStyleObj) {
           // Scale hillshade-exaggeration with the slider so shadows visibly deepen/soften
-          // at any zoom level (not just up-close 3D view). Formula keeps hillshade at
-          // its original 0.55 when terrainExaggeration == 2.2.
+          // at any zoom level (not just up-close 3D view). Formula yields 0.55 at the
+          // default terrainExaggeration of 2.2, overriding the injected paint value.
           const hillshadeExag = Math.min(0.95, terrainExaggeration * 0.25);
           const layers3d = (terrain3dStyleObj.layers as unknown[]).map((l) => {
             const layer = l as { id: string; paint?: Record<string, unknown> };
