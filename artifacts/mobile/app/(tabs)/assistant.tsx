@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -102,6 +103,24 @@ export default function AssistantScreen() {
   const [downloadingTrailId, setDownloadingTrailId] = useState<string | null>(null);
   const [downloadedTrailIds, setDownloadedTrailIds] = useState<Set<string>>(new Set());
   const listRef = useRef<FlatList<DisplayMessage>>(null);
+
+  // Params handed off from the Adventure start page: preselect mode + prefill prompt
+  const params = useLocalSearchParams<{ mode?: string; prompt?: string }>();
+  const consumedParamsRef = useRef(false);
+  useEffect(() => {
+    if (consumedParamsRef.current) return;
+    const paramMode = typeof params.mode === "string" ? params.mode : undefined;
+    const paramPrompt = typeof params.prompt === "string" ? params.prompt.trim() : "";
+    if (!paramMode && !paramPrompt) return;
+    consumedParamsRef.current = true;
+    if (paramMode === "offroad" || paramMode === "camping" || paramMode === "hiking") {
+      setMode(paramMode);
+      setErrorMsg(null);
+    }
+    if (paramPrompt) setInput(paramPrompt);
+    // Clear the handoff params so a screen remount can't re-inject a stale prompt
+    router.setParams({ mode: undefined, prompt: undefined });
+  }, [params.mode, params.prompt]);
 
   const handleDownloadOfflineMap = (warning: AssistantCoverageWarning) => {
     if (downloadingTrailId) return;

@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
@@ -50,7 +51,21 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (user) router.replace("/(tabs)/map");
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      let remembered = false;
+      try {
+        remembered = (await AsyncStorage.getItem("adventure.remember")) === "1";
+      } catch {
+        // fall through to the adventure screen
+      }
+      if (cancelled) return;
+      router.replace(remembered ? "/(tabs)/map" : "/adventure");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const handleGoogle = async () => {
