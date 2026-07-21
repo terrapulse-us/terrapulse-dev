@@ -42,7 +42,6 @@ import * as Location from "expo-location";
 import { Feather, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
 import SosPulse from "@/components/SosPulse";
-import TerrainSlider from "@/components/TerrainSlider";
 import {
   createGroupRide,
   joinGroupRide,
@@ -385,14 +384,13 @@ async function buildTerrain3dStyle(
   const layers = (style.layers as unknown[]) ?? [];
   if (base === "topo") {
     // topo-v2 already ships a built-in Hillshade layer (and peak labels) —
-    // just deepen its shading to match the 2D topo look. The 3D slider
-    // matches hillshade layers by TYPE, so it drives this one too.
+    // just deepen its shading to match the 2D topo look.
     enhanceHillshade(style);
   } else {
     // hybrid has no hillshade layer — inject one before the first symbol
     // layer. Over satellite imagery the shading should accent relief, not
     // repaint it: near-black shadows + pure white highlights deepen what
-    // the imagery already shows. (The 3D slider overrides exaggeration.)
+    // the imagery already shows.
     const insertIdx = layers.findIndex(
       (l) => (l as { type: string }).type === "symbol"
     );
@@ -401,7 +399,9 @@ async function buildTerrain3dStyle(
       type: "hillshade",
       source: "terrain-dem",
       paint: {
-        "hillshade-exaggeration": 0.45,
+        // 0.55 matches the look approved on-device back when the (since
+        // removed) elevation slider's default produced this exact value.
+        "hillshade-exaggeration": 0.55,
         "hillshade-shadow-color": "#0D0A06",
         "hillshade-highlight-color": "#FFFFFF",
         "hillshade-accent-color": "#3B2A18",
@@ -636,7 +636,6 @@ export default function MapScreen() {
   // "topo3d" = topo drape) so switching between them doesn't re-fetch.
   const [styles3dCache, setStyles3dCache] =
     useState<Record<string, Record<string, unknown>>>({});
-  const [terrainExaggeration, setTerrainExaggeration] = useState(2.2);
 
   // HD style cache for flat layers (standard / satellite / topo).
   // Keyed by layer name so switching back doesn't re-fetch.
@@ -686,34 +685,17 @@ export default function MapScreen() {
       case "satellite":
         return (hdStyleCache["satellite"] ?? SATELLITE_STYLE_URL) as never;
       case "terrain3d":
-      case "topo3d": {
-        const style3d = styles3dCache[mapLayer];
-        if (style3d) {
-          // Scale hillshade-exaggeration with the slider so shadows visibly deepen/soften
-          // at any zoom level (not just up-close 3D view). Formula yields 0.55 at the
-          // default terrainExaggeration of 2.2. Matches by layer TYPE so it drives both
-          // the injected satellite hillshade and topo-v2's built-in Hillshade layer.
-          const hillshadeExag = Math.min(0.95, terrainExaggeration * 0.25);
-          const layers3d = (style3d.layers as unknown[]).map((l) => {
-            const layer = l as { type?: string; paint?: Record<string, unknown> };
-            if (layer.type === "hillshade" && layer.paint) {
-              return { ...layer, paint: { ...layer.paint, "hillshade-exaggeration": hillshadeExag } };
-            }
-            return l;
-          });
-          return {
-            ...style3d,
-            layers: layers3d,
-            terrain: { source: "terrain-dem", exaggeration: terrainExaggeration },
-          } as never;
-        }
-        return (mapLayer === "terrain3d" ? TERRAIN3D_STYLE_URL : TOPO_STYLE_URL) as never;
-      }
+      case "topo3d":
+        // Terrain exaggeration (2.2) and hillshade paint are baked into the
+        // built style by buildTerrain3dStyle — no runtime overrides needed
+        // since the elevation slider was removed.
+        return (styles3dCache[mapLayer] ??
+          (mapLayer === "terrain3d" ? TERRAIN3D_STYLE_URL : TOPO_STYLE_URL)) as never;
       case "topo":
       default:
         return (hdStyleCache["topo"] ?? TOPO_STYLE_URL) as never;
     }
-  }, [mapLayer, styles3dCache, terrainExaggeration, hdStyleCache]);
+  }, [mapLayer, styles3dCache, hdStyleCache]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
@@ -1573,18 +1555,47 @@ export default function MapScreen() {
   }, [user]);
 
   useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
+      if (status !== "granted" || cancelled) return;
+      try {
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        setUserLocation({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
+        if (!cancelled) {
+          setUserLocation({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+        }
+      } catch {
+        // Initial fix can fail on GPS cold-start — the watcher below still
+        // delivers the first position.
       }
-    })();
+      if (cancelled) return;
+      // Keep the activity-mode puck tracking on both platforms — it replaced
+      // the native iOS puck (which self-updated). Coarse cadence to stay
+      // battery-friendly; navigation has its own high-accuracy watcher, which
+      // takes precedence (skip coarse fixes so they can't overwrite fresher
+      // BestForNavigation positions with staler ones).
+      sub = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+        (l) => {
+          if (navWatchRef.current) return;
+          setUserLocation({ latitude: l.coords.latitude, longitude: l.coords.longitude });
+        }
+      );
+      if (cancelled) {
+        sub.remove();
+        sub = null;
+      }
+    })().catch(() => { /* permission prompt / watcher start failed — puck falls back to platform default */ });
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
   }, []);
 
   // Auto-fly to user's location the first time GPS arrives, and update OSM fetch center
@@ -2627,15 +2638,15 @@ export default function MapScreen() {
           trackUserLocation={followUser ? "course" : undefined}
         />
 
-        {Platform.OS === "ios" ? (
-          <NativeUserLocation />
-        ) : userLocation ? (
+        {userLocation ? (
           <Marker
             lngLat={[userLocation.longitude, userLocation.latitude]}
             anchor="center"
           >
-            <UserLocationPulse />
+            <UserLocationPulse mode={activityMode} />
           </Marker>
+        ) : Platform.OS === "ios" ? (
+          <NativeUserLocation />
         ) : (
           <UserLocation />
         )}
@@ -3452,15 +3463,6 @@ export default function MapScreen() {
               <MaterialIcons name="expand-less" size={15} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
           )
-        )}
-        {/* 3D TERRAIN EXAGGERATION SLIDER */}
-        {(mapLayer === "terrain3d" || mapLayer === "topo3d") && styles3dCache[mapLayer] && (
-          <TerrainSlider
-            value={terrainExaggeration}
-            onChange={setTerrainExaggeration}
-            colors={colors}
-            style={{ marginRight: 60 }}
-          />
         )}
 
         {isNavigating && navTrail && (
