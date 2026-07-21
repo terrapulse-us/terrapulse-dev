@@ -416,6 +416,75 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
     },
   });
 
+  // onX-style peak labels (name + elevation) floating on the 3D terrain.
+  // The hybrid style ships no mountain_peak symbols, but its maptiler_planet
+  // vector source carries the data — inject text-only labels styled for
+  // satellite imagery (white text, dark halo). No icon-image: hybrid's
+  // sprite has no "triangle" glyph, text-only avoids a missing-sprite warn.
+  const peakLabelBase = {
+    type: "symbol",
+    source: "maptiler_planet",
+    "source-layer": "mountain_peak",
+    minzoom: 8,
+    layout: {
+      "symbol-sort-key": ["to-number", ["get", "rank"]],
+      "text-anchor": "top",
+      "text-font": ["Roboto Condensed Regular", "Noto Sans Regular"],
+      "text-max-width": 5,
+      "text-offset": [0, 0.4],
+      "text-size": [
+        "interpolate", ["exponential", 1], ["zoom"],
+        7, 10, 11, 11.5, 13, 14,
+      ],
+    },
+    paint: {
+      "text-color": "#FFFFFF",
+      "text-halo-color": "rgba(0, 0, 0, 0.75)",
+      "text-halo-width": 1.4,
+      "text-halo-blur": 0.5,
+    },
+  };
+  layers.push(
+    {
+      ...peakLabelBase,
+      id: "peak-labels-ft",
+      layout: {
+        ...peakLabelBase.layout,
+        "text-field": [
+          "concat",
+          ["coalesce", ["get", "name:en"], ["get", "name"]],
+          "\n", ["get", "ele_ft"], " ft",
+        ],
+      },
+      filter: [
+        "all",
+        ["==", "$type", "Point"],
+        ["in", "class", "peak", "volcano"],
+        ["has", "name"],
+        ["has", "customary_ft"],
+      ],
+    },
+    {
+      ...peakLabelBase,
+      id: "peak-labels-m",
+      layout: {
+        ...peakLabelBase.layout,
+        "text-field": [
+          "concat",
+          ["coalesce", ["get", "name:en"], ["get", "name"]],
+          "\n", ["get", "ele"], " m",
+        ],
+      },
+      filter: [
+        "all",
+        ["==", "$type", "Point"],
+        ["in", "class", "peak", "volcano"],
+        ["has", "name"],
+        ["!has", "customary_ft"],
+      ],
+    }
+  );
+
   style.layers = layers;
 
   // Stronger directional lighting
@@ -2527,7 +2596,9 @@ export default function MapScreen() {
           ref={cameraRef}
           center={[-119.4179, 36.7783]}
           zoom={7}
-          pitch={mapLayer === "terrain3d" ? 80 : 0}
+          // MapLibre Native clamps camera tilt to 60° (SDK MAXIMUM_TILT) —
+          // higher values are silently capped, so 60 is the real maximum.
+          pitch={mapLayer === "terrain3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
 
