@@ -225,13 +225,14 @@ function formatElapsed(secs: number): string {
 }
 
 
-type MapLayer = "standard" | "topo" | "satellite" | "terrain3d";
+type MapLayer = "standard" | "topo" | "satellite" | "terrain3d" | "topo3d";
 
 const LAYER_OPTIONS: { id: MapLayer; label: string; icon: string }[] = [
   { id: "standard", label: "Standard", icon: "map" },
   { id: "topo", label: "Topo", icon: "terrain" },
   { id: "satellite", label: "Satellite", icon: "satellite-alt" },
-  { id: "terrain3d", label: "3D Terrain", icon: "view-in-ar" },
+  { id: "terrain3d", label: "3D Satellite", icon: "view-in-ar" },
+  { id: "topo3d", label: "3D Topo", icon: "landscape" },
 ];
 
 const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3xHorBzGi-rCkzizsORf1xt6hwzaYZtEzfzlWqWhmG06zlw/viewform?usp=sharing";
@@ -355,12 +356,17 @@ function enhanceHillshade(style: Record<string, unknown>): Record<string, unknow
 }
 
 /**
- * Fetch hybrid-satellite style JSON (HD-patched) and inject a MapTiler
- * terrain-DEM source + terrain exaggeration so MapLibre drapes real imagery
- * over true 3D elevation — the "Google Earth" look.
+ * Fetch a base style JSON (HD-patched) and inject a MapTiler terrain-DEM
+ * source + terrain exaggeration so MapLibre renders true 3D elevation.
+ * base "satellite" drapes hybrid imagery (Google Earth look); base "topo"
+ * drapes the topo-v2 cartographic map (AllTrails-style 3D contours).
  */
-async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>> {
-  const url = `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`;
+async function buildTerrain3dStyle(
+  key: string,
+  base: "satellite" | "topo"
+): Promise<Record<string, unknown>> {
+  const mapId = base === "satellite" ? "hybrid" : "topo-v2";
+  const url = `https://api.maptiler.com/maps/${mapId}/style.json?key=${key}`;
   const style = await fetchHdStyle(url);
 
   // Inject raster-dem source from MapTiler terrain-rgb-v2 at 512 px
@@ -376,32 +382,38 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   // Dramatic terrain exaggeration (was 1.5)
   style.terrain = { source: "terrain-dem", exaggeration: 2.2 };
 
-  // Inject hillshade layer before labels
   const layers = (style.layers as unknown[]) ?? [];
-  // Insert hillshade right after background/fill layers but before labels
-  const insertIdx = layers.findIndex(
-    (l) => (l as { type: string }).type === "symbol"
-  );
-  // Over satellite imagery the shading should accent relief, not repaint it:
-  // near-black shadows + pure white highlights deepen what the imagery
-  // already shows. (The 3D slider overrides exaggeration at runtime.)
-  const hillshadeLayer = {
-    id: "terrain-hillshade",
-    type: "hillshade",
-    source: "terrain-dem",
-    paint: {
-      "hillshade-exaggeration": 0.45,
-      "hillshade-shadow-color": "#0D0A06",
-      "hillshade-highlight-color": "#FFFFFF",
-      "hillshade-accent-color": "#3B2A18",
-      "hillshade-illumination-direction": 315,
-      "hillshade-illumination-anchor": "map",
-    },
-  };
-  if (insertIdx > 0) {
-    layers.splice(insertIdx, 0, hillshadeLayer);
+  if (base === "topo") {
+    // topo-v2 already ships a built-in Hillshade layer (and peak labels) —
+    // just deepen its shading to match the 2D topo look. The 3D slider
+    // matches hillshade layers by TYPE, so it drives this one too.
+    enhanceHillshade(style);
   } else {
-    layers.push(hillshadeLayer);
+    // hybrid has no hillshade layer — inject one before the first symbol
+    // layer. Over satellite imagery the shading should accent relief, not
+    // repaint it: near-black shadows + pure white highlights deepen what
+    // the imagery already shows. (The 3D slider overrides exaggeration.)
+    const insertIdx = layers.findIndex(
+      (l) => (l as { type: string }).type === "symbol"
+    );
+    const hillshadeLayer = {
+      id: "terrain-hillshade",
+      type: "hillshade",
+      source: "terrain-dem",
+      paint: {
+        "hillshade-exaggeration": 0.45,
+        "hillshade-shadow-color": "#0D0A06",
+        "hillshade-highlight-color": "#FFFFFF",
+        "hillshade-accent-color": "#3B2A18",
+        "hillshade-illumination-direction": 315,
+        "hillshade-illumination-anchor": "map",
+      },
+    };
+    if (insertIdx > 0) {
+      layers.splice(insertIdx, 0, hillshadeLayer);
+    } else {
+      layers.push(hillshadeLayer);
+    }
   }
 
   // Atmospheric sky layer for depth
@@ -417,10 +429,12 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
   });
 
   // onX-style peak labels (name + elevation) floating on the 3D terrain.
-  // The hybrid style ships no mountain_peak symbols, but its maptiler_planet
-  // vector source carries the data — inject text-only labels styled for
-  // satellite imagery (white text, dark halo). No icon-image: hybrid's
-  // sprite has no "triangle" glyph, text-only avoids a missing-sprite warn.
+  // Satellite base only: the hybrid style ships no mountain_peak symbols,
+  // but its maptiler_planet vector source carries the data — inject
+  // text-only labels styled for satellite imagery (white text, dark halo).
+  // No icon-image: hybrid's sprite has no "triangle" glyph, text-only
+  // avoids a missing-sprite warn. (topo-v2 has its own peak labels.)
+  if (base === "satellite") {
   const peakLabelBase = {
     type: "symbol",
     source: "maptiler_planet",
@@ -484,6 +498,7 @@ async function buildTerrain3dStyle(key: string): Promise<Record<string, unknown>
       ],
     }
   );
+  }
 
   style.layers = layers;
 
@@ -617,8 +632,10 @@ export default function MapScreen() {
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
-  const [terrain3dStyleObj, setTerrain3dStyleObj] =
-    useState<Record<string, unknown> | null>(null);
+  // Built 3D styles, keyed by layer ("terrain3d" = satellite drape,
+  // "topo3d" = topo drape) so switching between them doesn't re-fetch.
+  const [styles3dCache, setStyles3dCache] =
+    useState<Record<string, Record<string, unknown>>>({});
   const [terrainExaggeration, setTerrainExaggeration] = useState(2.2);
 
   // HD style cache for flat layers (standard / satellite / topo).
@@ -626,20 +643,24 @@ export default function MapScreen() {
   const [hdStyleCache, setHdStyleCache] =
     useState<Record<string, Record<string, unknown>>>({});
 
-  // Fetch terrain3d style once (cached in state)
+  // Fetch the active 3D style once per base (cached in state)
   useEffect(() => {
-    if (mapLayer !== "terrain3d" || terrain3dStyleObj !== null) return;
-    if (!MAPTILER_KEY) return;
+    if (mapLayer !== "terrain3d" && mapLayer !== "topo3d") return;
+    if (styles3dCache[mapLayer] || !MAPTILER_KEY) return;
+    const base = mapLayer === "terrain3d" ? "satellite" : "topo";
     let cancelled = false;
-    buildTerrain3dStyle(MAPTILER_KEY)
-      .then((s) => { if (!cancelled) setTerrain3dStyleObj(s); })
-      .catch(() => { /* falls back to flat outdoor-v2 URL */ });
+    buildTerrain3dStyle(MAPTILER_KEY, base)
+      .then((s) => {
+        if (!cancelled)
+          setStyles3dCache((prev) => ({ ...prev, [mapLayer]: s }));
+      })
+      .catch(() => { /* falls back to the flat style URL */ });
     return () => { cancelled = true; };
-  }, [mapLayer, terrain3dStyleObj]);
+  }, [mapLayer, styles3dCache]);
 
   // Fetch 512 px-patched HD style for whichever flat layer is active
   useEffect(() => {
-    if (mapLayer === "terrain3d" || !MAPTILER_KEY) return;
+    if (mapLayer === "terrain3d" || mapLayer === "topo3d" || !MAPTILER_KEY) return;
     if (hdStyleCache[mapLayer]) return; // already cached
     const url =
       mapLayer === "standard"  ? STANDARD_STYLE_URL  :
@@ -665,30 +686,34 @@ export default function MapScreen() {
       case "satellite":
         return (hdStyleCache["satellite"] ?? SATELLITE_STYLE_URL) as never;
       case "terrain3d":
-        if (terrain3dStyleObj) {
+      case "topo3d": {
+        const style3d = styles3dCache[mapLayer];
+        if (style3d) {
           // Scale hillshade-exaggeration with the slider so shadows visibly deepen/soften
           // at any zoom level (not just up-close 3D view). Formula yields 0.55 at the
-          // default terrainExaggeration of 2.2, overriding the injected paint value.
+          // default terrainExaggeration of 2.2. Matches by layer TYPE so it drives both
+          // the injected satellite hillshade and topo-v2's built-in Hillshade layer.
           const hillshadeExag = Math.min(0.95, terrainExaggeration * 0.25);
-          const layers3d = (terrain3dStyleObj.layers as unknown[]).map((l) => {
-            const layer = l as { id: string; paint?: Record<string, unknown> };
-            if (layer.id === "terrain-hillshade" && layer.paint) {
+          const layers3d = (style3d.layers as unknown[]).map((l) => {
+            const layer = l as { type?: string; paint?: Record<string, unknown> };
+            if (layer.type === "hillshade" && layer.paint) {
               return { ...layer, paint: { ...layer.paint, "hillshade-exaggeration": hillshadeExag } };
             }
             return l;
           });
           return {
-            ...terrain3dStyleObj,
+            ...style3d,
             layers: layers3d,
             terrain: { source: "terrain-dem", exaggeration: terrainExaggeration },
           } as never;
         }
-        return TERRAIN3D_STYLE_URL as never;
+        return (mapLayer === "terrain3d" ? TERRAIN3D_STYLE_URL : TOPO_STYLE_URL) as never;
+      }
       case "topo":
       default:
         return (hdStyleCache["topo"] ?? TOPO_STYLE_URL) as never;
     }
-  }, [mapLayer, terrain3dStyleObj, terrainExaggeration, hdStyleCache]);
+  }, [mapLayer, styles3dCache, terrainExaggeration, hdStyleCache]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
@@ -2598,7 +2623,7 @@ export default function MapScreen() {
           zoom={7}
           // MapLibre Native clamps camera tilt to 60° (SDK MAXIMUM_TILT) —
           // higher values are silently capped, so 60 is the real maximum.
-          pitch={mapLayer === "terrain3d" ? 60 : 0}
+          pitch={mapLayer === "terrain3d" || mapLayer === "topo3d" ? 60 : 0}
           trackUserLocation={followUser ? "course" : undefined}
         />
 
@@ -3429,7 +3454,7 @@ export default function MapScreen() {
           )
         )}
         {/* 3D TERRAIN EXAGGERATION SLIDER */}
-        {mapLayer === "terrain3d" && terrain3dStyleObj && (
+        {(mapLayer === "terrain3d" || mapLayer === "topo3d") && styles3dCache[mapLayer] && (
           <TerrainSlider
             value={terrainExaggeration}
             onChange={setTerrainExaggeration}
@@ -4125,7 +4150,7 @@ export default function MapScreen() {
                 );
               })}
             </View>
-            {mapLayer === "terrain3d" && (
+            {(mapLayer === "terrain3d" || mapLayer === "topo3d") && (
               <Text style={styles.layerHintLight}>
                 Tilt the map with two fingers to see 3D elevation
               </Text>
@@ -5487,10 +5512,12 @@ const styles = StyleSheet.create({
   },
   layerGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   layerCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "30%",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
