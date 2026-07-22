@@ -10,8 +10,7 @@
     "trails:fetch-routes": "tsx ./src/trail-pipeline/fetch-route.ts",
     "trails:fetch-areas": "tsx ./src/trail-pipeline/fetch-area.ts",
     "trails:validate": "tsx ./src/trail-pipeline/validate-route.ts",
-    "region:terrain": "tsx ./src/region-spike/build-terrain.ts",
-    "region:upload": "tsx ./src/region-spike/upload.ts"
+    "region:build": "tsx ./src/regions/build-region.ts"
   },
   "dependencies": {
     "@workspace/trail-data": "workspace:*"

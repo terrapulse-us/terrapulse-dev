@@ -164,12 +164,15 @@ import {
   type OfflineBounds,
 } from "@/lib/offline-maps";
 import {
-  ensureRegionSpikeFiles,
-  buildRegionSpikeStyle,
-  removeRegionSpikeFiles,
-  REGION_SPIKE_CENTER,
-  REGION_SPIKE_ZOOM,
-} from "@/lib/region-spike";
+  fetchRegionCatalog,
+  getCachedCatalog,
+  listDownloadedRegions,
+  downloadedRegionAt,
+  isPointInRegion,
+  regionCenter,
+  buildRegionStyle,
+  type CatalogRegion,
+} from "@/lib/regions";
 
 interface TrailPhoto {
   url: string;
@@ -666,54 +669,75 @@ export default function MapScreen() {
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
-  // LABS: Region spike v2 (Moab). The Florence spike proved local pmtiles://
-  // rendering; this one proves the FULL offline-region experience: real
-  // Protomaps vector extract with the official ~70-layer style, terrain
-  // hillshade from a local terrarium DEM archive, and offline glyphs/sprites
-  // via file:// URLs. While active it REPLACES the map style entirely.
-  // Session-only state — a capability test, not the shipped feature.
-  const [regionSpikeStyle, setRegionSpikeStyle] =
+  // ── Offline regions (catalog-first pipeline, grown from the Moab spike) ──
+  // Regions are downloaded in My Garage → Offline Maps. The fully-offline
+  // region style (local pmtiles + file:// glyphs/sprites) REPLACES the base
+  // map when the user is offline inside a downloaded region, or after a
+  // manual opt-in from the layers menu.
+  const [regionCatalog, setRegionCatalog] = useState<CatalogRegion[]>([]);
+  const [activeRegion, setActiveRegion] = useState<CatalogRegion | null>(null);
+  const [regionStyle, setRegionStyle] =
     useState<Record<string, unknown> | null>(null);
-  const [regionSpikeLoading, setRegionSpikeLoading] = useState(false);
-  const [regionSpikeProgress, setRegionSpikeProgress] = useState(0);
+  const [regionManualOn, setRegionManualOn] = useState(false);
+  const [regionCameraTarget, setRegionCameraTarget] = useState<{
+    center: [number, number];
+    zoom: number;
+  } | null>(null);
   const regionFailAlertRef = useRef(false);
-  const toggleRegionSpike = useCallback(() => {
-    if (regionSpikeLoading) return;
-    regionFailAlertRef.current = false;
-    if (regionSpikeStyle) {
-      // Full style swap back to the base map — re-arm the Android
-      // "sources registered before style load silently fail" guard,
-      // mirroring the layer-picker pattern.
-      setMapStyleLoaded(false);
-      setRegionSpikeStyle(null);
-      removeRegionSpikeFiles();
+
+  // Load the catalog once per connectivity change (network online, cache off).
+  useEffect(() => {
+    let cancelled = false;
+    (isOnline ? fetchRegionCatalog() : getCachedCatalog())
+      .then((regions) => {
+        if (!cancelled) setRegionCatalog(regions);
+      })
+      .catch(() => { /* keep whatever we have */ });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnline]);
+
+  // Debounced "online" for region deactivation: going offline registers
+  // immediately, but coming back online must hold for 30s before the region
+  // style is dropped — the connectivity probe runs every ~25s, so a single
+  // successful blip at a region edge would otherwise remount the map back
+  // and forth between the region style and the live base map.
+  const [regionOnline, setRegionOnline] = useState(isOnline);
+  useEffect(() => {
+    if (!isOnline) {
+      setRegionOnline(false);
       return;
     }
-    setRegionSpikeLoading(true);
-    setRegionSpikeProgress(0);
-    ensureRegionSpikeFiles((f) => setRegionSpikeProgress(Math.round(f * 100)))
-      .then((paths) => {
-        setMapStyleLoaded(false);
-        setRegionSpikeStyle(buildRegionSpikeStyle(paths));
-        setShowLayerPicker(false);
-        cameraRef.current?.flyTo({
-          center: REGION_SPIKE_CENTER,
-          zoom: REGION_SPIKE_ZOOM,
-          duration: 1500,
-        });
-        Alert.alert(
-          "Region test active",
-          "The map is flying to Moab, Utah — rendered entirely from files on your phone. PASS checks: (1) full map styling (parks, roads, water — not debug colors), (2) place and road LABELS are visible, (3) terrain SHADING on the canyons and mesas. Turn on airplane mode and pan/zoom around Moab to confirm it's truly offline. Toggle off when done — it restores the normal map."
-        );
-      })
-      .catch(() => {
-        Alert.alert(
-          "Download failed",
-          "Couldn't download the ~23 MB Moab region files. Check your connection and try again."
-        );
-      })
-      .finally(() => setRegionSpikeLoading(false));
-  }, [regionSpikeStyle, regionSpikeLoading]);
+    const t = setTimeout(() => setRegionOnline(true), 30_000);
+    return () => clearTimeout(t);
+  }, [isOnline]);
+
+  const applyRegion = useCallback(
+    (region: CatalogRegion | null, focus: [number, number] | null) => {
+      regionFailAlertRef.current = false;
+      // Full style swap — re-arm the Android "sources registered before
+      // style load silently fail" guard, mirroring the layer-picker pattern.
+      setMapStyleLoaded(false);
+      if (!region) {
+        setActiveRegion(null);
+        setRegionStyle(null);
+        // Keep the camera where the user is: the post-deactivation remount
+        // starts at the last known focus (or the old region target) instead
+        // of teleporting back to the California default.
+        if (focus) setRegionCameraTarget({ center: focus, zoom: 11 });
+        return;
+      }
+      const center =
+        focus && isPointInRegion(region, focus[0], focus[1])
+          ? focus
+          : regionCenter(region);
+      setActiveRegion(region);
+      setRegionStyle(buildRegionStyle(region));
+      setRegionCameraTarget({ center, zoom: 11 });
+    },
+    []
+  );
 
   // Built 3D styles, keyed by layer ("terrain3d" = satellite drape,
   // "topo3d" = topo drape) so switching between them doesn't re-fetch.
@@ -777,9 +801,9 @@ export default function MapScreen() {
   }, [mapLayer, hdStyleCache]);
 
   const mapStyle = useMemo<never>(() => {
-    // LABS region spike: while active, the downloaded region's fully offline
+    // Offline region: while active, the downloaded region's fully offline
     // style (local pmtiles + file:// glyphs/sprites) replaces the base map.
-    if (regionSpikeStyle) return regionSpikeStyle as never;
+    if (regionStyle) return regionStyle as never;
     switch (mapLayer) {
       case "standard":
         return (hdStyleCache["standard"] ?? STANDARD_STYLE_URL) as never;
@@ -796,7 +820,7 @@ export default function MapScreen() {
       default:
         return (hdStyleCache["topo"] ?? TOPO_STYLE_URL) as never;
     }
-  }, [mapLayer, styles3dCache, hdStyleCache, regionSpikeStyle]);
+  }, [mapLayer, styles3dCache, hdStyleCache, regionStyle]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
@@ -943,6 +967,41 @@ export default function MapScreen() {
   // Gate all GeoJSONSource renders until the map style has finished loading.
   // Registering sources before onDidFinishLoadingStyle silently fails on Android.
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
+
+  // Decide which offline region (if any) should drive the map style right
+  // now. Lives below the userLocation/mapStyleLoaded declarations it reads.
+  useEffect(() => {
+    const focus: [number, number] | null = userLocation
+      ? [userLocation.longitude, userLocation.latitude]
+      : null;
+    let next: CatalogRegion | null = null;
+    if (regionManualOn) {
+      next =
+        (focus
+          ? downloadedRegionAt(regionCatalog, focus[0], focus[1])
+          : null) ?? listDownloadedRegions(regionCatalog)[0] ?? null;
+    } else if (!regionOnline && focus) {
+      next = downloadedRegionAt(regionCatalog, focus[0], focus[1]);
+    }
+    if ((next?.key ?? null) === (activeRegion?.key ?? null)) return;
+    applyRegion(next, focus);
+  }, [regionManualOn, regionOnline, regionCatalog, userLocation, activeRegion, applyRegion]);
+
+  const toggleOfflineRegion = useCallback(() => {
+    if (regionManualOn) {
+      setRegionManualOn(false);
+      return;
+    }
+    if (listDownloadedRegions(regionCatalog).length === 0) {
+      Alert.alert(
+        "No offline regions saved",
+        "Download a region first: My Garage → Offline Maps → Offline Regions."
+      );
+      return;
+    }
+    setRegionManualOn(true);
+    setShowLayerPicker(false);
+  }, [regionManualOn, regionCatalog]);
   // Deep-link params from Profile > Offline Maps ("view on map" for a saved pack).
   const { focusLat, focusLng, focusTrailId } = useLocalSearchParams<{
     focusLat?: string;
@@ -2724,30 +2783,32 @@ export default function MapScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapLibreMap
-        key={regionSpikeStyle ? "region-spike" : mapLayer}
+        key={regionStyle && activeRegion ? `region-${activeRegion.key}` : mapLayer}
         style={styles.map}
         mapStyle={mapStyle}
         onDidFinishLoadingStyle={() => setMapStyleLoaded(true)}
         onDidFailLoadingMap={() => {
-          // Diagnostics for the LABS region spike: a blank map is ambiguous
+          // Diagnostics for offline regions: a blank map is ambiguous
           // (style rejected vs sources failing) — this pins it down.
-          if (regionSpikeStyle && !regionFailAlertRef.current) {
+          if (regionStyle && !regionFailAlertRef.current) {
             regionFailAlertRef.current = true;
             Alert.alert(
-              "Region test: style failed to load",
-              "The map engine rejected the offline style itself (not just the tile data). Report this exact message."
+              "Offline region failed to load",
+              "The map engine rejected the offline region style. Try deleting and re-downloading the region in My Garage → Offline Maps."
             );
           }
         }}
       >
         <Camera
           ref={cameraRef}
-          // The region-spike toggle changes the MapView key (full remount),
-          // which destroys the camera the toggle's flyTo just targeted — so
-          // the fresh camera must START at Moab or the test falsely fails
-          // (the archive has no California tiles).
-          center={regionSpikeStyle ? REGION_SPIKE_CENTER : [-119.4179, 36.7783]}
-          zoom={regionSpikeStyle ? REGION_SPIKE_ZOOM : 7}
+          // Activating a region changes the MapView key (full remount),
+          // which destroys the previous camera — so the fresh camera must
+          // START inside the region (the archive has no tiles elsewhere).
+          // Target = user location when inside the region, else its center.
+          // The target survives deactivation so the remount back to the
+          // base map keeps the camera in place instead of resetting to CA.
+          center={regionCameraTarget ? regionCameraTarget.center : [-119.4179, 36.7783]}
+          zoom={regionCameraTarget ? regionCameraTarget.zoom : 7}
           // MapLibre Native clamps camera tilt to 60° (SDK MAXIMUM_TILT) —
           // higher values are silently capped, so 60 is the real maximum.
           pitch={mapLayer === "terrain3d" || mapLayer === "topo3d" ? 60 : 0}
@@ -4495,27 +4556,26 @@ export default function MapScreen() {
             </TouchableOpacity>
 
             <View style={styles.overlayDividerLight} />
-            <Text style={styles.overlaysSectionTitle}>LABS</Text>
+            <Text style={styles.overlaysSectionTitle}>OFFLINE REGIONS</Text>
 
-            {/* Region spike v2 toggle (Moab offline-region device test) */}
+            {/* Offline region map toggle (regions download in My Garage) */}
             <TouchableOpacity
-              style={[styles.overlayToggle, regionSpikeStyle ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: regionSpikeStyle ? "#5E35B1" : "#C8C2B8" }]}
-              onPress={toggleRegionSpike}
+              style={[styles.overlayToggle, regionStyle ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: regionStyle ? "#5E35B1" : "#C8C2B8" }]}
+              onPress={toggleOfflineRegion}
               activeOpacity={0.8}
-              disabled={regionSpikeLoading}
             >
-              <MaterialIcons name="science" size={20} color={regionSpikeStyle ? "#fff" : "#6B6B5A"} />
+              <MaterialIcons name="public-off" size={20} color={regionStyle ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: regionSpikeStyle ? "#fff" : "#2A2A1E" }]}>
-                  MOAB REGION TEST{regionSpikeLoading ? `  ${regionSpikeProgress}%` : ""}
+                <Text style={[styles.overlayLabel, { color: regionStyle ? "#fff" : "#2A2A1E" }]}>
+                  {activeRegion ? `OFFLINE MAP — ${activeRegion.name.toUpperCase()}` : "USE OFFLINE REGION MAP"}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: regionSpikeStyle ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  Experimental — downloads a ~23 MB fully offline Moab, UT region (styled map + terrain shading)
+                <Text style={[styles.overlaySubLabel, { color: regionStyle ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  {regionStyle && !regionManualOn
+                    ? "On automatically — you're offline inside a saved region"
+                    : "Fully offline map + terrain. Download regions in My Garage → Offline Maps"}
                 </Text>
               </View>
-              {regionSpikeLoading
-                ? <ActivityIndicator size="small" color={regionSpikeStyle ? "#fff" : "#5E35B1"} />
-                : <MaterialIcons name={regionSpikeStyle ? "toggle-on" : "toggle-off"} size={28} color={regionSpikeStyle ? "#fff" : "#A8A89A"} />}
+              <MaterialIcons name={regionStyle ? "toggle-on" : "toggle-off"} size={28} color={regionStyle ? "#fff" : "#A8A89A"} />
             </TouchableOpacity>
             </ScrollView>
           </View>

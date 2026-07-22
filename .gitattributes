@@ -1,2 +1,6 @@
 scripts/data/region-spike/moab-terrain.mbtiles filter=lfs diff=lfs merge=lfs -text
 scripts/data/region-spike/moab-terrain.pmtiles filter=lfs diff=lfs merge=lfs -text
+scripts/data/regions/johnson-valley/terrain.pmtiles filter=lfs diff=lfs merge=lfs -text
+scripts/data/regions/moab/terrain.pmtiles filter=lfs diff=lfs merge=lfs -text
+scripts/data/regions/rubicon/terrain.pmtiles filter=lfs diff=lfs merge=lfs -text
+scripts/data/regions/sedona/terrain.pmtiles filter=lfs diff=lfs merge=lfs -text

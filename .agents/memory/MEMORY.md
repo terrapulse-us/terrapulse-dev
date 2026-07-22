@@ -37,5 +37,6 @@
 - [Offline map packs must pin the live style URL](offline-map-packs-style-pinning.md) — packs keyed to their style URL; a different live style means saved maps silently never serve; also check pack.status() before reporting saved
 - [Babel top-level plugins vs TS declare fields](babel-toplevel-plugins-declare-fields.md) — class-feature plugins in top-level plugins break node_modules .ts declare fields; use hermes-v0 profile only
 - [SOS rollover detection feature plan](sos-rollover-detection.md) — needs one new EAS build (expo-sensors not in binary); detection logic, UI, and threshold tuning are OTA forever after; user wants to think through edge cases before building
+- [Offline region style swaps](offline-region-style-swaps.md) — connectivity-driven MapView remounts need a 30s online debounce + camera target that survives deactivation; effect deps referencing later-declared state throw TDZ
 - [PMTiles offline spike](pmtiles-offline-spike.md) — v1+v2 PASSED; style-JSON sources need full `pmtiles://file:///abs/path` form; DEM z13 + zoom-faded hillshade for crispness; pipeline is go
 - [topo-v2 packs already contain DEM](topo-v2-dem-already-packed.md) — terrain_rgb source == 3D tileset, so offline 3D topo needed only persisted style JSON, no pack/styleVersion change

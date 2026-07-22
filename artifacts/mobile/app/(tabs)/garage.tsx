@@ -40,6 +40,15 @@ import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContex
 import { useColors } from "@/hooks/useColors";
 import { apiServerUrl } from "@/lib/api-client";
 import { cacheGet, cacheSet } from "@/lib/offline-cache";
+import {
+  fetchRegionCatalog,
+  downloadRegion,
+  deleteRegion,
+  listDownloadedRegions,
+  regionDownloadBytes,
+  pruneStaleRegionDirs,
+  type CatalogRegion,
+} from "@/lib/regions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -791,6 +800,75 @@ export default function GarageScreen() {
     if (section === "maps") loadOfflinePacks();
   }, [section, loadOfflinePacks]);
 
+  // ── Offline Regions (full offline basemap + terrain, catalog-driven) ─────
+  const [regionCatalog, setRegionCatalog] = useState<CatalogRegion[]>([]);
+  const [regionDownloadedKeys, setRegionDownloadedKeys] = useState<Set<string>>(new Set());
+  // key -> download progress 0..100 (present only while downloading)
+  const [regionProgress, setRegionProgress] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (section !== "maps") return;
+    let cancelled = false;
+    fetchRegionCatalog()
+      .then((regions) => {
+        if (cancelled) return;
+        setRegionCatalog(regions);
+        setRegionDownloadedKeys(new Set(listDownloadedRegions(regions).map((r) => r.key)));
+        // Clean up dirs no catalog entry references (old versions).
+        pruneStaleRegionDirs(regions);
+      })
+      .catch(() => { /* keep whatever we have */ });
+    return () => { cancelled = true; };
+  }, [section]);
+
+  const handleDownloadRegion = useCallback(async (region: CatalogRegion) => {
+    setRegionProgress((prev) => {
+      if (region.key in prev) return prev; // already downloading
+      return { ...prev, [region.key]: 0 };
+    });
+    try {
+      await downloadRegion(region, (f) =>
+        setRegionProgress((prev) =>
+          region.key in prev ? { ...prev, [region.key]: Math.round(f * 100) } : prev
+        )
+      );
+      setRegionDownloadedKeys((prev) => new Set(prev).add(region.key));
+    } catch {
+      Alert.alert(
+        "Download failed",
+        `Couldn't download the ${region.name} region. Check your connection and try again — completed parts are kept, but an interrupted file restarts from the beginning.`
+      );
+    } finally {
+      setRegionProgress((prev) => {
+        const next = { ...prev };
+        delete next[region.key];
+        return next;
+      });
+    }
+  }, []);
+
+  const handleDeleteRegion = useCallback((region: CatalogRegion) => {
+    Alert.alert(
+      "Remove offline region?",
+      `Delete the downloaded ${region.name} map (${Math.round(regionDownloadBytes(region) / 1_000_000)} MB)?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            deleteRegion(region);
+            setRegionDownloadedKeys((prev) => {
+              const next = new Set(prev);
+              next.delete(region.key);
+              return next;
+            });
+          },
+        },
+      ]
+    );
+  }, []);
+
   const viewPackOnMap = useCallback((pack: OfflineMapPack) => {
     if (pack.lat == null || pack.lng == null) {
       Alert.alert("Unavailable", "This saved map doesn't have location data.");
@@ -1100,6 +1178,73 @@ export default function GarageScreen() {
           contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
           showsVerticalScrollIndicator={false}
         >
+          {/* Offline Regions: full offline basemap + terrain per region */}
+          <Text style={{ fontSize: 12, fontWeight: "700", letterSpacing: 1.2, color: colors.mutedForeground }}>
+            OFFLINE REGIONS
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: -6 }}>
+            Complete offline maps — roads, labels, and terrain shading with no cell service. The map switches to a saved region automatically when you're offline inside it.
+          </Text>
+          {regionCatalog.length === 0 ? (
+            <View style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.border, padding: 14 }]}>
+              <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]}>
+                Region list unavailable — connect to the internet to load it.
+              </Text>
+            </View>
+          ) : (
+            regionCatalog.map((region) => {
+              const downloaded = regionDownloadedKeys.has(region.key);
+              const progress = regionProgress[region.key];
+              const downloading = progress !== undefined;
+              const sizeMB = Math.round(regionDownloadBytes(region) / 1_000_000);
+              return (
+                <View key={region.key} style={[styles.mapCard, { backgroundColor: colors.card, borderColor: downloaded ? "#2E7D32" : colors.border }]}>
+                  <View style={styles.mapCardHeader}>
+                    <View style={[styles.vehicleIconWrap, { backgroundColor: (downloaded ? "#2E7D32" : colors.accent) + "22" }]}>
+                      <Feather name="globe" size={18} color={downloaded ? "#2E7D32" : colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={1}>
+                        {region.name}, {region.state}
+                      </Text>
+                      <Text style={[styles.vehicleSub, { color: downloaded ? "#2E7D32" : colors.mutedForeground }]}>
+                        {downloaded
+                          ? `OFFLINE READY — ${sizeMB} MB on device`
+                          : downloading
+                            ? `Downloading… ${progress}%`
+                            : `${sizeMB} MB download`}
+                      </Text>
+                    </View>
+                    {downloading && <ActivityIndicator size="small" color={colors.accent} />}
+                  </View>
+                  <View style={[styles.mapActions, { borderTopColor: colors.border }]}>
+                    {downloaded ? (
+                      <TouchableOpacity style={styles.mapAction} onPress={() => handleDeleteRegion(region)} activeOpacity={0.7}>
+                        <Feather name="trash-2" size={14} color={colors.destructive} />
+                        <Text style={[styles.mapActionText, { color: colors.destructive }]}>DELETE</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.mapAction}
+                        onPress={() => handleDownloadRegion(region)}
+                        activeOpacity={0.7}
+                        disabled={downloading}
+                      >
+                        <Feather name="download" size={14} color={downloading ? colors.mutedForeground : colors.accent} />
+                        <Text style={[styles.mapActionText, { color: downloading ? colors.mutedForeground : colors.accent }]}>
+                          {downloading ? `DOWNLOADING ${progress}%` : "DOWNLOAD"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              );
+            })
+          )}
+
+          <Text style={{ fontSize: 12, fontWeight: "700", letterSpacing: 1.2, color: colors.mutedForeground, marginTop: 10 }}>
+            SAVED TRAIL MAPS
+          </Text>
           {loadingPacks ? (
             <View style={styles.emptyCenter}>
               <ActivityIndicator color={colors.accent} />
