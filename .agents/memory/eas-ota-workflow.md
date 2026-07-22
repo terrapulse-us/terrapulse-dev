@@ -34,6 +34,10 @@ npx eas-cli channel:edit production --branch production
 
 Symptoms of a broken link: OTA badge shows enabled indefinitely with no update ever detected.
 
+## New dependencies require `pnpm install` in the Codespace
+
+When an OTA is published locally from the Codespace (rather than via the Actions workflow), any newly added package fails the export with "Unable to resolve module X" unless `pnpm install` is run after `git pull` — node_modules is not updated by the pull. Always include `pnpm install` in OTA instructions whenever the change added or bumped a dependency.
+
 ## Hermesc wrapper — critical for CI/Codespace OTA builds
 
 Linux hermesc v0.12.0 rejects ALL `class` syntax (declarations, expressions, inside functions). `eas-update.yml` runs `scripts/install-hermesc-wrapper.sh --force` as a step for this reason — if a custom workflow/build skips this, class syntax will crash on-device with no visible error (expo-updates silently rolls back to the embedded bundle).
