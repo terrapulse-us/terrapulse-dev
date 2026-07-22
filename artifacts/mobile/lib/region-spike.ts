@@ -203,27 +203,30 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
     Record<string, unknown>
   >;
 
-  // Rewrite every text-font font name to its sanitized (space-free) form so
-  // glyph requests hit our space-free local dirs with zero URL-encoding
-  // ambiguity. text-font can be a plain array of names OR an expression
-  // (e.g. ["case", cond, "Noto Sans Italic", "Noto Sans Regular"]), so
-  // deep-walk and replace only known font-name strings.
-  const knownFonts = new Set(FONT_STACKS);
+  // Rewrite every font name to its sanitized (space-free) form so glyph
+  // requests hit our space-free local dirs with zero URL-encoding ambiguity.
+  // Font names appear in layout["text-font"] (plain arrays OR expressions
+  // like ["case", ...]) AND inside text-field ["format", ...] options
+  // ({"text-font": ["literal", [...]]}), so deep-walk the ENTIRE layer.
+  // Stacks we didn't download (e.g. "Noto Sans Devanagari Regular v1") fall
+  // back to NotoSansRegular so their glyph requests hit an existing dir.
+  const downloadedStacks = new Set(FONT_STACKS.map(sanitizeFontName));
   const sanitizeFonts = (value: unknown): unknown => {
-    if (typeof value === "string" && knownFonts.has(value)) {
-      return sanitizeFontName(value);
+    if (typeof value === "string" && value.startsWith("Noto Sans")) {
+      const clean = sanitizeFontName(value);
+      return downloadedStacks.has(clean) ? clean : "NotoSansRegular";
     }
     if (Array.isArray(value)) return value.map(sanitizeFonts);
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, sanitizeFonts(v)])
+      );
+    }
     return value;
   };
-  const styled = baseLayers.map((layer) => {
-    const layout = layer.layout as Record<string, unknown> | undefined;
-    if (!layout || layout["text-font"] === undefined) return layer;
-    return {
-      ...layer,
-      layout: { ...layout, "text-font": sanitizeFonts(layout["text-font"]) },
-    };
-  });
+  const styled = baseLayers.map(
+    (layer) => sanitizeFonts(layer) as Record<string, unknown>
+  );
 
   // Insert the hillshade just above the land-detail stack so shading sits
   // under roads and labels (mirrors how the online HD styles are layered).
@@ -253,14 +256,19 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
     glyphs: `file://${stripFileScheme(paths.assetsUri)}/fonts/{fontstack}/{range}.pbf`,
     sprite: `file://${stripFileScheme(paths.assetsUri)}/sprites/light`,
     sources: {
+      // maplibre-native requires the URL inside pmtiles:// to be FULLY
+      // specified — local files must use `pmtiles://file:///abs/path`
+      // (documented style-JSON form). The stripped `pmtiles:///abs/path`
+      // form the Florence spike used via addSource does NOT resolve from
+      // style JSON: field test showed background-only rendering.
       protomaps: {
         type: "vector",
-        url: `pmtiles://${paths.mapPath}`,
+        url: `pmtiles://file://${paths.mapPath}`,
         attribution: "© OpenStreetMap contributors, © Protomaps",
       },
       "region-dem": {
         type: "raster-dem",
-        url: `pmtiles://${paths.terrainPath}`,
+        url: `pmtiles://file://${paths.terrainPath}`,
         encoding: "terrarium",
         tileSize: 256,
         maxzoom: 12,

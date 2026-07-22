@@ -676,8 +676,10 @@ export default function MapScreen() {
     useState<Record<string, unknown> | null>(null);
   const [regionSpikeLoading, setRegionSpikeLoading] = useState(false);
   const [regionSpikeProgress, setRegionSpikeProgress] = useState(0);
+  const regionFailAlertRef = useRef(false);
   const toggleRegionSpike = useCallback(() => {
     if (regionSpikeLoading) return;
+    regionFailAlertRef.current = false;
     if (regionSpikeStyle) {
       // Full style swap back to the base map — re-arm the Android
       // "sources registered before style load silently fail" guard,
@@ -2722,15 +2724,30 @@ export default function MapScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapLibreMap
-        key={mapLayer}
+        key={regionSpikeStyle ? "region-spike" : mapLayer}
         style={styles.map}
         mapStyle={mapStyle}
         onDidFinishLoadingStyle={() => setMapStyleLoaded(true)}
+        onDidFailLoadingMap={() => {
+          // Diagnostics for the LABS region spike: a blank map is ambiguous
+          // (style rejected vs sources failing) — this pins it down.
+          if (regionSpikeStyle && !regionFailAlertRef.current) {
+            regionFailAlertRef.current = true;
+            Alert.alert(
+              "Region test: style failed to load",
+              "The map engine rejected the offline style itself (not just the tile data). Report this exact message."
+            );
+          }
+        }}
       >
         <Camera
           ref={cameraRef}
-          center={[-119.4179, 36.7783]}
-          zoom={7}
+          // The region-spike toggle changes the MapView key (full remount),
+          // which destroys the camera the toggle's flyTo just targeted — so
+          // the fresh camera must START at Moab or the test falsely fails
+          // (the archive has no California tiles).
+          center={regionSpikeStyle ? REGION_SPIKE_CENTER : [-119.4179, 36.7783]}
+          zoom={regionSpikeStyle ? REGION_SPIKE_ZOOM : 7}
           // MapLibre Native clamps camera tilt to 60° (SDK MAXIMUM_TILT) —
           // higher values are silently capped, so 60 is the real maximum.
           pitch={mapLayer === "terrain3d" || mapLayer === "topo3d" ? 60 : 0}
