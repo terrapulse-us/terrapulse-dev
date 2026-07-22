@@ -227,12 +227,30 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
     }
     return value;
   };
-  const styled = baseLayers.map(
-    (layer) => sanitizeFonts(layer) as Record<string, unknown>
-  );
+  const styled = baseLayers.map((layer) => {
+    const clean = sanitizeFonts(layer) as Record<string, unknown>;
+    // Soften the public-land tint: protomaps paints national forest / park /
+    // protected-area polygons fully opaque from z11 (#9cd3b4), which reads
+    // as flat unrendered slabs over huge Moab-area forest boundaries. A
+    // ~45% wash keeps the "public land" cue while letting the earth tone
+    // and hillshade show through (onX/AllTrails-style land tint).
+    if (clean.id === "landuse_park") {
+      return {
+        ...clean,
+        paint: {
+          ...(clean.paint as Record<string, unknown>),
+          "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0, 11, 0.45],
+        },
+      };
+    }
+    return clean;
+  });
 
-  // Insert the hillshade just above the land-detail stack so shading sits
-  // under roads and labels (mirrors how the online HD styles are layered).
+  // Insert the hillshade ABOVE every land fill (landcover + all landuse_*
+  // park/forest polygons) but below water, roads, and labels. Field test
+  // round 2 had it just above "landcover", which left the opaque
+  // landuse_park fills painting flat green OVER the shading — terrain
+  // relief vanished entirely inside national-forest boundaries.
   const hillshade = {
     id: "region-hillshade",
     type: "hillshade",
@@ -254,9 +272,9 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
       "hillshade-accent-color": "#4a3f33",
     },
   };
-  let insertAt = styled.findIndex((l) => l.id === "landcover");
-  if (insertAt === -1) insertAt = styled.findIndex((l) => l.id === "earth");
-  insertAt = insertAt === -1 ? 1 : insertAt + 1;
+  let insertAt = styled.findIndex((l) => l.id === "water");
+  if (insertAt === -1) insertAt = styled.findIndex((l) => l.type === "line");
+  if (insertAt === -1) insertAt = styled.length;
   const withHillshade = [
     ...styled.slice(0, insertAt),
     hillshade,

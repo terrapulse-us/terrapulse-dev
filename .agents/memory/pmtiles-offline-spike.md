@@ -11,6 +11,8 @@ Spike v2 (Moab full region): **PASSED on device** (July 2026, round 2). Round 1 
 
 All v2 device unknowns CONFIRMED working (round 2): raster-dem over `pmtiles://` (terrarium), `file://` glyph + sprite URLs in a style JSON, full-style render perf. Gotcha: DEM overzoom past its native maxzoom reads as BLUR in steep terrain — pack DEM one zoom deeper than "clean overzoom" theory suggests (z13, not z12) and fade hillshade-exaggeration past the DEM's native zoom.
 
+Round 3 fix (hillshade layering): protomaps `landuse_park` paints national-forest/park polygons FULLY OPAQUE (#9cd3b4) from z11 — inserting hillshade just above "landcover" leaves those fills covering the shading, so huge public-land areas render as flat green slabs that look "not rendered". Correct slot: hillshade goes just below the "water" fill (above ALL land fills, below water/roads/labels), and `landuse_park` fill-opacity is capped at 0.45 so it reads as a land-tint wash over shaded terrain.
+
 Key decisions / gotchas:
 - **pmtiles URL form differs by declaration site**: style-JSON sources need `pmtiles://file:///abs/path`; runtime addSource (RN `<VectorSource>`) tolerates `pmtiles:///abs/path`. Always use the full `pmtiles://file://` form.
 - **Font names sanitized to remove spaces** ("Noto Sans Regular" → "NotoSansRegular") in both the on-disk glyph dirs and EVERY font reference — deep-walk the whole layer object: font names also hide inside `text-field` `["format", ...]` options, and protomaps styles reference stacks we never download ("Noto Sans Devanagari Regular v1" → fall back to NotoSansRegular so glyph requests hit an existing dir). All protomaps font arrays are single-element, so fallback never creates comma-joined fontstacks.
