@@ -191,6 +191,70 @@ export async function fetchUsfsTrailsInBounds(
 }
 
 /**
+ * Snapshot variant of {@link fetchUsfsTrailsInBounds}: paginates with
+ * resultOffset (no truncation at 500 features), skips AsyncStorage caching
+ * (results can be multi-MB), and tags each feature with
+ * `mvumKind: "road" | "trail"` so offline rendering can style them apart.
+ * Used by the offline snapshot writer.
+ *
+ * THROWS on any network/service failure (either layer) so the caller can
+ * tell "genuinely no MVUM data here" apart from "fetch failed" and never
+ * persists a partial result.
+ */
+export async function fetchUsfsTrailsInBoundsPaged(
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+  maxFeaturesPerLayer = 1000,
+): Promise<UsfsCollection> {
+  const PAGE = 500;
+  const queryPaged = async (url: string, kind: "road" | "trail"): Promise<UsfsFeature[]> => {
+    const envelope = JSON.stringify({
+      xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
+      spatialReference: { wkid: 4326 },
+    });
+    const collected: UsfsFeature[] = [];
+    for (let offset = 0; collected.length < maxFeaturesPerLayer; offset += PAGE) {
+      const params = new URLSearchParams({
+        geometry: envelope,
+        geometryType: "esriGeometryEnvelope",
+        spatialRel: "esriSpatialRelIntersects",
+        outFields: "*",
+        f: "geojson",
+        outSR: "4326",
+        returnGeometry: "true",
+        where: "1=1",
+        resultRecordCount: String(PAGE),
+        resultOffset: String(offset),
+      });
+      const resp = await fetch(`${url}?${params}`, { headers: { Accept: "application/json" } });
+      if (!resp.ok) throw new Error(`MVUM ${kind} query failed: ${resp.status}`);
+      const json = await resp.json() as UsfsCollection;
+      // ArcGIS gotcha: errors come back as HTTP 200 with an error JSON body
+      // that has no `features` array — treat that as a failure.
+      if (!Array.isArray(json.features))
+        throw new Error(`MVUM ${kind} query returned no feature array`);
+      const batch = json.features.map(translateMvumFeature).map((f) => ({
+        ...f,
+        properties: { ...f.properties, mvumKind: kind },
+      }));
+      collected.push(...batch);
+      // Short page = last page. (If the server ignored resultOffset we'd loop
+      // on identical full pages — the maxFeatures cap terminates that.)
+      if (batch.length < PAGE) break;
+    }
+    return collected.slice(0, maxFeaturesPerLayer);
+  };
+
+  const [trails, roads] = await Promise.all([
+    queryPaged(MVUM_TRAILS, "trail"),
+    queryPaged(MVUM_ROADS, "road"),
+  ]);
+  return {
+    type: "FeatureCollection",
+    features: [...trails, ...roads],
+  };
+}
+
+/**
  * Fetch USFS trails within `radiusMiles` of a lat/lng point.
  */
 export async function fetchUsfsRouteNear(

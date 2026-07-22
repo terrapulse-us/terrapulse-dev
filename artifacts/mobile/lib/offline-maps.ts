@@ -1,7 +1,13 @@
 import { OfflineManager } from "@maplibre/maplibre-react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { OFFLINE_PACK_STYLE_URL } from "./map-styles";
-import { fetchBlmOhvNear, type BlmOhvCollection } from "./blm-api";
+import {
+  fetchBlmOhvNear,
+  fetchSmaPolygonsForSnapshot,
+  type BlmOhvCollection,
+  type SmaVectorCollection,
+} from "./blm-api";
+import { fetchUsfsTrailsInBoundsPaged, type UsfsCollection } from "./usfs-api";
 
 // Shared offline-map download helper. Used by the map screen's own
 // "download this trail" button, the auto-download-on-navigate flow, and the
@@ -16,12 +22,15 @@ import { fetchBlmOhvNear, type BlmOhvCollection } from "./blm-api";
 //
 // Alongside each pack, a snapshot of the trail's overlay data is saved to
 // Paths.document/offline/{trailId}/:
-//   ohv.geojson — BLM OHV designated-area boundaries near the trail
-//   sma.png     — land-ownership (SMA) export image for the pack bbox
-//   mvum.png    — USFS MVUM roads/trails export image for the pack bbox
-//   meta.json   — the bbox (lng/lat) the PNGs were rendered for
-// map.tsx renders the PNGs via ImageSource when offline, replacing the live
-// ArcGIS raster tile overlays.
+//   ohv.geojson  — BLM OHV designated-area boundaries near the trail
+//   sma.geojson  — land-ownership (SMA) polygons for the pack bbox (vector)
+//   mvum.geojson — USFS MVUM roads/trails for the pack bbox (vector)
+//   meta.json    — the bbox (lng/lat) the snapshot covers
+// map.tsx renders the vectors via GeoJSONSource when offline — crisp at every
+// zoom, replacing the live ArcGIS raster tile overlays. Snapshots saved before
+// the vector upgrade contain sma.png/mvum.png export images instead; those
+// still render via ImageSource as a fallback until the snapshot is silently
+// re-saved by upgradeSnapshotsToVectors().
 
 export interface RoutePointLike {
   lat: number;
@@ -49,6 +58,11 @@ export type OfflineBounds = [number, number, number, number]; // [w, s, e, n]
 export interface TrailSnapshot {
   bounds: OfflineBounds;
   ohv: BlmOhvCollection | null;
+  /** Vector land-ownership polygons (new-format snapshots). */
+  sma: SmaVectorCollection | null;
+  /** Vector MVUM roads/trails (new-format snapshots). */
+  mvum: UsfsCollection | null;
+  /** Legacy raster fallbacks (snapshots saved before the vector upgrade). */
   smaUri: string | null;
   mvumUri: string | null;
 }
@@ -64,10 +78,10 @@ export const OFFLINE_STYLE_VERSION = 2;
 // a route bbox at z8-16; a 40-mile trail can exceed it easily.
 const TILE_COUNT_LIMIT = 25_000;
 
-const SMA_EXPORT_BASE =
-  "https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_Cached_with_PriUnk/MapServer/export";
-const MVUM_EXPORT_BASE =
-  "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_MVUM_02/MapServer/export";
+// Hard ceiling per snapshot geojson file. RN JSON.parse of a ~6MB string is
+// still fast enough on-device; beyond that, trim features rather than risk
+// jank (or a failed write) when the snapshot is loaded offline.
+const MAX_SNAPSHOT_JSON_CHARS = 6_000_000;
 
 function computeBounds(target: OfflineTrailTarget): OfflineBounds {
   const route = target.route;
@@ -89,28 +103,69 @@ function computeBounds(target: OfflineTrailTarget): OfflineBounds {
   ];
 }
 
-// ArcGIS export images are requested in EPSG:3857 (web mercator). Requesting
-// 4326 instead would misalign the overlay by hundreds of meters mid-image at
-// mid-latitudes, because MapLibre interpolates the ImageSource corner quad in
-// mercator space.
-function toMercator(lng: number, lat: number): [number, number] {
-  const x = (lng * 20037508.34) / 180;
-  const y =
-    (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180)) *
-    (20037508.34 / 180);
-  return [x, y];
-}
-
-function exportImageUrl(base: string, bounds: OfflineBounds, layers?: string): string {
-  const [xmin, ymin] = toMercator(bounds[0], bounds[1]);
-  const [xmax, ymax] = toMercator(bounds[2], bounds[3]);
-  const bbox = `${xmin},${ymin},${xmax},${ymax}`;
-  const layersParam = layers ? `&layers=${layers}` : "";
-  return `${base}?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=2048,2048${layersParam}&transparent=true&format=png32&f=image`;
-}
-
 function snapshotDir(trailId: string): Directory {
   return new Directory(Paths.document, "offline", trailId);
+}
+
+// ── Offline 3D-topo style ────────────────────────────────────────────────────
+// The 3D topo style (topo-v2 draped over the terrain DEM) references EXACTLY
+// the same tile resources every offline pack already contains: topo-v2 vector
+// tiles, glyphs/sprites, and the terrain-rgb-v2 DEM (pulled in by topo-v2's
+// built-in Hillshade layer). The ONLY thing missing offline is the style
+// document itself, which map.tsx builds at runtime from a network fetch of
+// style.json. Persisting the built style JSON here makes 3D topo fully
+// offline-capable with zero pack-format changes.
+
+function offline3dStyleFile(): File {
+  return new File(new Directory(Paths.document, "offline", "styles"), "topo3d.json");
+}
+
+/** Persists the built 3D-topo style JSON for offline sessions. Sync + best-effort. */
+export function persistOffline3dStyle(style: Record<string, unknown>): void {
+  try {
+    const dir = new Directory(Paths.document, "offline", "styles");
+    if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
+    const f = offline3dStyleFile();
+    f.create({ overwrite: true, intermediates: true });
+    f.write(JSON.stringify(style));
+  } catch {
+    // best-effort — offline 3D topo just won't be available
+  }
+}
+
+/** Loads the persisted 3D-topo style, or null if never persisted / corrupt. */
+export async function loadOffline3dStyle(): Promise<Record<string, unknown> | null> {
+  try {
+    const f = offline3dStyleFile();
+    if (!f.exists) return null;
+    return JSON.parse(await f.text()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/** Writes a FeatureCollection to a snapshot file, trimming features if the
+ * serialized JSON exceeds the size ceiling. Returns true on success. */
+function writeGeojsonCapped(
+  dir: Directory,
+  name: string,
+  collection: { type: "FeatureCollection"; features: unknown[] }
+): boolean {
+  try {
+    let features = collection.features;
+    let json = JSON.stringify({ type: "FeatureCollection", features });
+    while (json.length > MAX_SNAPSHOT_JSON_CHARS && features.length > 25) {
+      features = features.slice(0, Math.floor(features.length / 2));
+      json = JSON.stringify({ type: "FeatureCollection", features });
+    }
+    if (json.length > MAX_SNAPSHOT_JSON_CHARS) return false;
+    const f = new File(dir, name);
+    f.create({ overwrite: true, intermediates: true });
+    f.write(json);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function saveTrailSnapshot(
@@ -132,20 +187,32 @@ async function saveTrailSnapshot(
     // best-effort
   }
 
-  // Static export images for the raster overlays (SMA land ownership + MVUM).
-  // MVUM is pinned to layers 1,2 (Roads + Trails) — the service's other layers
-  // are "Data Available"/"Status" coverage placeholders that flood the image.
-  for (const [name, base, layers] of [
-    ["sma.png", SMA_EXPORT_BASE, undefined],
-    ["mvum.png", MVUM_EXPORT_BASE, "show:1,2"],
-  ] as const) {
-    try {
-      const f = new File(dir, name);
-      if (f.exists) f.delete();
-      await File.downloadFileAsync(exportImageUrl(base, bounds, layers), f);
-    } catch {
-      // best-effort — a missing PNG just means no offline overlay
+  // Vector overlay snapshots (SMA land ownership + MVUM roads/trails) —
+  // crisp at every zoom, unlike the 2048px export PNGs they replaced. Each
+  // fetch is best-effort and independent. The fetchers THROW on failure, so
+  // reaching the write means the result is trustworthy — an empty collection
+  // is genuinely "no data here" and is still written, marking the snapshot
+  // as vector-upgraded (otherwise upgradeSnapshotsToVectors would re-fetch
+  // no-data trails every session). The legacy PNG (if any) is only deleted
+  // once its vector replacement is safely on disk.
+  const [w, s, e, n] = bounds;
+  try {
+    const sma = await fetchSmaPolygonsForSnapshot(w, s, e, n);
+    if (writeGeojsonCapped(dir, "sma.geojson", sma)) {
+      const legacy = new File(dir, "sma.png");
+      if (legacy.exists) legacy.delete();
     }
+  } catch {
+    // fetch failed — leave any legacy PNG in place, retry next session
+  }
+  try {
+    const mvum = await fetchUsfsTrailsInBoundsPaged(w, s, e, n);
+    if (writeGeojsonCapped(dir, "mvum.geojson", mvum)) {
+      const legacy = new File(dir, "mvum.png");
+      if (legacy.exists) legacy.delete();
+    }
+  } catch {
+    // fetch failed — leave any legacy PNG in place, retry next session
   }
 
   const metaFile = new File(dir, "meta.json");
@@ -173,25 +240,88 @@ export async function loadTrailSnapshot(
     ) {
       return null;
     }
-    let ohv: BlmOhvCollection | null = null;
-    const ohvFile = new File(dir, "ohv.geojson");
-    if (ohvFile.exists) {
+    const readJson = async <T,>(name: string): Promise<T | null> => {
+      const f = new File(dir, name);
+      if (!f.exists) return null;
       try {
-        ohv = JSON.parse(await ohvFile.text()) as BlmOhvCollection;
+        return JSON.parse(await f.text()) as T;
       } catch {
-        ohv = null;
+        return null;
       }
-    }
-    const sma = new File(dir, "sma.png");
-    const mvum = new File(dir, "mvum.png");
+    };
+    const [ohv, sma, mvum] = await Promise.all([
+      readJson<BlmOhvCollection>("ohv.geojson"),
+      readJson<SmaVectorCollection>("sma.geojson"),
+      readJson<UsfsCollection>("mvum.geojson"),
+    ]);
+    // Legacy raster fallbacks — only relevant when the vector file is absent
+    // (snapshot saved before the vector upgrade and not yet re-saved).
+    const smaPng = new File(dir, "sma.png");
+    const mvumPng = new File(dir, "mvum.png");
     return {
       bounds: bounds as OfflineBounds,
       ohv,
-      smaUri: sma.exists ? sma.uri : null,
-      mvumUri: mvum.exists ? mvum.uri : null,
+      sma,
+      mvum,
+      smaUri: !sma && smaPng.exists ? smaPng.uri : null,
+      mvumUri: !mvum && mvumPng.exists ? mvumPng.uri : null,
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Silently upgrades pre-vector snapshots: for every completed current-format
+ * pack whose snapshot dir is missing the vector geojson files, re-runs
+ * saveTrailSnapshot (which fetches vectors and sweeps the legacy PNGs).
+ * Call once per session while ONLINE — it hits ArcGIS services. Sequential
+ * on purpose so a user with many saved trails doesn't hammer the services.
+ */
+export async function upgradeSnapshotsToVectors(): Promise<void> {
+  try {
+    const packs = await OfflineManager.getPacks();
+    for (const p of packs) {
+      const meta = (p.metadata ?? {}) as Record<string, unknown>;
+      if (typeof meta.trailId !== "string" || !isCurrentPackMeta(meta)) continue;
+      if (typeof meta.lat !== "number" || typeof meta.lng !== "number") continue;
+      try {
+        const status = await p.status();
+        if (status.state !== "complete" && status.percentage < 100) continue;
+      } catch {
+        continue;
+      }
+      const dir = snapshotDir(meta.trailId);
+      if (new File(dir, "sma.geojson").exists && new File(dir, "mvum.geojson").exists)
+        continue;
+      const target: OfflineTrailTarget = {
+        id: meta.trailId,
+        title: typeof meta.trailTitle === "string" ? meta.trailTitle : meta.trailId,
+        lat: meta.lat,
+        lng: meta.lng,
+      };
+      // Prefer the exact bounds the original snapshot was saved with (route
+      // bboxes are wider than the recomputed point bbox).
+      let bounds = computeBounds(target);
+      try {
+        const metaFile = new File(dir, "meta.json");
+        if (metaFile.exists) {
+          const m = JSON.parse(await metaFile.text()) as { bounds?: unknown };
+          if (
+            Array.isArray(m.bounds) &&
+            m.bounds.length === 4 &&
+            m.bounds.every((v) => typeof v === "number")
+          ) {
+            bounds = m.bounds as OfflineBounds;
+          }
+        }
+      } catch {
+        // fall back to recomputed bounds
+      }
+      await saveTrailSnapshot(target, bounds).catch(() => {});
+    }
+  } catch {
+    // best-effort
   }
 }
 

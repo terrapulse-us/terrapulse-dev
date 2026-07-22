@@ -138,6 +138,75 @@ export async function fetchSmaPolygons(
   return result;
 }
 
+/**
+ * Snapshot variant of {@link fetchSmaPolygons}: fetches ALL ownership
+ * categories with resultOffset pagination and no AsyncStorage caching.
+ * Used by the offline snapshot writer, where completeness matters more than
+ * latency and multi-MB results must not be pushed into AsyncStorage.
+ *
+ * Unlike the live fetcher this THROWS on any network/service failure (rather
+ * than silently returning fewer features), so the caller can tell "genuinely
+ * empty area" apart from "fetch failed" and never persists a partial result.
+ */
+export async function fetchSmaPolygonsForSnapshot(
+  minLng: number, minLat: number, maxLng: number, maxLat: number,
+  maxFeaturesPerLayer = 300,
+): Promise<SmaVectorCollection> {
+  const envelope = JSON.stringify({
+    xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
+    spatialReference: { wkid: 4326 },
+  });
+  const PAGE = 200;
+
+  const layerResults = await Promise.all(
+    SMA_CATEGORIES.flatMap(cat =>
+      cat.layerIds.map(async layerId => {
+        const collected: SmaVectorCollection["features"] = [];
+        for (let offset = 0; collected.length < maxFeaturesPerLayer; offset += PAGE) {
+          const params = new URLSearchParams({
+            geometryType: "esriGeometryEnvelope",
+            spatialRel: "esriSpatialRelIntersects",
+            outFields: "ADMIN_AGENCY_CODE",
+            f: "geojson",
+            outSR: "4326",
+            returnGeometry: "true",
+            where: "1=1",
+            resultRecordCount: String(PAGE),
+            resultOffset: String(offset),
+          });
+          const resp = await fetch(
+            `${BLM_SMA_MAPSERVER}/${layerId}/query?${params}&geometry=${encodeURIComponent(envelope)}`,
+            { headers: { Accept: "application/json" } },
+          );
+          if (!resp.ok) throw new Error(`SMA layer ${layerId} query failed: ${resp.status}`);
+          const raw = await resp.json() as {
+            features?: Array<{ geometry: GeoJSON.Geometry; properties: Record<string, unknown> }>;
+          };
+          // ArcGIS gotcha: errors come back as HTTP 200 with an error JSON
+          // body that has no `features` array — treat that as a failure.
+          if (!Array.isArray(raw.features))
+            throw new Error(`SMA layer ${layerId} query returned no feature array`);
+          collected.push(
+            ...raw.features
+              .filter(f => f.geometry != null)
+              .map(f => ({
+                type: "Feature" as const,
+                geometry: f.geometry,
+                properties: { ...f.properties, strokeColor: cat.color, categoryKey: cat.key },
+              }))
+          );
+          // Short page = last page. (If the server ignored resultOffset we'd
+          // keep getting full identical pages — the maxFeatures cap ends that.)
+          if (raw.features.length < PAGE) break;
+        }
+        return collected.slice(0, maxFeaturesPerLayer);
+      })
+    )
+  );
+
+  return { type: "FeatureCollection", features: layerResults.flat() };
+}
+
 // OHV designated areas polygon layer.
 // NOTE: the original BLM_Natl_OHV_Areas/MapServer service has been fully retired from BLM's
 // ArcGIS catalog (404, and absent from the `recreation` folder's service listing) as of 2026-07.

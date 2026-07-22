@@ -24,6 +24,7 @@ import {
   Marker,
   GeoJSONSource,
   RasterSource,
+  VectorSource,
   Layer,
   ImageSource,
   type PressEventWithFeatures,
@@ -155,10 +156,19 @@ import {
   isTrailAreaDownloaded,
   migrateLegacyOfflinePacks,
   resumeIncompleteOfflinePacks,
+  upgradeSnapshotsToVectors,
+  persistOffline3dStyle,
+  loadOffline3dStyle,
   loadTrailSnapshot,
   type TrailSnapshot,
   type OfflineBounds,
 } from "@/lib/offline-maps";
+import {
+  ensurePmtilesSpikeFile,
+  removePmtilesSpikeFile,
+  PMTILES_SPIKE_CENTER,
+  PMTILES_SPIKE_ZOOM,
+} from "@/lib/pmtiles-spike";
 
 interface TrailPhoto {
   url: string;
@@ -622,15 +632,75 @@ export default function MapScreen() {
     resumeIncompleteOfflinePacks().catch(() => {});
   }, []);
 
-  // Offline packs only contain the topo style — force it while offline so
-  // the map renders from saved tiles instead of a blank grid.
+  // One-time (per session) online maintenance:
+  //  - snapshot upgrade: saved trails whose overlay snapshots are still the
+  //    old blurry PNG format get re-saved as crisp vector geojson.
+  //  - 3D-topo style refresh: rebuild + persist the topo3d style JSON so the
+  //    3D topo layer works offline (its tiles are already in every pack via
+  //    topo-v2's built-in Hillshade DEM source; only the style doc is
+  //    network-fetched). Re-persisting each session keeps the embedded key
+  //    and any upstream style changes fresh.
+  const snapshotUpgradeRan = useRef(false);
   useEffect(() => {
-    if (!isOnline && mapLayer !== "topo") setMapLayer("topo");
+    if (!isOnline || snapshotUpgradeRan.current) return;
+    snapshotUpgradeRan.current = true;
+    upgradeSnapshotsToVectors().catch(() => {});
+    if (MAPTILER_KEY) {
+      buildTerrain3dStyle(MAPTILER_KEY, "topo")
+        .then(persistOffline3dStyle)
+        .catch(() => {});
+    }
+  }, [isOnline]);
+
+  // Offline packs contain the topo style AND its terrain DEM (topo-v2's
+  // Hillshade source is the same terrain-rgb-v2 tileset the 3D drape uses),
+  // so both flat topo and 3D topo render from saved tiles. Force any other
+  // layer back to topo while offline so the map isn't a blank grid.
+  useEffect(() => {
+    if (!isOnline && mapLayer !== "topo" && mapLayer !== "topo3d")
+      setMapLayer("topo");
   }, [isOnline, mapLayer]);
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
+
+  // LABS: PMTiles spike (Phase 4 device test). When enabled, downloads the
+  // ~6.6 MB Florence sample archive and renders it from the LOCAL file via
+  // the pmtiles:// protocol. Session-only state — the spike is a one-shot
+  // capability test, not a feature.
+  const [pmtilesSpikeUrl, setPmtilesSpikeUrl] = useState<string | null>(null);
+  const [pmtilesSpikeLoading, setPmtilesSpikeLoading] = useState(false);
+  const togglePmtilesSpike = useCallback(() => {
+    if (pmtilesSpikeLoading) return;
+    if (pmtilesSpikeUrl) {
+      setPmtilesSpikeUrl(null);
+      removePmtilesSpikeFile();
+      return;
+    }
+    setPmtilesSpikeLoading(true);
+    ensurePmtilesSpikeFile()
+      .then((url) => {
+        setPmtilesSpikeUrl(url);
+        setShowLayerPicker(false);
+        cameraRef.current?.flyTo({
+          center: PMTILES_SPIKE_CENTER,
+          zoom: PMTILES_SPIKE_ZOOM,
+          duration: 1500,
+        });
+        Alert.alert(
+          "PMTiles test active",
+          "The map is flying to Florence, Italy. If you see blue water, red roads, and gray buildings drawn over the base map, the test PASSED — local PMTiles rendering works on this device. Turn airplane mode on to confirm it's truly offline. Toggle the switch off when done."
+        );
+      })
+      .catch(() => {
+        Alert.alert(
+          "Download failed",
+          "Couldn't download the 6.6 MB test file. Check your connection and try again."
+        );
+      })
+      .finally(() => setPmtilesSpikeLoading(false));
+  }, [pmtilesSpikeUrl, pmtilesSpikeLoading]);
 
   // Built 3D styles, keyed by layer ("terrain3d" = satellite drape,
   // "topo3d" = topo drape) so switching between them doesn't re-fetch.
@@ -642,20 +712,35 @@ export default function MapScreen() {
   const [hdStyleCache, setHdStyleCache] =
     useState<Record<string, Record<string, unknown>>>({});
 
-  // Fetch the active 3D style once per base (cached in state)
+  // Fetch the active 3D style once per base (cached in state). Offline, the
+  // style.json fetch can't happen — serve the persisted topo3d style instead
+  // (its tile resources are already in the offline packs). 3D satellite has
+  // no offline fallback (hybrid imagery isn't packed).
   useEffect(() => {
     if (mapLayer !== "terrain3d" && mapLayer !== "topo3d") return;
     if (styles3dCache[mapLayer] || !MAPTILER_KEY) return;
-    const base = mapLayer === "terrain3d" ? "satellite" : "topo";
     let cancelled = false;
+    if (!isOnline) {
+      if (mapLayer === "topo3d") {
+        loadOffline3dStyle()
+          .then((s) => {
+            if (s && !cancelled)
+              setStyles3dCache((prev) => ({ ...prev, topo3d: s }));
+          })
+          .catch(() => { /* falls back to the flat topo style, which is packed */ });
+      }
+      return () => { cancelled = true; };
+    }
+    const base = mapLayer === "terrain3d" ? "satellite" : "topo";
     buildTerrain3dStyle(MAPTILER_KEY, base)
       .then((s) => {
         if (!cancelled)
           setStyles3dCache((prev) => ({ ...prev, [mapLayer]: s }));
+        if (base === "topo") persistOffline3dStyle(s);
       })
       .catch(() => { /* falls back to the flat style URL */ });
     return () => { cancelled = true; };
-  }, [mapLayer, styles3dCache]);
+  }, [mapLayer, styles3dCache, isOnline]);
 
   // Fetch 512 px-patched HD style for whichever flat layer is active
   useEffect(() => {
@@ -2790,7 +2875,36 @@ export default function MapScreen() {
             />
           </RasterSource>
         )}
-        {showUsfsOverlay && !isOnline && offlineSnapshot?.mvumUri && (
+        {/* Offline MVUM: vector snapshot preferred (crisp at every zoom);
+             legacy PNG snapshot as fallback until silently upgraded. */}
+        {showUsfsOverlay && !isOnline && mapStyleLoaded && offlineSnapshot?.mvum && offlineSnapshot.mvum.features.length > 0 && (
+          <GeoJSONSource id="usfs-mvum-offline-vec" data={offlineSnapshot.mvum as never}>
+            <Layer
+              id="usfs-mvum-offline-roads"
+              type="line"
+              filter={["==", ["get", "mvumKind"], "road"] as never}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#4A2E14",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.2, 12, 2, 16, 3.5] as never,
+                "line-opacity": 0.85,
+              }}
+            />
+            <Layer
+              id="usfs-mvum-offline-trails"
+              type="line"
+              filter={["==", ["get", "mvumKind"], "trail"] as never}
+              layout={{ "line-cap": "round", "line-join": "round" }}
+              paint={{
+                "line-color": "#4A2E14",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 12, 1.6, 16, 2.8] as never,
+                "line-dasharray": [2, 2] as never,
+                "line-opacity": 0.85,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+        {showUsfsOverlay && !isOnline && !offlineSnapshot?.mvum && offlineSnapshot?.mvumUri && (
           <ImageSource
             id="usfs-mvum-offline"
             url={offlineSnapshot.mvumUri}
@@ -2808,7 +2922,21 @@ export default function MapScreen() {
              All categories → fused tile cache (fast). Only BLM → dedicated
              BLM-only cache (fast, crisp BLM boundaries). Custom subset →
              dynamic ArcGIS export tiles filtered server-side (slower). */}
-        {showBlmOverlay && !isOnline && offlineSnapshot?.smaUri && (
+        {/* Offline SMA: vector snapshot preferred (same styling as the live
+             vector overlay below); legacy PNG snapshot as fallback. */}
+        {showBlmOverlay && !isOnline && mapStyleLoaded && offlineSnapshot?.sma && offlineSnapshot.sma.features.length > 0 && (
+          <GeoJSONSource id="blm-sma-offline-vec" data={offlineSnapshot.sma as never}>
+            <Layer
+              id="blm-sma-offline-vec-fill"
+              type="fill"
+              paint={{
+                "fill-color": ["get", "strokeColor"],
+                "fill-opacity": 0.45,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+        {showBlmOverlay && !isOnline && !offlineSnapshot?.sma && offlineSnapshot?.smaUri && (
           <ImageSource
             id="blm-sma-offline"
             url={offlineSnapshot.smaUri}
@@ -3098,6 +3226,32 @@ export default function MapScreen() {
               }}
             />
           </GeoJSONSource>
+        )}
+
+        {/* LABS: PMTiles spike — renders the downloaded Florence archive from
+            the LOCAL file via the pmtiles:// protocol. Three high-contrast
+            layers so a pass/fail is obvious at a glance. */}
+        {pmtilesSpikeUrl && mapStyleLoaded && (
+          <VectorSource id="pmtiles-spike" url={pmtilesSpikeUrl}>
+            <Layer
+              id="pmtiles-spike-water"
+              type="fill"
+              source-layer="water"
+              paint={{ "fill-color": "#3BA7DD", "fill-opacity": 0.7 }}
+            />
+            <Layer
+              id="pmtiles-spike-buildings"
+              type="fill"
+              source-layer="buildings"
+              paint={{ "fill-color": "#9E9E9E", "fill-opacity": 0.65 }}
+            />
+            <Layer
+              id="pmtiles-spike-roads"
+              type="line"
+              source-layer="roads"
+              paint={{ "line-color": "#E53935", "line-width": 2 }}
+            />
+          </VectorSource>
         )}
 
         {/* SOS Beacons — visible to all riders at all times */}
@@ -4333,6 +4487,30 @@ export default function MapScreen() {
                 </Text>
               </View>
               {npsLoading ? <ActivityIndicator size="small" color={showNpsOverlay ? "#fff" : "#1B5E20"} /> : <MaterialIcons name={showNpsOverlay ? "toggle-on" : "toggle-off"} size={28} color={showNpsOverlay ? "#fff" : "#A8A89A"} />}
+            </TouchableOpacity>
+
+            <View style={styles.overlayDividerLight} />
+            <Text style={styles.overlaysSectionTitle}>LABS</Text>
+
+            {/* PMTiles spike toggle (Phase 4 device test) */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, pmtilesSpikeUrl ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: pmtilesSpikeUrl ? "#5E35B1" : "#C8C2B8" }]}
+              onPress={togglePmtilesSpike}
+              activeOpacity={0.8}
+              disabled={pmtilesSpikeLoading}
+            >
+              <MaterialIcons name="science" size={20} color={pmtilesSpikeUrl ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: pmtilesSpikeUrl ? "#fff" : "#2A2A1E" }]}>
+                  PMTILES TEST{pmtilesSpikeLoading ? "  ⏳" : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: pmtilesSpikeUrl ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  Experimental — downloads a 6.6 MB sample map of Florence, Italy to test single-file offline maps
+                </Text>
+              </View>
+              {pmtilesSpikeLoading
+                ? <ActivityIndicator size="small" color={pmtilesSpikeUrl ? "#fff" : "#5E35B1"} />
+                : <MaterialIcons name={pmtilesSpikeUrl ? "toggle-on" : "toggle-off"} size={28} color={pmtilesSpikeUrl ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
             </ScrollView>
           </View>
