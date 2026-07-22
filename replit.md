@@ -82,6 +82,7 @@ EAS project: `5e42857a-9f58-4c15-8b0b-571dd97b3189` | owner: `mclaporteterrapuls
 
 ## Gotchas
 
+- The mobile app's API base URL (`app.config.js` extra.apiServerUrl fallback) is the production deployment `https://terrapulse-us.replit.app` — OTA updates from the Codespace bake this in. Replit dev overrides it via `EXPO_PUBLIC_DOMAIN`. **API-server changes only reach phones after republishing the deployment** — restarting the dev workflow is not enough.
 - EAS builds must be triggered from GitHub or expo.dev — `eas build` cannot run inside Replit due to git sandbox restrictions. See `artifacts/mobile/BUILDING.md`.
 - EAS CLI login (`eas login`) fails in Replit shell; use `EXPO_TOKEN` env var instead.
 
