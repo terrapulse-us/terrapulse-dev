@@ -2,12 +2,14 @@
  * Region spike (Moab): build a terrarium DEM PMTiles archive.
  *
  * Fetches AWS elevation-tiles-prod terrarium PNGs (public domain, Mapzen/AWS
- * Open Data) covering the region bbox for z0–12, writes them into an MBTiles
+ * Open Data) covering the region bbox for z0–13, writes them into an MBTiles
  * file (TMS row flip + metadata), which is then converted to PMTiles with the
  * go-pmtiles CLI (`pmtiles convert`).
  *
- * DEM maxzoom is 12 by design: MapLibre overzooms DEM tiles cleanly for
- * hillshade at higher view zooms, and z13 would ~4x the archive size.
+ * DEM maxzoom is 13: z12 field-tested visibly blurry in mountain areas at
+ * close zooms (MapLibre overzooms DEM, stretching the shading). z13 ~3-4x
+ * the archive size but keeps hillshade crisp to ~z15 views; the style also
+ * fades hillshade exaggeration past z13 to hide residual stretch.
  *
  * Usage: pnpm --filter @workspace/scripts run region:terrain
  */
@@ -18,7 +20,7 @@ import { dirname, resolve } from "node:path";
 // Keep in sync with the vector extract bbox (moab-map.pmtiles).
 const BBOX = { west: -109.9, south: 38.4, east: -109.3, north: 38.9 };
 const MIN_ZOOM = 0;
-const MAX_ZOOM = 12;
+const MAX_ZOOM = 13;
 const CONCURRENCY = 8;
 const OUT_PATH = resolve(
   import.meta.dirname,

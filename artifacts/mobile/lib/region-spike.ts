@@ -29,11 +29,14 @@ const FONT_RANGES = ["0-255", "256-511", "512-767", "768-1023"];
 const SPRITE_FILES = ["light.json", "light.png", "light@2x.json", "light@2x.png"];
 
 // Sanity floors — smaller means a truncated download or an error page.
+// The terrain floor also invalidates the old z0-12 archive (14.3 MB) on
+// devices from the first field-test round, forcing a re-download of the
+// crisper z0-13 build.
 const MIN_MAP_BYTES = 7_000_000;
-const MIN_TERRAIN_BYTES = 14_000_000;
+const MIN_TERRAIN_BYTES = 38_000_000;
 // For combined progress reporting (approximate real sizes).
 const EXPECTED_MAP_BYTES = 7_939_628;
-const EXPECTED_TERRAIN_BYTES = 14_309_683;
+const EXPECTED_TERRAIN_BYTES = 39_112_408;
 
 /** "Noto Sans Regular" -> "NotoSansRegular" (glyph dir + text-font rewrite). */
 function sanitizeFontName(name: string): string {
@@ -83,7 +86,7 @@ export async function ensureRegionSpikeFiles(
   const mapFile = new File(region, "map.pmtiles");
   const terrainFile = new File(region, "terrain.pmtiles");
 
-  // Weights for combined progress: map 35%, terrain 60%, assets 5%.
+  // Weights for combined progress: map 15%, terrain 80%, assets 5%.
   const report = (base: number, span: number, frac: number) =>
     onProgress?.(Math.min(1, base + span * Math.max(0, Math.min(1, frac))));
 
@@ -92,14 +95,14 @@ export async function ensureRegionSpikeFiles(
     mapFile,
     MIN_MAP_BYTES,
     EXPECTED_MAP_BYTES,
-    (f) => report(0, 0.35, f)
+    (f) => report(0, 0.15, f)
   );
   await downloadArchive(
     `${baseUrl()}/${REGION_KEY}/terrain.pmtiles`,
     terrainFile,
     MIN_TERRAIN_BYTES,
     EXPECTED_TERRAIN_BYTES,
-    (f) => report(0.35, 0.6, f)
+    (f) => report(0.15, 0.8, f)
   );
   await downloadStyleAssets(assets, (f) => report(0.95, 0.05, f));
   onProgress?.(1);
@@ -235,7 +238,17 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
     type: "hillshade",
     source: "region-dem",
     paint: {
-      "hillshade-exaggeration": 0.5,
+      // Fade the shading as the view zooms past the DEM's native z13 —
+      // overzoomed (stretched) hillshade reads as blur, so keep it strong
+      // at terrain-overview zooms and subtle when inspecting trails close up.
+      "hillshade-exaggeration": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        11, 0.55,
+        13, 0.45,
+        15, 0.2,
+      ],
       "hillshade-shadow-color": "#4a3f33",
       "hillshade-highlight-color": "#fdfbf7",
       "hillshade-accent-color": "#4a3f33",
@@ -271,7 +284,7 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
         url: `pmtiles://file://${paths.terrainPath}`,
         encoding: "terrarium",
         tileSize: 256,
-        maxzoom: 12,
+        maxzoom: 13,
       },
     },
     layers: withHillshade,
