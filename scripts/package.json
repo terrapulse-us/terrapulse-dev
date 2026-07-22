@@ -9,13 +9,17 @@
     "trails:classify": "tsx ./src/trail-pipeline/classify-trails.ts",
     "trails:fetch-routes": "tsx ./src/trail-pipeline/fetch-route.ts",
     "trails:fetch-areas": "tsx ./src/trail-pipeline/fetch-area.ts",
-    "trails:validate": "tsx ./src/trail-pipeline/validate-route.ts"
+    "trails:validate": "tsx ./src/trail-pipeline/validate-route.ts",
+    "region:terrain": "tsx ./src/region-spike/build-terrain.ts",
+    "region:upload": "tsx ./src/region-spike/upload.ts"
   },
   "dependencies": {
     "@workspace/trail-data": "workspace:*"
   },
   "devDependencies": {
+    "@google-cloud/storage": "^7.21.0",
     "@types/node": "catalog:",
+    "google-auth-library": "^10.9.0",
     "tsx": "catalog:"
   }
 }

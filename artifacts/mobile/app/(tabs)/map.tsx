@@ -164,11 +164,12 @@ import {
   type OfflineBounds,
 } from "@/lib/offline-maps";
 import {
-  ensurePmtilesSpikeFile,
-  removePmtilesSpikeFile,
-  PMTILES_SPIKE_CENTER,
-  PMTILES_SPIKE_ZOOM,
-} from "@/lib/pmtiles-spike";
+  ensureRegionSpikeFiles,
+  buildRegionSpikeStyle,
+  removeRegionSpikeFiles,
+  REGION_SPIKE_CENTER,
+  REGION_SPIKE_ZOOM,
+} from "@/lib/region-spike";
 
 interface TrailPhoto {
   url: string;
@@ -665,42 +666,52 @@ export default function MapScreen() {
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showUsfsOverlay, setShowUsfsOverlay] = useState(false);
 
-  // LABS: PMTiles spike (Phase 4 device test). When enabled, downloads the
-  // ~6.6 MB Florence sample archive and renders it from the LOCAL file via
-  // the pmtiles:// protocol. Session-only state — the spike is a one-shot
-  // capability test, not a feature.
-  const [pmtilesSpikeUrl, setPmtilesSpikeUrl] = useState<string | null>(null);
-  const [pmtilesSpikeLoading, setPmtilesSpikeLoading] = useState(false);
-  const togglePmtilesSpike = useCallback(() => {
-    if (pmtilesSpikeLoading) return;
-    if (pmtilesSpikeUrl) {
-      setPmtilesSpikeUrl(null);
-      removePmtilesSpikeFile();
+  // LABS: Region spike v2 (Moab). The Florence spike proved local pmtiles://
+  // rendering; this one proves the FULL offline-region experience: real
+  // Protomaps vector extract with the official ~70-layer style, terrain
+  // hillshade from a local terrarium DEM archive, and offline glyphs/sprites
+  // via file:// URLs. While active it REPLACES the map style entirely.
+  // Session-only state — a capability test, not the shipped feature.
+  const [regionSpikeStyle, setRegionSpikeStyle] =
+    useState<Record<string, unknown> | null>(null);
+  const [regionSpikeLoading, setRegionSpikeLoading] = useState(false);
+  const [regionSpikeProgress, setRegionSpikeProgress] = useState(0);
+  const toggleRegionSpike = useCallback(() => {
+    if (regionSpikeLoading) return;
+    if (regionSpikeStyle) {
+      // Full style swap back to the base map — re-arm the Android
+      // "sources registered before style load silently fail" guard,
+      // mirroring the layer-picker pattern.
+      setMapStyleLoaded(false);
+      setRegionSpikeStyle(null);
+      removeRegionSpikeFiles();
       return;
     }
-    setPmtilesSpikeLoading(true);
-    ensurePmtilesSpikeFile()
-      .then((url) => {
-        setPmtilesSpikeUrl(url);
+    setRegionSpikeLoading(true);
+    setRegionSpikeProgress(0);
+    ensureRegionSpikeFiles((f) => setRegionSpikeProgress(Math.round(f * 100)))
+      .then((paths) => {
+        setMapStyleLoaded(false);
+        setRegionSpikeStyle(buildRegionSpikeStyle(paths));
         setShowLayerPicker(false);
         cameraRef.current?.flyTo({
-          center: PMTILES_SPIKE_CENTER,
-          zoom: PMTILES_SPIKE_ZOOM,
+          center: REGION_SPIKE_CENTER,
+          zoom: REGION_SPIKE_ZOOM,
           duration: 1500,
         });
         Alert.alert(
-          "PMTiles test active",
-          "The map is flying to Florence, Italy. If you see blue water, red roads, and gray buildings drawn over the base map, the test PASSED — local PMTiles rendering works on this device. Turn airplane mode on to confirm it's truly offline. Toggle the switch off when done."
+          "Region test active",
+          "The map is flying to Moab, Utah — rendered entirely from files on your phone. PASS checks: (1) full map styling (parks, roads, water — not debug colors), (2) place and road LABELS are visible, (3) terrain SHADING on the canyons and mesas. Turn on airplane mode and pan/zoom around Moab to confirm it's truly offline. Toggle off when done — it restores the normal map."
         );
       })
       .catch(() => {
         Alert.alert(
           "Download failed",
-          "Couldn't download the 6.6 MB test file. Check your connection and try again."
+          "Couldn't download the ~23 MB Moab region files. Check your connection and try again."
         );
       })
-      .finally(() => setPmtilesSpikeLoading(false));
-  }, [pmtilesSpikeUrl, pmtilesSpikeLoading]);
+      .finally(() => setRegionSpikeLoading(false));
+  }, [regionSpikeStyle, regionSpikeLoading]);
 
   // Built 3D styles, keyed by layer ("terrain3d" = satellite drape,
   // "topo3d" = topo drape) so switching between them doesn't re-fetch.
@@ -764,6 +775,9 @@ export default function MapScreen() {
   }, [mapLayer, hdStyleCache]);
 
   const mapStyle = useMemo<never>(() => {
+    // LABS region spike: while active, the downloaded region's fully offline
+    // style (local pmtiles + file:// glyphs/sprites) replaces the base map.
+    if (regionSpikeStyle) return regionSpikeStyle as never;
     switch (mapLayer) {
       case "standard":
         return (hdStyleCache["standard"] ?? STANDARD_STYLE_URL) as never;
@@ -780,7 +794,7 @@ export default function MapScreen() {
       default:
         return (hdStyleCache["topo"] ?? TOPO_STYLE_URL) as never;
     }
-  }, [mapLayer, styles3dCache, hdStyleCache]);
+  }, [mapLayer, styles3dCache, hdStyleCache, regionSpikeStyle]);
 
   const [selectedState, setSelectedState] = useState("All States");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<Set<VehicleType>>(new Set());
@@ -3228,32 +3242,6 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {/* LABS: PMTiles spike — renders the downloaded Florence archive from
-            the LOCAL file via the pmtiles:// protocol. Three high-contrast
-            layers so a pass/fail is obvious at a glance. */}
-        {pmtilesSpikeUrl && mapStyleLoaded && (
-          <VectorSource id="pmtiles-spike" url={pmtilesSpikeUrl}>
-            <Layer
-              id="pmtiles-spike-water"
-              type="fill"
-              source-layer="water"
-              paint={{ "fill-color": "#3BA7DD", "fill-opacity": 0.7 }}
-            />
-            <Layer
-              id="pmtiles-spike-buildings"
-              type="fill"
-              source-layer="buildings"
-              paint={{ "fill-color": "#9E9E9E", "fill-opacity": 0.65 }}
-            />
-            <Layer
-              id="pmtiles-spike-roads"
-              type="line"
-              source-layer="roads"
-              paint={{ "line-color": "#E53935", "line-width": 2 }}
-            />
-          </VectorSource>
-        )}
-
         {/* SOS Beacons — visible to all riders at all times */}
         {activeBeacons.map((beacon) => (
           <Marker
@@ -4492,25 +4480,25 @@ export default function MapScreen() {
             <View style={styles.overlayDividerLight} />
             <Text style={styles.overlaysSectionTitle}>LABS</Text>
 
-            {/* PMTiles spike toggle (Phase 4 device test) */}
+            {/* Region spike v2 toggle (Moab offline-region device test) */}
             <TouchableOpacity
-              style={[styles.overlayToggle, pmtilesSpikeUrl ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: pmtilesSpikeUrl ? "#5E35B1" : "#C8C2B8" }]}
-              onPress={togglePmtilesSpike}
+              style={[styles.overlayToggle, regionSpikeStyle ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: regionSpikeStyle ? "#5E35B1" : "#C8C2B8" }]}
+              onPress={toggleRegionSpike}
               activeOpacity={0.8}
-              disabled={pmtilesSpikeLoading}
+              disabled={regionSpikeLoading}
             >
-              <MaterialIcons name="science" size={20} color={pmtilesSpikeUrl ? "#fff" : "#6B6B5A"} />
+              <MaterialIcons name="science" size={20} color={regionSpikeStyle ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: pmtilesSpikeUrl ? "#fff" : "#2A2A1E" }]}>
-                  PMTILES TEST{pmtilesSpikeLoading ? "  ⏳" : ""}
+                <Text style={[styles.overlayLabel, { color: regionSpikeStyle ? "#fff" : "#2A2A1E" }]}>
+                  MOAB REGION TEST{regionSpikeLoading ? `  ${regionSpikeProgress}%` : ""}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: pmtilesSpikeUrl ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  Experimental — downloads a 6.6 MB sample map of Florence, Italy to test single-file offline maps
+                <Text style={[styles.overlaySubLabel, { color: regionSpikeStyle ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  Experimental — downloads a ~23 MB fully offline Moab, UT region (styled map + terrain shading)
                 </Text>
               </View>
-              {pmtilesSpikeLoading
-                ? <ActivityIndicator size="small" color={pmtilesSpikeUrl ? "#fff" : "#5E35B1"} />
-                : <MaterialIcons name={pmtilesSpikeUrl ? "toggle-on" : "toggle-off"} size={28} color={pmtilesSpikeUrl ? "#fff" : "#A8A89A"} />}
+              {regionSpikeLoading
+                ? <ActivityIndicator size="small" color={regionSpikeStyle ? "#fff" : "#5E35B1"} />
+                : <MaterialIcons name={regionSpikeStyle ? "toggle-on" : "toggle-off"} size={28} color={regionSpikeStyle ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
             </ScrollView>
           </View>
