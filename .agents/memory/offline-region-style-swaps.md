@@ -13,3 +13,6 @@ Rule 2: A camera target stored at style-activation time must SURVIVE deactivatio
 Rule 3: Effects whose dependency arrays reference state declared later in the component throw a TDZ ReferenceError at render time (closures over later-declared setters are fine — they run post-render). Place such effects below the declarations they list as deps. map.tsx declares `userLocation`/`mapStyleLoaded` hundreds of lines into the component.
 
 Rule 4: Client-side pruning of downloaded content against a server catalog must no-op when the catalog is empty — an empty result means "fetch failed / unknown", not "delete everything".
+
+Rule 5: A Camera `trackUserLocation` (follow-me) prop overrides any initial center/zoom on remount — the camera snaps straight back to the user. Any programmatic camera retarget that must actually be seen (e.g. jumping to a remote offline region) has to release follow mode first (`setFollowUser(false)`).
+**Why:** Field screenshot showed a blank gray map: manual region activation set the camera target to the region center, but follow mode instantly yanked it back to the user standing outside the region's coverage.

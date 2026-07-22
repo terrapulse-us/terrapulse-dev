@@ -984,6 +984,17 @@ export default function MapScreen() {
       next = downloadedRegionAt(regionCatalog, focus[0], focus[1]);
     }
     if ((next?.key ?? null) === (activeRegion?.key ?? null)) return;
+    if (next && (!focus || !isPointInRegion(next, focus[0], focus[1]))) {
+      // Viewing a region you're physically outside of: follow-me mode must
+      // be released, or trackUserLocation instantly snaps the camera back
+      // to the user — who is standing in the blank void beyond the region's
+      // coverage — and the region-center camera start never shows.
+      setFollowUser(false);
+      Alert.alert(
+        `Viewing ${next.name} offline map`,
+        `You're outside this region, so the map jumped to ${next.name}. Beyond its boundary the map is blank — turn the toggle off to return to the live map.`
+      );
+    }
     applyRegion(next, focus);
   }, [regionManualOn, regionOnline, regionCatalog, userLocation, activeRegion, applyRegion]);
 
