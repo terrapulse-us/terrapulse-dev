@@ -29,14 +29,14 @@ const FONT_RANGES = ["0-255", "256-511", "512-767", "768-1023"];
 const SPRITE_FILES = ["light.json", "light.png", "light@2x.json", "light@2x.png"];
 
 // Sanity floors — smaller means a truncated download or an error page.
-// The terrain floor also invalidates the old z0-12 archive (14.3 MB) on
-// devices from the first field-test round, forcing a re-download of the
-// crisper z0-13 build.
+// The terrain floor also invalidates older archives (z12 14.3 MB, z13
+// 39.1 MB) on devices from earlier field-test rounds, forcing a
+// re-download of the full-detail z0-14 build.
 const MIN_MAP_BYTES = 7_000_000;
-const MIN_TERRAIN_BYTES = 38_000_000;
+const MIN_TERRAIN_BYTES = 120_000_000;
 // For combined progress reporting (approximate real sizes).
 const EXPECTED_MAP_BYTES = 7_939_628;
-const EXPECTED_TERRAIN_BYTES = 39_112_408;
+const EXPECTED_TERRAIN_BYTES = 123_313_040;
 
 /** "Noto Sans Regular" -> "NotoSansRegular" (glyph dir + text-font rewrite). */
 function sanitizeFontName(name: string): string {
@@ -86,7 +86,7 @@ export async function ensureRegionSpikeFiles(
   const mapFile = new File(region, "map.pmtiles");
   const terrainFile = new File(region, "terrain.pmtiles");
 
-  // Weights for combined progress: map 15%, terrain 80%, assets 5%.
+  // Weights for combined progress: map 6%, terrain 90%, assets 4%.
   const report = (base: number, span: number, frac: number) =>
     onProgress?.(Math.min(1, base + span * Math.max(0, Math.min(1, frac))));
 
@@ -95,16 +95,16 @@ export async function ensureRegionSpikeFiles(
     mapFile,
     MIN_MAP_BYTES,
     EXPECTED_MAP_BYTES,
-    (f) => report(0, 0.15, f)
+    (f) => report(0, 0.06, f)
   );
   await downloadArchive(
     `${baseUrl()}/${REGION_KEY}/terrain.pmtiles`,
     terrainFile,
     MIN_TERRAIN_BYTES,
     EXPECTED_TERRAIN_BYTES,
-    (f) => report(0.15, 0.8, f)
+    (f) => report(0.06, 0.9, f)
   );
-  await downloadStyleAssets(assets, (f) => report(0.95, 0.05, f));
+  await downloadStyleAssets(assets, (f) => report(0.96, 0.04, f));
   onProgress?.(1);
 
   return {
@@ -256,16 +256,16 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
     type: "hillshade",
     source: "region-dem",
     paint: {
-      // Fade the shading as the view zooms past the DEM's native z13 —
-      // overzoomed (stretched) hillshade reads as blur, so keep it strong
-      // at terrain-overview zooms and subtle when inspecting trails close up.
+      // DEM is native to z14 (terrarium's real detail ceiling in the US —
+      // USGS 3DEP 10 m source), so keep the shading strong through close
+      // zooms; only ease slightly past z14 where MapLibre overzooms.
       "hillshade-exaggeration": [
         "interpolate",
         ["linear"],
         ["zoom"],
         11, 0.55,
-        13, 0.45,
-        15, 0.2,
+        14, 0.5,
+        16, 0.35,
       ],
       "hillshade-shadow-color": "#4a3f33",
       "hillshade-highlight-color": "#fdfbf7",
@@ -302,7 +302,7 @@ export function buildRegionSpikeStyle(paths: RegionSpikePaths): Record<string, u
         url: `pmtiles://file://${paths.terrainPath}`,
         encoding: "terrarium",
         tileSize: 256,
-        maxzoom: 13,
+        maxzoom: 14,
       },
     },
     layers: withHillshade,
