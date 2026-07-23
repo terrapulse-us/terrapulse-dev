@@ -84,6 +84,12 @@ service cloud.firestore {
       match /vehicles/{vehicleId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // users/{uid}/campsites/{campsiteId} — campgrounds saved from the map
+      // (My Tent > Campsites). Strictly private — only the owner reads or writes.
+      match /campsites/{campsiteId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // ── friendRequests/{requestId} ───────────────────────────────────────

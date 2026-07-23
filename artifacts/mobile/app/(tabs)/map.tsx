@@ -637,6 +637,11 @@ function campTerrainMatches(text: string, filter: Set<CampTerrain>): boolean {
   return false;
 }
 
+// Firestore doc ids can't contain "/" (OSM campground ids look like "osm:way/123").
+function campsiteDocId(campId: string): string {
+  return campId.replace(/\//g, "_");
+}
+
 export default function MapScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -1202,10 +1207,11 @@ export default function MapScreen() {
     [regionCatalog, regionDownloadedKeys]
   );
   // Deep-link params from Profile > Offline Maps ("view on map" for a saved pack).
-  const { focusLat, focusLng, focusTrailId } = useLocalSearchParams<{
+  const { focusLat, focusLng, focusTrailId, focusCampsite } = useLocalSearchParams<{
     focusLat?: string;
     focusLng?: string;
     focusTrailId?: string;
+    focusCampsite?: string;
   }>();
   const focusHandledRef = useRef<string | null>(null);
   // OSM fetch center — null until GPS arrives so we always load trails for the
@@ -1262,6 +1268,14 @@ export default function MapScreen() {
   // One-shot auto-enable of the campground layer when entering camping mode —
   // a manual toggle-off afterwards sticks.
   const campAutoEnabledRef = useRef(false);
+  // Saved campsites (users/{uid}/campsites) — full docs so saved spots render
+  // as markers even when they're outside the fetched radius or the app is
+  // offline; ids drive the SAVE/SAVED button state on the detail sheet.
+  const [savedCampgrounds, setSavedCampgrounds] = useState<Campground[]>([]);
+  const savedCampsiteIds = useMemo(
+    () => new Set(savedCampgrounds.map((c) => campsiteDocId(c.id))),
+    [savedCampgrounds]
+  );
 
   const [activeRide, setActiveRide] = useState<GroupRide | null>(null);
   const [activeRideInfo, setActiveRideInfo] = useState<{ memberCount: number } | null>(null);
@@ -1283,6 +1297,16 @@ export default function MapScreen() {
       campTerrainMatches(`${c.name} ${c.description ?? ""}`, campTerrainFilter)
     );
   }, [campgrounds, activityMode, campTerrainFilter]);
+
+  // Saved campsites that aren't already rendered by the fetched layer — shown
+  // whenever the campground layer is on, regardless of distance/terrain filter,
+  // so "view on map" from the tent always has a marker to land on.
+  const extraSavedCampgrounds = useMemo(() => {
+    const rendered = new Set(visibleCampgrounds.slice(0, 150).map((c) => c.id));
+    return savedCampgrounds.filter(
+      (c) => !rendered.has(c.id) && Number.isFinite(c.lat) && Number.isFinite(c.lng)
+    );
+  }, [visibleCampgrounds, savedCampgrounds]);
 
   const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
   const [showNpsOverlay, setShowNpsOverlay] = useState(false);
@@ -1887,6 +1911,33 @@ export default function MapScreen() {
     }
   }, [activityMode]);
 
+  // ── Saved campsites (users/{uid}/campsites) ─────────────────────────────
+  useEffect(() => {
+    if (!user) { setSavedCampgrounds([]); return; }
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "campsites"),
+      (snap) => setSavedCampgrounds(snap.docs.map((d) => d.data() as Campground)),
+      () => {}
+    );
+    return unsub;
+  }, [user]);
+
+  const toggleSaveCampsite = useCallback(async (camp: Campground) => {
+    if (!user) return;
+    const docId = campsiteDocId(camp.id);
+    const campRef = doc(db, "users", user.uid, "campsites", docId);
+    try {
+      if (savedCampsiteIds.has(docId)) {
+        await deleteDoc(campRef);
+      } else {
+        // JSON round-trip drops `undefined` fields (e.g. unknown amenities),
+        // which Firestore rejects at write time.
+        const clean = JSON.parse(JSON.stringify(camp)) as Record<string, unknown>;
+        await setDoc(campRef, { ...clean, savedAt: serverTimestamp() });
+      }
+    } catch { /* offline or rules — button state simply won't flip */ }
+  }, [user, savedCampsiteIds]);
+
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
   // (Central Valley has no National Forest land). Re-runs when GPS first arrives.
@@ -1979,16 +2030,19 @@ export default function MapScreen() {
   // saved pack's location and open its trail sheet if it's a known trail.
   useEffect(() => {
     if (!mapStyleLoaded || !focusLat || !focusLng) return;
-    const key = `${focusLat},${focusLng},${focusTrailId ?? ""}`;
+    const key = `${focusLat},${focusLng},${focusTrailId ?? ""},${focusCampsite ?? ""}`;
     if (focusHandledRef.current === key) return;
     focusHandledRef.current = key;
     const lat = parseFloat(focusLat);
     const lng = parseFloat(focusLng);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    // Coming from Campsites in the hub — make sure the campground layer is on
+    // so the tent marker is actually visible at the destination.
+    if (focusCampsite === "1") setShowCampgrounds(true);
     cameraRef.current?.flyTo({ center: [lng, lat], zoom: 12, duration: 1200 });
     const trail = focusTrailId ? ALL_TRAILS.find((t) => t.id === focusTrailId) : undefined;
     if (trail) setSelectedTrail(enrichWithRoute(trail));
-  }, [mapStyleLoaded, focusLat, focusLng, focusTrailId]);
+  }, [mapStyleLoaded, focusLat, focusLng, focusTrailId, focusCampsite]);
 
   // Tapping anywhere along an OSM trail line opens that trail's info sheet.
   // Match the pressed feature back to our full OsmFeature (with geometry) by id.
@@ -3352,6 +3406,22 @@ export default function MapScreen() {
           </Marker>
         ))}
 
+        {/* ── Saved campsite markers ───────────────────────────────────────── */}
+        {/* Rendered from the user's saved docs so a saved spot is always visible */}
+        {/* — even outside the 40-mile fetch radius or fully offline. */}
+        {showCampgrounds && extraSavedCampgrounds.map((camp) => (
+          <Marker
+            key={`camp-saved-${camp.id}`}
+            lngLat={[camp.lng, camp.lat]}
+            anchor="center"
+            onPress={() => setSelectedCampground(camp)}
+          >
+            <View style={[styles.blmCampMarker, { backgroundColor: CAMPGROUND_KIND_COLORS[camp.kind] ?? "#795548" }]}>
+              <MaterialCommunityIcons name="tent" size={13} color="#fff" />
+            </View>
+          </Marker>
+        ))}
+
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
         {/* Tapping anywhere on the line (not just the endpoint pins) opens the trail info sheet. */}
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
@@ -4531,6 +4601,7 @@ export default function MapScreen() {
           const camp = selectedCampground;
           const kindColor = CAMPGROUND_KIND_COLORS[camp.kind];
           const chips = campgroundAmenityChips(camp);
+          const isSaved = savedCampsiteIds.has(campsiteDocId(camp.id));
           return (
             <TouchableOpacity
               style={styles.modalBackdrop}
@@ -4556,6 +4627,32 @@ export default function MapScreen() {
                       {camp.name}
                     </Text>
                   </View>
+                  {user ? (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        borderWidth: 1.5,
+                        borderColor: kindColor,
+                        backgroundColor: isSaved ? kindColor : "transparent",
+                        borderRadius: 16,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                      }}
+                      onPress={() => toggleSaveCampsite(camp)}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons
+                        name={isSaved ? "bookmark-check" : "bookmark-outline"}
+                        size={15}
+                        color={isSaved ? "#fff" : kindColor}
+                      />
+                      <Text style={{ fontSize: 11, fontWeight: "900", letterSpacing: 0.8, color: isSaved ? "#fff" : kindColor }}>
+                        {isSaved ? "SAVED" : "SAVE"}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
 
                 <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>

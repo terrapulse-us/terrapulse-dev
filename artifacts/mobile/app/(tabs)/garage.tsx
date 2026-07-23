@@ -48,6 +48,13 @@ import {
   pruneStaleRegionDirs,
   type CatalogRegion,
 } from "@/lib/regions";
+import {
+  CAMPGROUND_KIND_COLORS,
+  CAMPGROUND_KIND_LABELS,
+  campgroundSourceLabel,
+  campgroundAmenityChips,
+  type Campground,
+} from "@/lib/campgrounds";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -92,6 +99,11 @@ interface CrewMember {
 }
 
 type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "gear";
+
+// A campground saved from the map's detail sheet, stored at
+// users/{uid}/campsites/{docId}. `docId` is the sanitized Firestore doc id
+// (camp ids like "osm:way/123" have "/" replaced) — needed for deletes.
+type SavedCampsite = Campground & { docId: string; savedAt?: { seconds: number } | null };
 
 const HUB_TITLE: Record<ActivityMode, string> = {
   offroad: "MY GARAGE",
@@ -607,6 +619,44 @@ export default function GarageScreen() {
     setModsError("");
   }, [mode]);
 
+  // ── Saved campsites (camping mode) ────────────────────────────────────────
+  const [savedCampsites, setSavedCampsites] = useState<SavedCampsite[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    let live = false;
+    // Seed from the offline cache so the tent isn't empty on a cold start
+    // without connectivity; the live snapshot overwrites when it lands.
+    cacheGet<SavedCampsite[]>(`campsites:${user.uid}`).then((cached) => {
+      if (!live && cached) setSavedCampsites(cached);
+    });
+    const unsub = onSnapshot(
+      query(collection(db, "users", user.uid, "campsites"), orderBy("savedAt", "desc")),
+      (snap) => {
+        live = true;
+        const items = snap.docs.map((d) => ({ ...(d.data() as Campground), docId: d.id } as SavedCampsite));
+        setSavedCampsites(items);
+        cacheSet(`campsites:${user.uid}`, items);
+      },
+      () => { live = true; setSavedCampsites([]); }
+    );
+    return unsub;
+  }, [user]);
+
+  const removeCampsite = useCallback((camp: SavedCampsite) => {
+    if (!user) return;
+    Alert.alert("Remove campsite?", `"${camp.name}" will be removed from your saved campsites.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          deleteDoc(doc(db, "users", user.uid, "campsites", camp.docId)).catch(() => {});
+        },
+      },
+    ]);
+  }, [user]);
+
   // ── Vehicles ──────────────────────────────────────────────────────────────
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
@@ -1036,21 +1086,99 @@ export default function GarageScreen() {
         })}
       </View>
 
-      {/* ── CAMPSITES (camping mode stub) ───────────────────────────────── */}
+      {/* ── CAMPSITES (camping mode) ────────────────────────────────────── */}
       {section === "campsites" && (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.emptyCenter}>
-            <MaterialCommunityIcons name="tent" size={48} color={colors.border} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved campsites yet</Text>
-            <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-              Campground data from Recreation.gov and BLM camping areas is coming soon —
-              you&apos;ll be able to save your favorite spots right here.
-            </Text>
-          </View>
+          {savedCampsites.length === 0 ? (
+            <View style={styles.emptyCenter}>
+              <MaterialCommunityIcons name="tent" size={48} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved campsites yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Turn on the CAMPGROUNDS layer on the map, tap a tent marker, and
+                hit SAVE — your favorite spots will show up right here.
+              </Text>
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, borderWidth: 1.5, borderColor: colors.accent, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 9 }}
+                onPress={() => router.push("/(tabs)/map")}
+                activeOpacity={0.8}
+              >
+                <Feather name="map" size={14} color={colors.accent} />
+                <Text style={[styles.mapActionText, { color: colors.accent }]}>GO TO MAP</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                {savedCampsites.length} saved campsite{savedCampsites.length === 1 ? "" : "s"} — tap one to see it on the map.
+              </Text>
+              {savedCampsites.map((camp) => {
+                const kindColor = CAMPGROUND_KIND_COLORS[camp.kind] ?? colors.accent;
+                const chips = campgroundAmenityChips(camp).slice(0, 4);
+                return (
+                  <TouchableOpacity
+                    key={camp.docId}
+                    style={[styles.mapCard, { backgroundColor: colors.card, borderColor: kindColor }]}
+                    activeOpacity={0.75}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/map",
+                        params: { focusLat: String(camp.lat), focusLng: String(camp.lng), focusCampsite: "1" },
+                      })
+                    }
+                  >
+                    <View style={styles.mapCardHeader}>
+                      <View style={[styles.vehicleIconWrap, { backgroundColor: kindColor + "22" }]}>
+                        <MaterialCommunityIcons name="tent" size={18} color={kindColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={2}>
+                          {camp.name}
+                        </Text>
+                        <Text style={[styles.vehicleSub, { color: kindColor }]} numberOfLines={1}>
+                          {CAMPGROUND_KIND_LABELS[camp.kind]} · {campgroundSourceLabel(camp)}
+                        </Text>
+                        {(camp.operator || camp.season) ? (
+                          <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                            {[camp.operator, camp.season].filter(Boolean).join(" · ")}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => removeCampsite(camp)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather name="trash-2" size={17} color={colors.mutedForeground} />
+                      </TouchableOpacity>
+                    </View>
+                    {chips.length > 0 ? (
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                        {chips.map((chip) => (
+                          <View key={chip} style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4 }}>
+                            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.foreground }}>{chip}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {camp.reservationUrl ? (
+                      <TouchableOpacity
+                        style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 10 }}
+                        onPress={() => Linking.openURL(camp.reservationUrl!).catch(() => {})}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Feather name="external-link" size={13} color="#2E7D32" />
+                        <Text style={[styles.mapActionText, { color: "#2E7D32" }]}>RESERVE ON RECREATION.GOV</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
         </ScrollView>
       )}
 
