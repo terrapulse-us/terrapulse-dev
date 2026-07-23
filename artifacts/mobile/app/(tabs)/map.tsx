@@ -58,7 +58,7 @@ import {
 } from "@/lib/group-ride";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
   collection,
   doc,
@@ -172,6 +172,8 @@ import {
   isPointInRegion,
   regionCenter,
   buildRegionStyle,
+  downloadRegion,
+  regionDownloadBytes,
   type CatalogRegion,
 } from "@/lib/regions";
 
@@ -680,18 +682,36 @@ export default function MapScreen() {
   const [regionStyle, setRegionStyle] =
     useState<Record<string, unknown> | null>(null);
   const [regionManualOn, setRegionManualOn] = useState(false);
+  // Chip-tap preview pins a SPECIFIC region for manual mode (otherwise
+  // manual mode picks the nearest downloaded region).
+  const [regionManualKey, setRegionManualKey] = useState<string | null>(null);
   const [regionCameraTarget, setRegionCameraTarget] = useState<{
     center: [number, number];
     zoom: number;
   } | null>(null);
   const regionFailAlertRef = useRef(false);
+  // On-map region download state: which regions are saved (chip styling),
+  // per-region download progress, and which regions we already offered to
+  // download this session (auto-prompt is once per region per session).
+  const [regionDownloadedKeys, setRegionDownloadedKeys] = useState<Set<string>>(
+    new Set()
+  );
+  const [regionDlProgress, setRegionDlProgress] = useState<
+    Record<string, number>
+  >({});
+  const regionPromptedRef = useRef<Set<string>>(new Set());
 
   // Load the catalog once per connectivity change (network online, cache off).
   useEffect(() => {
     let cancelled = false;
     (isOnline ? fetchRegionCatalog() : getCachedCatalog())
       .then((regions) => {
-        if (!cancelled) setRegionCatalog(regions);
+        if (!cancelled) {
+          setRegionCatalog(regions);
+          setRegionDownloadedKeys(
+            new Set(listDownloadedRegions(regions).map((r) => r.key))
+          );
+        }
       })
       .catch(() => { /* keep whatever we have */ });
     return () => {
@@ -977,11 +997,17 @@ export default function MapScreen() {
       : null;
     let next: CatalogRegion | null = null;
     if (regionManualOn) {
-      // Prefer the region the user is standing in; otherwise the NEAREST
-      // downloaded region (a rider in California gets Johnson Valley, not
-      // whichever region is first in the catalog); catalog order only when
-      // there's no GPS fix at all.
+      // A chip-tap preview pins a specific region. Otherwise prefer the
+      // region the user is standing in, then the NEAREST downloaded region
+      // (a rider in California gets Johnson Valley, not whichever region is
+      // first in the catalog); catalog order only when there's no GPS fix.
+      const pinned = regionManualKey
+        ? (listDownloadedRegions(regionCatalog).find(
+            (r) => r.key === regionManualKey
+          ) ?? null)
+        : null;
       next =
+        pinned ??
         (focus
           ? (downloadedRegionAt(regionCatalog, focus[0], focus[1]) ??
             nearestDownloadedRegion(regionCatalog, focus[0], focus[1]))
@@ -1002,23 +1028,183 @@ export default function MapScreen() {
       );
     }
     applyRegion(next, focus);
-  }, [regionManualOn, regionOnline, regionCatalog, userLocation, activeRegion, applyRegion]);
+  }, [regionManualOn, regionManualKey, regionOnline, regionCatalog, userLocation, activeRegion, applyRegion]);
 
   const toggleOfflineRegion = useCallback(() => {
     if (regionManualOn) {
       setRegionManualOn(false);
+      setRegionManualKey(null);
       return;
     }
     if (listDownloadedRegions(regionCatalog).length === 0) {
       Alert.alert(
         "No offline regions saved",
-        "Download a region first: My Garage → Offline Maps → Offline Regions."
+        "Download a region by tapping its outline on the map, or in My Garage → Offline Maps."
       );
       return;
     }
     setRegionManualOn(true);
     setShowLayerPicker(false);
   }, [regionManualOn, regionCatalog]);
+
+  // Re-check which regions are on disk whenever the map tab regains focus —
+  // the user may have downloaded or deleted regions in My Garage meanwhile.
+  useFocusEffect(
+    useCallback(() => {
+      if (regionCatalog.length > 0) {
+        setRegionDownloadedKeys(
+          new Set(listDownloadedRegions(regionCatalog).map((r) => r.key))
+        );
+      }
+    }, [regionCatalog])
+  );
+
+  const startRegionDownload = useCallback(
+    async (region: CatalogRegion) => {
+      if (!isOnline) {
+        Alert.alert(
+          "You're offline",
+          "Connect to the internet to download this region."
+        );
+        return;
+      }
+      let started = false;
+      setRegionDlProgress((prev) => {
+        if (region.key in prev) return prev;
+        started = true;
+        return { ...prev, [region.key]: 0 };
+      });
+      if (!started) return; // already downloading
+      try {
+        await downloadRegion(region, (f) =>
+          setRegionDlProgress((prev) =>
+            region.key in prev
+              ? { ...prev, [region.key]: Math.round(f * 100) }
+              : prev
+          )
+        );
+        setRegionDownloadedKeys((prev) => new Set(prev).add(region.key));
+        Alert.alert(
+          "Offline map saved",
+          `${region.name} is ready — the map switches to it automatically when you lose service there.`
+        );
+      } catch {
+        Alert.alert(
+          "Download failed",
+          `Couldn't download the ${region.name} region. Tap it again to resume right where it left off.`
+        );
+      } finally {
+        setRegionDlProgress((prev) => {
+          const next = { ...prev };
+          delete next[region.key];
+          return next;
+        });
+      }
+    },
+    [isOnline]
+  );
+
+  const handleRegionChipPress = useCallback(
+    (region: CatalogRegion) => {
+      if (region.key in regionDlProgress) return; // downloading — chip shows %
+      const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
+      if (regionDownloadedKeys.has(region.key)) {
+        Alert.alert(
+          region.name,
+          "This region is saved for offline use. The map switches to it automatically when you lose service inside it.",
+          [
+            { text: "Close", style: "cancel" },
+            {
+              text: "Preview offline map",
+              onPress: () => {
+                setRegionManualKey(region.key);
+                setRegionManualOn(true);
+              },
+            },
+          ]
+        );
+        return;
+      }
+      Alert.alert(
+        `Download ${region.name}?`,
+        `Full offline map + terrain (${mb} MB). The map keeps working here with no cell service.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Download", onPress: () => startRegionDownload(region) },
+        ]
+      );
+    },
+    [regionDlProgress, regionDownloadedKeys, startRegionDownload]
+  );
+
+  // Offer the offline map ONCE per session when the user is inside a region
+  // they haven't saved yet ("Don't ask again" persists across sessions).
+  useEffect(() => {
+    if (!isOnline || !userLocation || regionCatalog.length === 0) return;
+    const region = regionCatalog.find((r) =>
+      isPointInRegion(r, userLocation.longitude, userLocation.latitude)
+    );
+    if (
+      !region ||
+      regionDownloadedKeys.has(region.key) ||
+      region.key in regionDlProgress ||
+      regionPromptedRef.current.has(region.key)
+    ) {
+      return;
+    }
+    regionPromptedRef.current.add(region.key);
+    const dismissKey = `regions.prompt.dismissed.${region.key}`;
+    (async () => {
+      if (await cacheGet<boolean>(dismissKey)) return;
+      const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
+      Alert.alert(
+        `You're in ${region.name}`,
+        `Save this region's offline map (${mb} MB)? The map keeps working when you lose cell service out here.`,
+        [
+          {
+            text: "Don't ask again",
+            onPress: () => void cacheSet(dismissKey, true),
+          },
+          { text: "Not now", style: "cancel" },
+          { text: "Download", onPress: () => startRegionDownload(region) },
+        ]
+      );
+    })();
+  }, [
+    isOnline,
+    userLocation,
+    regionCatalog,
+    regionDownloadedKeys,
+    regionDlProgress,
+    startRegionDownload,
+  ]);
+
+  // Region bbox outlines drawn on the map (green = saved, purple = available).
+  const regionBoundsGeoJSON = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: regionCatalog.map((r) => ({
+        type: "Feature" as const,
+        properties: {
+          key: r.key,
+          downloaded: regionDownloadedKeys.has(r.key),
+        },
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [
+            [
+              [r.bbox.west, r.bbox.south],
+              [r.bbox.east, r.bbox.south],
+              [r.bbox.east, r.bbox.north],
+              [r.bbox.west, r.bbox.north],
+              [r.bbox.west, r.bbox.south],
+            ],
+          ],
+        },
+      })),
+    }),
+    [regionCatalog, regionDownloadedKeys]
+  );
   // Deep-link params from Profile > Offline Maps ("view on map" for a saved pack).
   const { focusLat, focusLng, focusTrailId } = useLocalSearchParams<{
     focusLat?: string;
@@ -2885,6 +3071,70 @@ export default function MapScreen() {
             <View style={styles.hikingMarker} />
           </Marker>
         ))}
+
+        {/* ── Offline region boundaries + download chips ──────────────────
+             Dashed bbox outlines for every catalog region (green = saved,
+             purple = available) with a tappable center chip: download when
+             not saved, preview the offline map when saved. The source is
+             gated on mapStyleLoaded — sources registered before the style
+             finishes loading silently fail on Android. */}
+        {mapStyleLoaded && regionCatalog.length > 0 && (
+          <GeoJSONSource
+            id="offline-region-bounds"
+            data={regionBoundsGeoJSON as never}
+          >
+            <Layer
+              id="offline-region-bounds-fill"
+              type="fill"
+              paint={{
+                "fill-color": ["case", ["get", "downloaded"], "#2E7D32", "#5E35B1"] as never,
+                "fill-opacity": 0.06,
+              }}
+            />
+            <Layer
+              id="offline-region-bounds-line"
+              type="line"
+              paint={{
+                "line-color": ["case", ["get", "downloaded"], "#2E7D32", "#5E35B1"] as never,
+                "line-width": 1.6,
+                "line-dasharray": [3, 2] as never,
+                "line-opacity": 0.85,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+        {regionCatalog.map((region) => {
+          const saved = regionDownloadedKeys.has(region.key);
+          const prog = regionDlProgress[region.key];
+          const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
+          const shortName = region.name.split(",")[0].toUpperCase();
+          return (
+            <Marker
+              key={`region-chip-${region.key}`}
+              lngLat={regionCenter(region)}
+              anchor="center"
+            >
+              <TouchableOpacity
+                onPress={() => handleRegionChipPress(region)}
+                style={[styles.regionChip, saved && styles.regionChipSaved]}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons
+                  name={saved ? "offline-pin" : "download-for-offline"}
+                  size={13}
+                  color="#fff"
+                />
+                <Text style={styles.regionChipText} numberOfLines={1}>
+                  {prog != null
+                    ? `${shortName} · ${prog}%`
+                    : saved
+                      ? `${shortName} · SAVED`
+                      : `${shortName} · ${mb} MB`}
+                </Text>
+              </TouchableOpacity>
+            </Marker>
+          );
+        })}
 
         {mapStyleLoaded && ridePoints.length > 1 && (
           <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
@@ -5474,6 +5724,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#2E7D32",
     borderWidth: 2,
     borderColor: "#fff",
+  },
+  regionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(94,53,177,0.92)",
+    borderColor: "#fff",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  regionChipSaved: {
+    backgroundColor: "rgba(46,125,50,0.92)",
+  },
+  regionChipText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   topBar: {
     position: "absolute",

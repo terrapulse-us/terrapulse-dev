@@ -205,8 +205,44 @@ export function getRegionPaths(region: CatalogRegion): RegionPaths {
  * Paths.document/regions/. Reports combined progress (0..1). Already-complete
  * files are skipped, so this is safe to call to resume an interrupted
  * download.
+ *
+ * A module-level in-flight registry makes concurrent calls for the SAME
+ * region safe: the second caller (e.g. the map chip while a Garage download
+ * is running) joins the existing download instead of appending duplicate
+ * chunks to the same .part file, and its progress callback is fanned in.
  */
-export async function downloadRegion(
+const inflightDownloads = new Map<
+  string,
+  { promise: Promise<RegionPaths>; listeners: Set<(fraction: number) => void> }
+>();
+
+export function downloadRegion(
+  region: CatalogRegion,
+  onProgress?: (fraction: number) => void
+): Promise<RegionPaths> {
+  const existing = inflightDownloads.get(region.key);
+  if (existing) {
+    if (onProgress) existing.listeners.add(onProgress);
+    return existing.promise;
+  }
+  const listeners = new Set<(fraction: number) => void>();
+  if (onProgress) listeners.add(onProgress);
+  const fanOut = (fraction: number) => {
+    for (const listener of listeners) listener(fraction);
+  };
+  const promise = doDownloadRegion(region, fanOut).finally(() => {
+    inflightDownloads.delete(region.key);
+  });
+  inflightDownloads.set(region.key, { promise, listeners });
+  return promise;
+}
+
+/** True while a download for this region is running (from ANY screen). */
+export function isRegionDownloading(region: CatalogRegion): boolean {
+  return inflightDownloads.has(region.key);
+}
+
+async function doDownloadRegion(
   region: CatalogRegion,
   onProgress?: (fraction: number) => void
 ): Promise<RegionPaths> {
