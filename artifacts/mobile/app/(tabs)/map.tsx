@@ -37,6 +37,7 @@ import {
   TERRAIN3D_STYLE_URL,
 } from "@/lib/map-styles";
 import { useOnline } from "@/lib/use-online";
+import { alertOffline, withSaveTimeout } from "@/lib/save-guard";
 import { cacheGet, cacheSet } from "@/lib/offline-cache";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -1996,19 +1997,24 @@ export default function MapScreen() {
 
   const toggleSaveCampsite = useCallback(async (camp: Campground) => {
     if (!user) return;
+    // Firebase JS SDK has no offline Firestore persistence on RN — an offline
+    // write never resolves, so fail fast instead of hanging the button.
+    if (!isOnline) { alertOffline("this campsite"); return; }
     const docId = campsiteDocId(camp.id);
     const campRef = doc(db, "users", user.uid, "campsites", docId);
     try {
       if (savedCampsiteIds.has(docId)) {
-        await deleteDoc(campRef);
+        await withSaveTimeout(deleteDoc(campRef));
       } else {
         // JSON round-trip drops `undefined` fields (e.g. unknown amenities),
         // which Firestore rejects at write time.
         const clean = JSON.parse(JSON.stringify(camp)) as Record<string, unknown>;
-        await setDoc(campRef, { ...clean, savedAt: serverTimestamp() });
+        await withSaveTimeout(setDoc(campRef, { ...clean, savedAt: serverTimestamp() }));
       }
-    } catch { /* offline or rules — button state simply won't flip */ }
-  }, [user, savedCampsiteIds]);
+    } catch {
+      Alert.alert("Save failed", "Could not update this campsite. Check your connection and try again.");
+    }
+  }, [user, savedCampsiteIds, isOnline]);
 
   // ── Hiking POIs fetch (USFS + RIDB + BLM + OSM merged) ────────────────────
   useEffect(() => {
@@ -2039,19 +2045,24 @@ export default function MapScreen() {
 
   const toggleSaveHikeSpot = useCallback(async (poi: HikingPoi) => {
     if (!user) return;
+    // Firebase JS SDK has no offline Firestore persistence on RN — an offline
+    // write never resolves, so fail fast instead of hanging the button.
+    if (!isOnline) { alertOffline("this spot"); return; }
     const docId = campsiteDocId(poi.id);
     const poiRef = doc(db, "users", user.uid, "hiking_spots", docId);
     try {
       if (savedHikeSpotIds.has(docId)) {
-        await deleteDoc(poiRef);
+        await withSaveTimeout(deleteDoc(poiRef));
       } else {
         // JSON round-trip drops `undefined` fields, which Firestore rejects
         // at write time (nulls are fine).
         const clean = JSON.parse(JSON.stringify(poi)) as Record<string, unknown>;
-        await setDoc(poiRef, { ...clean, savedAt: serverTimestamp() });
+        await withSaveTimeout(setDoc(poiRef, { ...clean, savedAt: serverTimestamp() }));
       }
-    } catch { /* offline or rules — button state simply won't flip */ }
-  }, [user, savedHikeSpotIds]);
+    } catch {
+      Alert.alert("Save failed", "Could not update this spot. Check your connection and try again.");
+    }
+  }, [user, savedHikeSpotIds, isOnline]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results

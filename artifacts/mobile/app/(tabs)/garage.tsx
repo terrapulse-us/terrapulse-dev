@@ -41,6 +41,8 @@ import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContex
 import { useColors } from "@/hooks/useColors";
 import { apiServerUrl } from "@/lib/api-client";
 import { cacheGet, cacheSet } from "@/lib/offline-cache";
+import { useOnline } from "@/lib/use-online";
+import { alertOffline, withSaveTimeout } from "@/lib/save-guard";
 import {
   fetchRegionCatalog,
   deleteRegion,
@@ -634,6 +636,7 @@ export default function GarageScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const isOnline = useOnline();
 
   const { mode } = useActivityMode();
   const [section, setSection] = useState<GarageSection>(HUB_SECTIONS["offroad"][0]);
@@ -897,14 +900,22 @@ export default function GarageScreen() {
 
   const addVehicle = useCallback(async (v: Omit<Vehicle, "id" | "isFavorite" | "createdAt">) => {
     if (!user) return;
+    // Firebase JS SDK has no offline Firestore persistence on RN — an offline
+    // write never resolves, so fail fast instead of hanging the SAVE button.
+    if (!isOnline) { alertOffline("this vehicle"); return; }
     const isFirst = vehicles.length === 0;
-    await addDoc(collection(db, "users", user.uid, "vehicles"), {
-      ...v,
-      isFavorite: isFirst,
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await withSaveTimeout(addDoc(collection(db, "users", user.uid, "vehicles"), {
+        ...v,
+        isFavorite: isFirst,
+        createdAt: serverTimestamp(),
+      }));
+    } catch {
+      Alert.alert("Save failed", "Could not save this vehicle. Check your connection and try again.");
+      return;
+    }
     if (isFirst) {
-      await setDoc(doc(db, "users", user.uid), {
+      await withSaveTimeout(setDoc(doc(db, "users", user.uid), {
         vehicleSpecs: {
           make: v.make, model: v.model, year: v.year,
           tireSize: v.tireSize ?? "", suspension: v.suspension ?? "",
@@ -913,18 +924,22 @@ export default function GarageScreen() {
           hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
           drivetrain: v.drivetrain ?? null,
         },
-      }, { merge: true });
+      }, { merge: true })).catch(() => {
+        // Vehicle doc saved — the specs mirror can rebuild on next favorite
+        // change, so don't block the modal on this secondary write.
+      });
     }
     setShowAddVehicle(false);
-  }, [user, vehicles]);
+  }, [user, vehicles, isOnline]);
 
   const setFavorite = useCallback(async (vehicle: Vehicle) => {
     if (!user) return;
+    if (!isOnline) { alertOffline("this change"); return; }
     try {
       const prev = vehicles.find((v) => v.isFavorite && v.id !== vehicle.id);
-      if (prev) await updateDoc(doc(db, "users", user.uid, "vehicles", prev.id), { isFavorite: false });
-      await updateDoc(doc(db, "users", user.uid, "vehicles", vehicle.id), { isFavorite: true });
-      await setDoc(doc(db, "users", user.uid), {
+      if (prev) await withSaveTimeout(updateDoc(doc(db, "users", user.uid, "vehicles", prev.id), { isFavorite: false }));
+      await withSaveTimeout(updateDoc(doc(db, "users", user.uid, "vehicles", vehicle.id), { isFavorite: true }));
+      await withSaveTimeout(setDoc(doc(db, "users", user.uid), {
         vehicleSpecs: {
           make: vehicle.make, model: vehicle.model, year: vehicle.year,
           tireSize: vehicle.tireSize ?? "", suspension: vehicle.suspension ?? "",
@@ -933,17 +948,23 @@ export default function GarageScreen() {
           hasLockers: vehicle.hasLockers ?? false, hasLowRange: vehicle.hasLowRange ?? false,
           drivetrain: vehicle.drivetrain ?? null,
         },
-      }, { merge: true });
+      }, { merge: true }));
     } catch {
-      Alert.alert("Error", "Could not update favorite.");
+      Alert.alert("Error", "Could not update favorite. Check your connection and try again.");
     }
-  }, [user, vehicles]);
+  }, [user, vehicles, isOnline]);
 
   const updateVehicle = useCallback(async (v: Omit<Vehicle, "id" | "isFavorite" | "createdAt">) => {
     if (!user || !editVehicle) return;
-    await updateDoc(doc(db, "users", user.uid, "vehicles", editVehicle.id), v);
+    if (!isOnline) { alertOffline("these changes"); return; }
+    try {
+      await withSaveTimeout(updateDoc(doc(db, "users", user.uid, "vehicles", editVehicle.id), v));
+    } catch {
+      Alert.alert("Save failed", "Could not save these changes. Check your connection and try again.");
+      return;
+    }
     if (editVehicle.isFavorite) {
-      await setDoc(doc(db, "users", user.uid), {
+      await withSaveTimeout(setDoc(doc(db, "users", user.uid), {
         vehicleSpecs: {
           make: v.make, model: v.model, year: v.year,
           tireSize: v.tireSize ?? "", suspension: v.suspension ?? "",
@@ -952,10 +973,13 @@ export default function GarageScreen() {
           hasLockers: v.hasLockers ?? false, hasLowRange: v.hasLowRange ?? false,
           drivetrain: v.drivetrain ?? null,
         },
-      }, { merge: true });
+      }, { merge: true })).catch(() => {
+        // Vehicle doc saved — the specs mirror can rebuild on next favorite
+        // change, so don't block the modal on this secondary write.
+      });
     }
     setEditVehicle(null);
-  }, [user, editVehicle]);
+  }, [user, editVehicle, isOnline]);
 
   const searchMods = useCallback(async (prompt: string, vehicle: Vehicle | null) => {
     if (!apiServerUrl) {
@@ -1234,12 +1258,13 @@ export default function GarageScreen() {
 
   const toggleCrewWingman = useCallback(async (member: CrewMember, enabled: boolean) => {
     if (!user) return;
+    if (!isOnline) { alertOffline("this setting"); return; }
     try {
-      await updateDoc(doc(db, "users", user.uid, "crew", member.uid), { wingmanEnabled: enabled });
+      await withSaveTimeout(updateDoc(doc(db, "users", user.uid, "crew", member.uid), { wingmanEnabled: enabled }));
     } catch {
-      Alert.alert("Error", "Could not update Wingman setting.");
+      Alert.alert("Error", "Could not update Wingman setting. Check your connection and try again.");
     }
-  }, [user]);
+  }, [user, isOnline]);
 
   // Vehicle context only applies to offroad mods searches — gear searches
   // (camping/hiking) are generic and don't send rig specs.
