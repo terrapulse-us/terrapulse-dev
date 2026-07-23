@@ -1277,9 +1277,6 @@ export default function MapScreen() {
   const [campgrounds, setCampgrounds] = useState<Campground[]>([]);
   const [campgroundsLoading, setCampgroundsLoading] = useState(false);
   const [selectedCampground, setSelectedCampground] = useState<Campground | null>(null);
-  // One-shot auto-enable of the campground layer when entering camping mode —
-  // a manual toggle-off afterwards sticks.
-  const campAutoEnabledRef = useRef(false);
   // Saved campsites (users/{uid}/campsites) — full docs so saved spots render
   // as markers even when they're outside the fetched radius or the app is
   // offline; ids drive the SAVE/SAVED button state on the detail sheet.
@@ -1296,9 +1293,6 @@ export default function MapScreen() {
   const [selectedHikePoi, setSelectedHikePoi] = useState<HikingPoi | null>(null);
   // Empty set = show all kinds; chips in the hiking filter section toggle kinds.
   const [hikePoiKindFilter, setHikePoiKindFilter] = useState<Set<HikingPoiKind>>(new Set());
-  // One-shot auto-enable of the hiking POI layer when entering hiking mode —
-  // a manual toggle-off afterwards sticks.
-  const hikeAutoEnabledRef = useRef(false);
   // Saved hiking spots (users/{uid}/hiking_spots) — full docs so saved spots
   // render as markers even outside the fetched radius or offline.
   const [savedHikeSpots, setSavedHikeSpots] = useState<HikingPoi[]>([]);
@@ -1750,16 +1744,20 @@ export default function MapScreen() {
   // ── NFS overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!showNfsOverlay) { setNfsGeoJSON(null); return; }
+    // Defer until a real GPS fix — the hiking-mode preset flips this toggle on
+    // at mount, before location arrives; fetching around the CA-center
+    // fallback would cache a useless Central Valley result and never recover.
+    // userLocation is a dep so the fetch fires once the fix lands (the fetch
+    // layer's rounded cache key dedupes ordinary GPS ticks).
+    if (!userLocation || !isOnline) return;
     let cancelled = false;
     setNfsLoading(true);
-    const center = userLocation ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchUsfsNfsNear(center.latitude, center.longitude, 25)
+    fetchUsfsNfsNear(userLocation.latitude, userLocation.longitude, 25)
       .then(data => { if (!cancelled) setNfsGeoJSON(data); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setNfsLoading(false); });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNfsOverlay]);
+  }, [showNfsOverlay, userLocation, isOnline]);
 
   // ── RIDB trailhead fetch ────────────────────────────────────────────────────
   useEffect(() => {
@@ -1948,11 +1946,40 @@ export default function MapScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCampgrounds, selectedTrail, userLocation, isOnline]);
 
-  // Auto-enable the campground layer the first time the user enters camping mode.
+  // ── Per-mode overlay presets ────────────────────────────────────────────
+  // Entering an activity mode (including the first mount right after login)
+  // auto-configures the overlay stack so the map immediately shows what's
+  // relevant — no manual untoggling when switching between offroad, camping,
+  // and hiking. Manual toggles still work and stick until the next mode
+  // switch. LAND OWNERSHIP is deliberately left alone (useful in every mode,
+  // heavy fetch — stays opt-in); NPS is offroad-only so it's cleared when
+  // leaving offroad but never force-enabled (API-key dependent).
   useEffect(() => {
-    if (activityMode === "camping" && !campAutoEnabledRef.current) {
-      campAutoEnabledRef.current = true;
-      setShowCampgrounds(true);
+    if (activityMode === "offroad") {
+      setShowUsfsOverlay(true);    // MVUM official OHV / 4x4 routes
+      setShowOsmOverlay(true);     // community 4x4 tracks & dirt roads
+      setShowCampgrounds(false);
+      setShowHikePois(false);
+      setShowNfsOverlay(false);
+      setShowRidbOverlay(false);
+    } else if (activityMode === "camping") {
+      setShowCampgrounds(true);    // merged campground layer
+      setShowDrivingTrails(true);  // OHV routes to reach the spot
+      setShowOsmOverlay(true);     // dirt roads to dispersed sites
+      setShowUsfsOverlay(false);
+      setShowHikePois(false);
+      setShowNfsOverlay(false);
+      setShowRidbOverlay(false);
+      setShowNpsOverlay(false);
+    } else {
+      setShowHikePois(true);       // trailheads, viewpoints, peaks, falls…
+      setShowNfsOverlay(true);     // NFS classified hiking trail lines
+      setShowHikingTrails(true);   // hiking trail markers
+      setShowUsfsOverlay(false);
+      setShowOsmOverlay(false);
+      setShowCampgrounds(false);
+      setShowRidbOverlay(false);
+      setShowNpsOverlay(false);
     }
   }, [activityMode]);
 
@@ -1998,14 +2025,6 @@ export default function MapScreen() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showHikePois, selectedTrail, userLocation, isOnline]);
-
-  // Auto-enable the hiking POI layer the first time the user enters hiking mode.
-  useEffect(() => {
-    if (activityMode === "hiking" && !hikeAutoEnabledRef.current) {
-      hikeAutoEnabledRef.current = true;
-      setShowHikePois(true);
-    }
-  }, [activityMode]);
 
   // ── Saved hiking spots (users/{uid}/hiking_spots) ─────────────────────────
   useEffect(() => {
