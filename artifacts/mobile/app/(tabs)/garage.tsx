@@ -33,7 +33,7 @@ import {
 } from "firebase/firestore";
 import { OfflineManager } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContext";
@@ -42,7 +42,6 @@ import { apiServerUrl } from "@/lib/api-client";
 import { cacheGet, cacheSet } from "@/lib/offline-cache";
 import {
   fetchRegionCatalog,
-  downloadRegion,
   deleteRegion,
   listDownloadedRegions,
   regionDownloadBytes,
@@ -801,10 +800,10 @@ export default function GarageScreen() {
   }, [section, loadOfflinePacks]);
 
   // ── Offline Regions (full offline basemap + terrain, catalog-driven) ─────
+  // Downloads happen on the Map screen (REGIONS toolbar button); this section
+  // only manages what's already saved on the device.
   const [regionCatalog, setRegionCatalog] = useState<CatalogRegion[]>([]);
   const [regionDownloadedKeys, setRegionDownloadedKeys] = useState<Set<string>>(new Set());
-  // key -> download progress 0..100 (present only while downloading)
-  const [regionProgress, setRegionProgress] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (section !== "maps") return;
@@ -821,31 +820,16 @@ export default function GarageScreen() {
     return () => { cancelled = true; };
   }, [section]);
 
-  const handleDownloadRegion = useCallback(async (region: CatalogRegion) => {
-    setRegionProgress((prev) => {
-      if (region.key in prev) return prev; // already downloading
-      return { ...prev, [region.key]: 0 };
-    });
-    try {
-      await downloadRegion(region, (f) =>
-        setRegionProgress((prev) =>
-          region.key in prev ? { ...prev, [region.key]: Math.round(f * 100) } : prev
-        )
+  // Re-derive saved regions whenever the Garage regains focus, so a region
+  // downloaded from the Map screen's REGIONS list shows up here immediately.
+  useFocusEffect(
+    useCallback(() => {
+      if (regionCatalog.length === 0) return;
+      setRegionDownloadedKeys(
+        new Set(listDownloadedRegions(regionCatalog).map((r) => r.key))
       );
-      setRegionDownloadedKeys((prev) => new Set(prev).add(region.key));
-    } catch {
-      Alert.alert(
-        "Download failed",
-        `Couldn't download the ${region.name} region. Tap DOWNLOAD to try again — it resumes right where it left off.`
-      );
-    } finally {
-      setRegionProgress((prev) => {
-        const next = { ...prev };
-        delete next[region.key];
-        return next;
-      });
-    }
-  }, []);
+    }, [regionCatalog])
+  );
 
   const handleDeleteRegion = useCallback((region: CatalogRegion) => {
     Alert.alert(
@@ -1183,7 +1167,7 @@ export default function GarageScreen() {
             OFFLINE REGIONS
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: -6 }}>
-            Complete offline maps — roads, labels, and terrain shading with no cell service. The map switches to a saved region automatically when you're offline inside it.
+            Complete offline maps saved on this device — roads, labels, and terrain shading with no cell service. The map switches to a saved region automatically when you're offline inside it. Browse and download regions from the REGIONS button on the map.
           </Text>
           {regionCatalog.length === 0 ? (
             <View style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.border, padding: 14 }]}>
@@ -1191,55 +1175,50 @@ export default function GarageScreen() {
                 Region list unavailable — connect to the internet to load it.
               </Text>
             </View>
+          ) : regionCatalog.filter((r) => regionDownloadedKeys.has(r.key)).length === 0 ? (
+            <TouchableOpacity
+              style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.border, padding: 14 }]}
+              onPress={() => router.push("/(tabs)/map")}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]}>
+                No offline regions saved yet. Open the map and tap REGIONS to
+                browse and download full offline maps.
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 }}>
+                <Feather name="map" size={13} color={colors.accent} />
+                <Text style={[styles.mapActionText, { color: colors.accent }]}>GO TO MAP</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
-            regionCatalog.map((region) => {
-              const downloaded = regionDownloadedKeys.has(region.key);
-              const progress = regionProgress[region.key];
-              const downloading = progress !== undefined;
-              const sizeMB = Math.round(regionDownloadBytes(region) / 1_000_000);
-              return (
-                <View key={region.key} style={[styles.mapCard, { backgroundColor: colors.card, borderColor: downloaded ? "#2E7D32" : colors.border }]}>
-                  <View style={styles.mapCardHeader}>
-                    <View style={[styles.vehicleIconWrap, { backgroundColor: (downloaded ? "#2E7D32" : colors.accent) + "22" }]}>
-                      <Feather name="globe" size={18} color={downloaded ? "#2E7D32" : colors.accent} />
+            regionCatalog
+              .filter((region) => regionDownloadedKeys.has(region.key))
+              .map((region) => {
+                const sizeMB = Math.round(regionDownloadBytes(region) / 1_000_000);
+                return (
+                  <View key={region.key} style={[styles.mapCard, { backgroundColor: colors.card, borderColor: "#2E7D32" }]}>
+                    <View style={styles.mapCardHeader}>
+                      <View style={[styles.vehicleIconWrap, { backgroundColor: "#2E7D32" + "22" }]}>
+                        <Feather name="globe" size={18} color="#2E7D32" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={1}>
+                          {region.name}, {region.state}
+                        </Text>
+                        <Text style={[styles.vehicleSub, { color: "#2E7D32" }]}>
+                          OFFLINE READY — {sizeMB} MB on device
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={1}>
-                        {region.name}, {region.state}
-                      </Text>
-                      <Text style={[styles.vehicleSub, { color: downloaded ? "#2E7D32" : colors.mutedForeground }]}>
-                        {downloaded
-                          ? `OFFLINE READY — ${sizeMB} MB on device`
-                          : downloading
-                            ? `Downloading… ${progress}%`
-                            : `${sizeMB} MB download`}
-                      </Text>
-                    </View>
-                    {downloading && <ActivityIndicator size="small" color={colors.accent} />}
-                  </View>
-                  <View style={[styles.mapActions, { borderTopColor: colors.border }]}>
-                    {downloaded ? (
+                    <View style={[styles.mapActions, { borderTopColor: colors.border }]}>
                       <TouchableOpacity style={styles.mapAction} onPress={() => handleDeleteRegion(region)} activeOpacity={0.7}>
                         <Feather name="trash-2" size={14} color={colors.destructive} />
                         <Text style={[styles.mapActionText, { color: colors.destructive }]}>DELETE</Text>
                       </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.mapAction}
-                        onPress={() => handleDownloadRegion(region)}
-                        activeOpacity={0.7}
-                        disabled={downloading}
-                      >
-                        <Feather name="download" size={14} color={downloading ? colors.mutedForeground : colors.accent} />
-                        <Text style={[styles.mapActionText, { color: downloading ? colors.mutedForeground : colors.accent }]}>
-                          {downloading ? `DOWNLOADING ${progress}%` : "DOWNLOAD"}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    </View>
                   </View>
-                </View>
-              );
-            })
+                );
+              })
           )}
 
           <Text style={{ fontSize: 12, fontWeight: "700", letterSpacing: 1.2, color: colors.mutedForeground, marginTop: 10 }}>
