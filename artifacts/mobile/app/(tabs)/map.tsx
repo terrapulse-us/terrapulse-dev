@@ -177,6 +177,28 @@ import {
   type CatalogRegion,
 } from "@/lib/regions";
 
+// Rich copy for the offline-regions list (keyed by catalog region key).
+// Unknown keys fall back to the region's `state` field, so newly added
+// server regions still render a location without an app update.
+const REGION_META: Record<string, { location: string; blurb: string }> = {
+  moab: {
+    location: "Moab, Utah",
+    blurb: "Slickrock legends — Hell's Revenge, Fins & Things, Poison Spider.",
+  },
+  sedona: {
+    location: "Sedona, Arizona",
+    blurb: "Red-rock classics — Broken Arrow and Schnebly Hill Road.",
+  },
+  "johnson-valley": {
+    location: "Lucerne Valley, California",
+    blurb: "King of the Hammers country — the largest OHV area in the US.",
+  },
+  rubicon: {
+    location: "Lake Tahoe, California",
+    blurb: "The legendary Rubicon Trail — granite slabs and gatekeeper obstacles.",
+  },
+};
+
 interface TrailPhoto {
   url: string;
   uploadedBy: string;
@@ -682,17 +704,17 @@ export default function MapScreen() {
   const [regionStyle, setRegionStyle] =
     useState<Record<string, unknown> | null>(null);
   const [regionManualOn, setRegionManualOn] = useState(false);
-  // Chip-tap preview pins a SPECIFIC region for manual mode (otherwise
-  // manual mode picks the nearest downloaded region).
+  // "VIEW MAP" in the regions list pins a SPECIFIC region for manual mode
+  // (otherwise manual mode picks the nearest downloaded region).
   const [regionManualKey, setRegionManualKey] = useState<string | null>(null);
   const [regionCameraTarget, setRegionCameraTarget] = useState<{
     center: [number, number];
     zoom: number;
   } | null>(null);
   const regionFailAlertRef = useRef(false);
-  // On-map region download state: which regions are saved (chip styling),
-  // per-region download progress, and which regions we already offered to
-  // download this session (auto-prompt is once per region per session).
+  // Region download state for the REGIONS toolbar list: which regions are
+  // saved, per-region download progress, and which regions we already offered
+  // to download this session (auto-prompt is once per region per session).
   const [regionDownloadedKeys, setRegionDownloadedKeys] = useState<Set<string>>(
     new Set()
   );
@@ -700,6 +722,7 @@ export default function MapScreen() {
     Record<string, number>
   >({});
   const regionPromptedRef = useRef<Set<string>>(new Set());
+  const [showRegionsModal, setShowRegionsModal] = useState(false);
 
   // Load the catalog once per connectivity change (network online, cache off).
   useEffect(() => {
@@ -1039,7 +1062,7 @@ export default function MapScreen() {
     if (listDownloadedRegions(regionCatalog).length === 0) {
       Alert.alert(
         "No offline regions saved",
-        "Download a region by tapping its outline on the map, or in My Garage → Offline Maps."
+        "Download a region from the REGIONS button below the map, or in My Garage → Offline Maps."
       );
       return;
     }
@@ -1091,7 +1114,7 @@ export default function MapScreen() {
       } catch {
         Alert.alert(
           "Download failed",
-          `Couldn't download the ${region.name} region. Tap it again to resume right where it left off.`
+          `Couldn't download the ${region.name} region. Download it again from the REGIONS list to resume right where it left off.`
         );
       } finally {
         setRegionDlProgress((prev) => {
@@ -1102,39 +1125,6 @@ export default function MapScreen() {
       }
     },
     [isOnline]
-  );
-
-  const handleRegionChipPress = useCallback(
-    (region: CatalogRegion) => {
-      if (region.key in regionDlProgress) return; // downloading — chip shows %
-      const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
-      if (regionDownloadedKeys.has(region.key)) {
-        Alert.alert(
-          region.name,
-          "This region is saved for offline use. The map switches to it automatically when you lose service inside it.",
-          [
-            { text: "Close", style: "cancel" },
-            {
-              text: "Preview offline map",
-              onPress: () => {
-                setRegionManualKey(region.key);
-                setRegionManualOn(true);
-              },
-            },
-          ]
-        );
-        return;
-      }
-      Alert.alert(
-        `Download ${region.name}?`,
-        `Full offline map + terrain (${mb} MB). The map keeps working here with no cell service.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Download", onPress: () => startRegionDownload(region) },
-        ]
-      );
-    },
-    [regionDlProgress, regionDownloadedKeys, startRegionDownload]
   );
 
   // Offer the offline map ONCE per session when the user is inside a region
@@ -3072,12 +3062,11 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {/* ── Offline region boundaries + download chips ──────────────────
+        {/* ── Offline region boundaries ────────────────────────────────────
              Dashed bbox outlines for every catalog region (green = saved,
-             purple = available) with a tappable center chip: download when
-             not saved, preview the offline map when saved. The source is
-             gated on mapStyleLoaded — sources registered before the style
-             finishes loading silently fail on Android. */}
+             purple = available). Downloads live in the REGIONS toolbar list.
+             The source is gated on mapStyleLoaded — sources registered before
+             the style finishes loading silently fail on Android. */}
         {mapStyleLoaded && regionCatalog.length > 0 && (
           <GeoJSONSource
             id="offline-region-bounds"
@@ -3103,48 +3092,6 @@ export default function MapScreen() {
             />
           </GeoJSONSource>
         )}
-        {regionCatalog.map((region) => {
-          const saved = regionDownloadedKeys.has(region.key);
-          const prog = regionDlProgress[region.key];
-          const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
-          return (
-            // anchor="bottom" floats the pill ABOVE the region center so it
-            // never sits on top of the trail marker at the same coords (the
-            // trail marker was stealing the tap). Press is on the Marker
-            // itself — same native hit-testing the trail markers use.
-            <Marker
-              key={`region-chip-${region.key}`}
-              lngLat={regionCenter(region)}
-              anchor="bottom"
-              onPress={() => handleRegionChipPress(region)}
-            >
-              <View style={styles.regionBadgeWrap}>
-                <View
-                  style={[styles.regionBadge, saved && styles.regionBadgeSaved]}
-                >
-                  <MaterialIcons
-                    name={saved ? "offline-pin" : "download-for-offline"}
-                    size={13}
-                    color="#fff"
-                  />
-                  <Text style={styles.regionBadgeText}>
-                    {prog != null
-                      ? `${prog}%`
-                      : saved
-                        ? "SAVED"
-                        : `${mb} MB`}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.regionBadgeStem,
-                    saved && styles.regionBadgeStemSaved,
-                  ]}
-                />
-              </View>
-            </Marker>
-          );
-        })}
 
         {mapStyleLoaded && ridePoints.length > 1 && (
           <GeoJSONSource id="ride-route" data={rideRouteGeoJSON}>
@@ -3795,68 +3742,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* ADD TRAIL BUTTON */}
-      <TouchableOpacity
-        style={[
-          styles.locateBtn,
-          {
-            bottom: tabBarHeight + 192,
-            backgroundColor: isTrailRecording ? colors.success : colors.card,
-            borderColor: isTrailRecording ? colors.success : colors.border,
-            opacity: isRecording ? 0.4 : 1,
-          },
-        ]}
-        onPress={isTrailRecording ? stopTrailRecording : startTrailRecording}
-        disabled={isRecording}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons
-          name={isTrailRecording ? "stop" : "add-location-alt"}
-          size={20}
-          color={isTrailRecording ? "#000" : colors.accent}
-        />
-      </TouchableOpacity>
-
-      {/* LAYERS BUTTON */}
-      <TouchableOpacity
-        style={[
-          styles.locateBtn,
-          {
-            bottom: tabBarHeight + 136,
-            backgroundColor: mapLayer !== "standard" ? "#5A9A5A" : colors.card,
-            borderColor: mapLayer !== "standard" ? "#5A9A5A" : colors.border,
-          },
-        ]}
-        onPress={() => setShowLayerPicker(true)}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons
-          name="layers"
-          size={20}
-          color={mapLayer !== "standard" ? "#fff" : colors.mutedForeground}
-        />
-      </TouchableOpacity>
-
-      {/* LOCATE / FOLLOW BUTTON */}
-      <TouchableOpacity
-        style={[
-          styles.locateBtn,
-          {
-            bottom: tabBarHeight + 80,
-            backgroundColor: followUser ? "#5A9A5A" : colors.card,
-            borderColor: followUser ? "#5A9A5A" : colors.border,
-          },
-        ]}
-        onPress={locateMe}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons
-          name={followUser ? "gps-fixed" : "my-location"}
-          size={20}
-          color={followUser ? "#fff" : (userLocation ? colors.accent : colors.mutedForeground)}
-        />
-      </TouchableOpacity>
-
       {/* ── UNIFIED TRAIL GUIDE SHEET ─────────────────────────────────── */}
       <TrailGuideSheet
         guide={selectedGuide}
@@ -4032,65 +3917,141 @@ export default function MapScreen() {
           </View>
         )}
 
-        <View style={styles.bottomBtns}>
-          {activeRide ? (
-            <View style={[styles.recordBtn, { backgroundColor: colors.card, borderColor: "#1E88E5", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
-              <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
-                  GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
-                </Text>
-                <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                  {activeRide.trailName}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
-                onPress={() => setShowRideChat(true)}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons name="chat" size={15} color="#fff" />
-                {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
-                onPress={handleLeaveRide}
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="exit-to-app" size={15} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.recordBtn,
-                {
-                  backgroundColor: isRecording ? colors.destructive : colors.card,
-                  borderColor: isRecording ? colors.destructive : colors.border,
-                },
-              ]}
-              onPress={isRecording ? stopRecording : startRecording}
-              activeOpacity={0.85}
-            >
-              <Feather
-                name={isRecording ? "square" : "circle"}
-                size={14}
-                color={isRecording ? "#fff" : colors.accent}
-              />
-              <Text style={[styles.recordBtnText, { color: isRecording ? "#fff" : colors.accent }]}>
-                {isRecording ? "STOP" : "RECORD"}
+        {/* GROUP RIDE HUD — full-width bar above the toolbar while in a ride */}
+        {activeRide && (
+          <View style={[styles.rideHudBar, { backgroundColor: colors.card, borderColor: "#1E88E5" }]}>
+            <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
+                GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
               </Text>
+              <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {activeRide.trailName}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.rideHudBtn, { backgroundColor: "#1E88E5" }]}
+              onPress={() => setShowRideChat(true)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="chat" size={15} color="#fff" />
+              {rideMessages.length > 0 && <Text style={styles.rideHudBtnText}>{rideMessages.length > 99 ? "99+" : rideMessages.length}</Text>}
             </TouchableOpacity>
-          )}
+            <TouchableOpacity
+              style={[styles.rideHudBtn, { backgroundColor: colors.destructive }]}
+              onPress={handleLeaveRide}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="exit-to-app" size={15} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
 
-          {/* SOS BEACON button */}
+        {/* ── MAP TOOLBAR: every map action in one row above the tab bar ── */}
+        <View style={[styles.mapToolbar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* TRAIL RECORD — pin+ icon; disabled while ride-recording */}
           <TouchableOpacity
-            style={[
-              styles.sosBtn,
-              sosActive
-                ? { backgroundColor: "#E53935", borderColor: "#E53935" }
-                : { backgroundColor: colors.card, borderColor: "#E53935" },
-            ]}
+            style={[styles.mapToolBtn, isRecording && { opacity: 0.35 }]}
+            onPress={isTrailRecording ? stopTrailRecording : startTrailRecording}
+            disabled={isRecording}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name={isTrailRecording ? "stop" : "add-location-alt"}
+              size={20}
+              color={isTrailRecording ? colors.success : colors.mutedForeground}
+            />
+            <Text style={[styles.mapToolLabel, { color: isTrailRecording ? colors.success : colors.mutedForeground }]}>
+              TRAIL
+            </Text>
+          </TouchableOpacity>
+
+          {/* LAYERS */}
+          <TouchableOpacity
+            style={styles.mapToolBtn}
+            onPress={() => setShowLayerPicker(true)}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="layers"
+              size={20}
+              color={mapLayer !== "standard" ? "#5A9A5A" : colors.mutedForeground}
+            />
+            <Text style={[styles.mapToolLabel, { color: mapLayer !== "standard" ? "#5A9A5A" : colors.mutedForeground }]}>
+              LAYERS
+            </Text>
+          </TouchableOpacity>
+
+          {/* LOCATE / FOLLOW */}
+          <TouchableOpacity
+            style={styles.mapToolBtn}
+            onPress={locateMe}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name={followUser ? "gps-fixed" : "my-location"}
+              size={20}
+              color={followUser ? "#5A9A5A" : (userLocation ? colors.accent : colors.mutedForeground)}
+            />
+            <Text style={[styles.mapToolLabel, { color: followUser ? "#5A9A5A" : colors.mutedForeground }]}>
+              LOCATE
+            </Text>
+          </TouchableOpacity>
+
+          {/* OFFLINE REGIONS list */}
+          <TouchableOpacity
+            style={styles.mapToolBtn}
+            onPress={() => {
+              setShowRegionsModal(true);
+              // The catalog only auto-loads on connectivity changes — if it's
+              // still empty when the list opens, retry so the sheet isn't
+              // permanently stuck on the empty state.
+              if (regionCatalog.length === 0) {
+                (isOnline ? fetchRegionCatalog() : getCachedCatalog())
+                  .then((regions) => {
+                    if (regions.length > 0) {
+                      setRegionCatalog(regions);
+                      setRegionDownloadedKeys(
+                        new Set(listDownloadedRegions(regions).map((r) => r.key))
+                      );
+                    }
+                  })
+                  .catch(() => { /* keep the empty state */ });
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="download-for-offline"
+              size={20}
+              color={activeRegion ? "#5E35B1" : colors.mutedForeground}
+            />
+            <Text style={[styles.mapToolLabel, { color: activeRegion ? "#5E35B1" : colors.mutedForeground }]}>
+              REGIONS
+            </Text>
+          </TouchableOpacity>
+
+          {/* RIDE RECORD — red dot so it reads as "record"; distinct from the
+              TRAIL pin+. Disabled while in a group ride (ride HUD owns it). */}
+          <TouchableOpacity
+            style={[styles.mapToolBtn, activeRide && { opacity: 0.35 }]}
+            onPress={isRecording ? stopRecording : startRecording}
+            disabled={!!activeRide}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name={isRecording ? "stop" : "fiber-manual-record"}
+              size={20}
+              color="#E53935"
+            />
+            <Text style={[styles.mapToolLabel, { color: "#E53935" }]}>
+              {isRecording ? "STOP" : "RECORD"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* SOS BEACON */}
+          <TouchableOpacity
+            style={styles.mapToolBtn}
             onPress={() => {
               if (sosActive) {
                 // Open my own beacon sheet — chat, responders, and the
@@ -4101,16 +4062,12 @@ export default function MapScreen() {
                 setShowSosModal(true);
               }
             }}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
           >
-            <MaterialIcons
-              name="sos"
-              size={18}
-              color={sosActive ? "#fff" : "#E53935"}
-            />
-            {sosActive && (
-              <Text style={styles.sosBtnActiveText}>LIVE</Text>
-            )}
+            <MaterialIcons name="sos" size={20} color="#E53935" />
+            <Text style={[styles.mapToolLabel, { color: "#E53935" }]}>
+              {sosActive ? "LIVE" : "SOS"}
+            </Text>
             {sosActive && sosUnread > 0 && (
               <View style={styles.sosBadge}>
                 <Text style={styles.sosBadgeText}>
@@ -4121,6 +4078,114 @@ export default function MapScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ── OFFLINE REGIONS MODAL — download list (name, location, blurb, size) */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showRegionsModal}
+        onRequestClose={() => setShowRegionsModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowRegionsModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#5E35B1", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHandle} />
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <MaterialIcons name="download-for-offline" size={20} color="#5E35B1" />
+              <Text style={{ fontSize: 15, fontWeight: "900", letterSpacing: 1, color: colors.foreground }}>
+                OFFLINE REGIONS
+              </Text>
+            </View>
+            <Text style={{ fontSize: 12, lineHeight: 17, color: colors.mutedForeground, marginBottom: 10 }}>
+              Full offline map + terrain for legendary riding areas. The map
+              switches to a saved region automatically when you lose service
+              inside it.
+            </Text>
+
+            {regionCatalog.length === 0 ? (
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, paddingVertical: 16 }}>
+                Couldn't load the region list — connect to the internet and try
+                again.
+              </Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+                {regionCatalog.map((region) => {
+                  const saved = regionDownloadedKeys.has(region.key);
+                  const prog = regionDlProgress[region.key];
+                  const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
+                  const meta = REGION_META[region.key];
+                  const location = meta?.location ?? region.state;
+                  return (
+                    <View
+                      key={region.key}
+                      style={[styles.regionRow, { borderBottomColor: colors.border }]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.regionRowName, { color: colors.foreground }]}>
+                          {region.name.split(",")[0]?.toUpperCase()}
+                        </Text>
+                        {!!location && (
+                          <Text style={[styles.regionRowLoc, { color: colors.mutedForeground }]}>
+                            {location}
+                          </Text>
+                        )}
+                        {!!meta?.blurb && (
+                          <Text style={[styles.regionRowDesc, { color: colors.mutedForeground }]}>
+                            {meta.blurb}
+                          </Text>
+                        )}
+                      </View>
+                      {prog != null ? (
+                        <View style={styles.regionRowAction}>
+                          <Text style={{ color: "#5E35B1", fontSize: 14, fontWeight: "900" }}>
+                            {prog}%
+                          </Text>
+                          <Text style={[styles.regionRowLoc, { color: colors.mutedForeground }]}>
+                            SAVING…
+                          </Text>
+                        </View>
+                      ) : saved ? (
+                        <TouchableOpacity
+                          style={styles.regionRowAction}
+                          onPress={() => {
+                            setRegionManualKey(region.key);
+                            setRegionManualOn(true);
+                            setShowRegionsModal(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.regionSavedRow}>
+                            <MaterialIcons name="offline-pin" size={15} color="#2E7D32" />
+                            <Text style={styles.regionSavedText}>SAVED</Text>
+                          </View>
+                          <Text style={styles.regionViewText}>VIEW MAP</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.regionGetBtn}
+                          onPress={() => startRegionDownload(region)}
+                          activeOpacity={0.8}
+                        >
+                          <MaterialIcons name="file-download" size={14} color="#fff" />
+                          <Text style={styles.regionGetBtnText}>{mb} MB</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ── SOS ACTIVATION MODAL ────────────────────────────────────────── */}
       <Modal
@@ -5735,37 +5800,49 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  regionBadgeWrap: {
-    alignItems: "center",
-    paddingBottom: 14,
-  },
-  regionBadge: {
+  regionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    backgroundColor: "rgba(94,53,177,0.9)",
-    borderColor: "#fff",
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
-  regionBadgeSaved: {
-    backgroundColor: "rgba(46,125,50,0.9)",
+  regionRowName: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
+  regionRowLoc: { fontSize: 11, marginTop: 1 },
+  regionRowDesc: { fontSize: 11, marginTop: 3, lineHeight: 15 },
+  regionRowAction: {
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 84,
   },
-  regionBadgeText: {
+  regionGetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#5E35B1",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  regionGetBtnText: {
     color: "#fff",
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
-  regionBadgeStem: {
-    width: 2,
-    height: 8,
-    backgroundColor: "rgba(94,53,177,0.9)",
+  regionSavedRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  regionSavedText: {
+    color: "#2E7D32",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
-  regionBadgeStemSaved: {
-    backgroundColor: "rgba(46,125,50,0.9)",
+  regionViewText: {
+    color: "#5E35B1",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    marginTop: 4,
   },
   topBar: {
     position: "absolute",
@@ -5914,15 +5991,38 @@ const styles = StyleSheet.create({
   recValue: { fontSize: 16, fontWeight: "900", letterSpacing: 0.5 },
   recUnit: { fontSize: 9, fontWeight: "700", letterSpacing: 1 },
   recDivider: { width: 1, height: 28, backgroundColor: "#333" },
-  locateBtn: {
-    position: "absolute",
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+  mapToolbar: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderRadius: 10,
     borderWidth: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 2,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  mapToolBtn: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 3,
+  },
+  mapToolLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
+  rideHudBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    marginBottom: 8,
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -5934,27 +6034,6 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
   },
-  bottomBtns: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
-  },
-  recordBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    padding: 14,
-    borderRadius: 4,
-    borderWidth: 1,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  recordBtnText: { fontWeight: "900", letterSpacing: 2, fontSize: 13 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",
@@ -6328,27 +6407,6 @@ const styles = StyleSheet.create({
   },
 
   // ── SOS Beacon ─────────────────────────────────────────────────────────────
-  sosBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    elevation: 4,
-    shadowColor: "#E53935",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-  },
-  sosBtnActiveText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
   sosBadge: {
     position: "absolute",
     top: -7,

@@ -207,9 +207,9 @@ export function getRegionPaths(region: CatalogRegion): RegionPaths {
  * download.
  *
  * A module-level in-flight registry makes concurrent calls for the SAME
- * region safe: the second caller (e.g. the map chip while a Garage download
- * is running) joins the existing download instead of appending duplicate
- * chunks to the same .part file, and its progress callback is fanned in.
+ * region safe: the second caller (e.g. the map's REGIONS list while a Garage
+ * download is running) joins the existing download instead of appending
+ * duplicate chunks to the same .part file, and its progress callback is fanned in.
  */
 const inflightDownloads = new Map<
   string,
