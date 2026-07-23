@@ -539,7 +539,14 @@ export default function AssistantScreen() {
                       }
                     >
                       <Feather name="navigation" size={13} color={colors.primary} />
-                      <Text style={styles.itineraryActionText}>VIEW ON MAP</Text>
+                      <Text
+                        style={styles.itineraryActionText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                      >
+                        VIEW ON MAP
+                      </Text>
                     </TouchableOpacity>
                   )}
                   {!item.pending &&
@@ -835,6 +842,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     },
     coverageCard: {
       marginTop: 6,
+      alignSelf: "stretch",
       maxWidth: "85%",
       backgroundColor: colors.secondary,
       borderWidth: 1,
@@ -885,7 +893,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     },
     itineraryCard: {
       marginTop: 6,
-      maxWidth: "90%",
+      alignSelf: "stretch",
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,

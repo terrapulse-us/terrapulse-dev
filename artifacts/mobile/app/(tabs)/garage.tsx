@@ -2218,7 +2218,14 @@ export default function GarageScreen() {
                         });
                       }}
                     >
-                      <Text style={[styles.btnText, { color: "#fff" }]}>VIEW ON MAP</Text>
+                      <Text
+                        style={[styles.btnText, { color: "#fff" }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                      >
+                        VIEW ON MAP
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
                   {"fromUid" in viewItinerary && viewItinerary.fromUid ? (
@@ -2227,13 +2234,22 @@ export default function GarageScreen() {
                         style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.accent, borderWidth: 1 }]}
                         onPress={() => saveSharedTrip(viewItinerary as SharedTrip)}
                       >
-                        <Text style={[styles.btnText, { color: colors.accent }]}>SAVE TO MY TRIPS</Text>
+                        <Text
+                          style={[styles.btnText, { color: colors.accent }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.65}
+                        >
+                          SAVE TO MY TRIPS
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
                         onPress={() => removeSharedTrip(viewItinerary as SharedTrip)}
                       >
-                        <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
+                        <Text style={[styles.btnText, { color: colors.destructive }]} numberOfLines={1}>
+                          REMOVE
+                        </Text>
                       </TouchableOpacity>
                     </>
                   ) : (
@@ -2242,13 +2258,17 @@ export default function GarageScreen() {
                         style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.accent, borderWidth: 1 }]}
                         onPress={() => setShareTrip(viewItinerary as SavedItinerary)}
                       >
-                        <Text style={[styles.btnText, { color: colors.accent }]}>SHARE</Text>
+                        <Text style={[styles.btnText, { color: colors.accent }]} numberOfLines={1}>
+                          SHARE
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
                         onPress={() => removeItinerary(viewItinerary as SavedItinerary)}
                       >
-                        <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
+                        <Text style={[styles.btnText, { color: colors.destructive }]} numberOfLines={1}>
+                          REMOVE
+                        </Text>
                       </TouchableOpacity>
                     </>
                   )}
