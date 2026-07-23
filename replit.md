@@ -46,6 +46,7 @@ Nationwide off-road and hiking trail finder mobile app (all 50 states, 538 trail
 ## User preferences
 
 - Do NOT automatically push to GitHub `main` after a task, and do NOT ask about it. The user handles all git pushes themselves. If the user wants an EAS build triggered, confirm first, then push.
+- Build everything directly in the main workspace (main agent). The user does NOT want work delegated to isolated task agents — they worry parallel task merges could break things.
 
 ## Deployment & builds
 
