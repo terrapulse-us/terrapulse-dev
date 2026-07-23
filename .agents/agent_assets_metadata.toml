@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "odfkwWrrIP5KPxfduku_7"
@@ -12,3 +11,9 @@ id = "UcrL8KhElI9-nBnTjOkDy"
 uri = "file://artifacts/mobile/assets/images/splash-bg.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "5ZNp3M-QdwR3NordtyPo-"
+uri = "file://artifacts/mobile/firestore.rules.txt"
+type = "text"
+title = "TerraPulse Firestore Rules (full ruleset — paste into Firebase Console)"
