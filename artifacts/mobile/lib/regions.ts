@@ -154,6 +154,32 @@ export function downloadedRegionAt(
   return null;
 }
 
+/**
+ * Downloaded region whose center is nearest to the point. Used by the manual
+ * OFFLINE REGIONS toggle so a rider in California gets Johnson Valley, not
+ * whichever region happens to be first in the catalog.
+ */
+export function nearestDownloadedRegion(
+  catalog: CatalogRegion[],
+  lon: number,
+  lat: number
+): CatalogRegion | null {
+  let best: CatalogRegion | null = null;
+  let bestDist = Infinity;
+  for (const region of catalog) {
+    if (!isRegionDownloaded(region)) continue;
+    const [clon, clat] = regionCenter(region);
+    const dLon = (clon - lon) * Math.cos((lat * Math.PI) / 180);
+    const dLat = clat - lat;
+    const dist = dLon * dLon + dLat * dLat;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = region;
+    }
+  }
+  return best;
+}
+
 // ── Download / delete ───────────────────────────────────────────────────────
 
 export interface RegionPaths {
@@ -239,6 +265,32 @@ export function regionBytesOnDisk(region: CatalogRegion): number {
   return total;
 }
 
+// Large archives download in ranged chunks appended to a persistent .part
+// file. Each chunk is a short request (seconds, not minutes), so proxy/
+// mobile-network resets of long responses can't kill the download, and an
+// interrupted download resumes from the last completed chunk instead of
+// restarting. Requires server Range support; a 200 (range-ignoring server)
+// falls back to using the full response directly.
+const CHUNK_BYTES = 8 * 1024 * 1024;
+const CHUNK_RETRIES = 3;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Appends the chunk file's bytes to the end of the part file. */
+async function appendChunk(part: File, chunk: File): Promise<void> {
+  const bytes = await chunk.bytes();
+  if (!part.exists) part.create();
+  const handle = part.open();
+  try {
+    handle.offset = handle.size ?? 0;
+    handle.writeBytes(bytes);
+  } finally {
+    handle.close();
+  }
+}
+
 async function downloadArchive(
   url: string,
   dest: File,
@@ -250,14 +302,79 @@ async function downloadArchive(
     return;
   }
   if (dest.exists) dest.delete();
-  const resumable = createDownloadResumable(url, dest.uri, {}, (p) => {
-    const total = p.totalBytesExpectedToWrite > 0 ? p.totalBytesExpectedToWrite : expectedBytes;
-    onFraction(p.totalBytesWritten / total);
-  });
-  const result = await resumable.downloadAsync();
-  if (!result || (result.status !== 200 && result.status !== 206)) {
-    throw new Error(`Download failed (${result?.status ?? "no response"}): ${url}`);
+
+  const part = new File(`${dest.uri}.part`);
+  const tmp = new File(`${dest.uri}.chunk`);
+  let offset = part.exists ? (part.size ?? 0) : 0;
+  if (offset > expectedBytes) {
+    // Stale .part from an older catalog version — start over.
+    part.delete();
+    offset = 0;
   }
+  onFraction(offset / expectedBytes);
+
+  while (offset < expectedBytes) {
+    const end = Math.min(offset + CHUNK_BYTES, expectedBytes) - 1;
+    const chunkLen = end - offset + 1;
+    const base = offset;
+    let attempt = 0;
+    for (;;) {
+      try {
+        if (tmp.exists) tmp.delete();
+        const resumable = createDownloadResumable(
+          url,
+          tmp.uri,
+          { headers: { Range: `bytes=${base}-${end}` } },
+          (p) =>
+            onFraction(
+              Math.min(1, (base + p.totalBytesWritten) / expectedBytes)
+            )
+        );
+        const result = await resumable.downloadAsync();
+        if (!result) throw new Error(`no response: ${url}`);
+        if (result.status === 200) {
+          // Server ignored the Range header — tmp holds the ENTIRE archive.
+          const full = new File(tmp.uri);
+          if ((full.size ?? 0) < expectedBytes) {
+            throw new Error(`Full download incomplete: ${url}`);
+          }
+          if (part.exists) part.delete();
+          if (dest.exists) dest.delete();
+          full.move(dest);
+          onFraction(1);
+          return;
+        }
+        if (result.status !== 206) {
+          throw new Error(`Download failed (${result.status}): ${url}`);
+        }
+        const got = new File(tmp.uri);
+        if ((got.size ?? 0) !== chunkLen) {
+          throw new Error(
+            `Chunk short (${got.size ?? 0}/${chunkLen}): ${url}`
+          );
+        }
+        await appendChunk(part, got);
+        got.delete();
+        break;
+      } catch (err) {
+        attempt += 1;
+        try {
+          if (tmp.exists) tmp.delete();
+        } catch {
+          // ignore
+        }
+        // The .part file is intentionally KEPT — the next attempt resumes
+        // from the last fully-appended chunk.
+        if (attempt >= CHUNK_RETRIES) throw err;
+        await sleep(1500 * attempt);
+      }
+    }
+    offset += chunkLen;
+    onFraction(offset / expectedBytes);
+  }
+
+  if (dest.exists) dest.delete();
+  part.move(dest);
   const written = new File(dest.uri);
   if ((written.size ?? 0) < expectedBytes) {
     try {

@@ -23,17 +23,40 @@ router.get(
       }
 
       const [metadata] = await file.getMetadata();
+      const totalSize = Number(metadata.size ?? 0);
       res.setHeader(
         "Content-Type",
         (metadata.contentType as string) || "application/octet-stream"
       );
       res.setHeader("Cache-Control", "public, max-age=3600");
-      if (metadata.size) {
-        res.setHeader("Content-Length", String(metadata.size));
+      res.setHeader("Accept-Ranges", "bytes");
+
+      // Range support (single "bytes=start-end" ranges only) so large region
+      // archives can be downloaded in resumable chunks. Long single-shot
+      // responses get reset by proxies/mobile networks; ranged chunks don't.
+      const rangeHeader = req.headers.range;
+      const rangeMatch =
+        totalSize > 0 && typeof rangeHeader === "string"
+          ? /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim())
+          : null;
+      let start = 0;
+      let end = totalSize - 1;
+      if (rangeMatch) {
+        start = Number(rangeMatch[1]);
+        end = rangeMatch[2] ? Math.min(Number(rangeMatch[2]), totalSize - 1) : totalSize - 1;
+        if (start >= totalSize || start > end) {
+          res.status(416).setHeader("Content-Range", `bytes */${totalSize}`).end();
+          return;
+        }
+        res.status(206);
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${totalSize}`);
+        res.setHeader("Content-Length", String(end - start + 1));
+      } else if (totalSize > 0) {
+        res.setHeader("Content-Length", String(totalSize));
       }
 
       file
-        .createReadStream()
+        .createReadStream(rangeMatch ? { start, end } : undefined)
         .on("error", (err) => {
           req.log.error({ err }, "Error streaming public object");
           if (!res.headersSent) {

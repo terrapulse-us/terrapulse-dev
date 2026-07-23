@@ -836,7 +836,7 @@ export default function GarageScreen() {
     } catch {
       Alert.alert(
         "Download failed",
-        `Couldn't download the ${region.name} region. Check your connection and try again — completed parts are kept, but an interrupted file restarts from the beginning.`
+        `Couldn't download the ${region.name} region. Tap DOWNLOAD to try again — it resumes right where it left off.`
       );
     } finally {
       setRegionProgress((prev) => {

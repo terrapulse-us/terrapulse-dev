@@ -168,6 +168,7 @@ import {
   getCachedCatalog,
   listDownloadedRegions,
   downloadedRegionAt,
+  nearestDownloadedRegion,
   isPointInRegion,
   regionCenter,
   buildRegionStyle,
@@ -976,9 +977,14 @@ export default function MapScreen() {
       : null;
     let next: CatalogRegion | null = null;
     if (regionManualOn) {
+      // Prefer the region the user is standing in; otherwise the NEAREST
+      // downloaded region (a rider in California gets Johnson Valley, not
+      // whichever region is first in the catalog); catalog order only when
+      // there's no GPS fix at all.
       next =
         (focus
-          ? downloadedRegionAt(regionCatalog, focus[0], focus[1])
+          ? (downloadedRegionAt(regionCatalog, focus[0], focus[1]) ??
+            nearestDownloadedRegion(regionCatalog, focus[0], focus[1]))
           : null) ?? listDownloadedRegions(regionCatalog)[0] ?? null;
     } else if (!regionOnline && focus) {
       next = downloadedRegionAt(regionCatalog, focus[0], focus[1]);
