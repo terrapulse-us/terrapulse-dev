@@ -126,6 +126,15 @@ type SavedItinerary = AssistantItinerary & {
   savedAt?: { seconds: number } | null;
 };
 
+// A trip itinerary shared by a crew member, stored at
+// users/{uid}/shared_trips/{docId}. Carries who sent it; the recipient can
+// copy it into their own MY TRIPS or remove it.
+type SharedTrip = SavedItinerary & {
+  fromUid: string;
+  fromName: string;
+  sharedAt?: { seconds: number } | null;
+};
+
 const HUB_TITLE: Record<ActivityMode, string> = {
   offroad: "MY GARAGE",
   camping: "MY TENT",
@@ -678,7 +687,9 @@ export default function GarageScreen() {
 
   // ── Saved trip itineraries (all modes) ────────────────────────────────────
   const [savedItineraries, setSavedItineraries] = useState<SavedItinerary[]>([]);
-  const [viewItinerary, setViewItinerary] = useState<SavedItinerary | null>(null);
+  // The detail modal shows either one of my own trips or a trip shared with
+  // me — a shared trip is detected via its `fromUid` field.
+  const [viewItinerary, setViewItinerary] = useState<SavedItinerary | SharedTrip | null>(null);
 
   useEffect(() => {
     if (!user) { setSavedItineraries([]); return; }
@@ -712,6 +723,100 @@ export default function GarageScreen() {
         style: "destructive",
         onPress: () => {
           deleteDoc(doc(db, "users", user.uid, "itineraries", trip.docId)).catch(() => {});
+          setViewItinerary((prev) => (prev?.docId === trip.docId ? null : prev));
+        },
+      },
+    ]);
+  }, [user]);
+
+  // ── Trips shared with me by crew members ──────────────────────────────────
+  const [sharedTrips, setSharedTrips] = useState<SharedTrip[]>([]);
+  // Which of my own trips is being shared right now (opens the crew picker)
+  const [shareTrip, setShareTrip] = useState<SavedItinerary | null>(null);
+  const [sharingToUid, setSharingToUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setSharedTrips([]); return; }
+    let live = false;
+    // Seed from the offline cache so shared plans survive a cold start
+    // without connectivity; the live snapshot overwrites when it lands.
+    cacheGet<SharedTrip[]>(`sharedtrips:${user.uid}`).then((cached) => {
+      if (!live && cached) setSharedTrips(cached);
+    });
+    const unsub = onSnapshot(
+      query(collection(db, "users", user.uid, "shared_trips"), orderBy("sharedAt", "desc")),
+      (snap) => {
+        live = true;
+        const items = snap.docs.map(
+          (d) => ({ ...(d.data() as Omit<SharedTrip, "docId">), docId: d.id } as SharedTrip),
+        );
+        setSharedTrips(items);
+        cacheSet(`sharedtrips:${user.uid}`, items);
+      },
+      () => { live = true; setSharedTrips([]); }
+    );
+    return unsub;
+  }, [user]);
+
+  // Send one of my saved trips to a crew member: write a shared copy into
+  // their shared_trips plus a notification into their inbox.
+  const sendTripToCrewMember = useCallback(async (trip: SavedItinerary, member: CrewMember) => {
+    if (!user || sharingToUid) return;
+    setSharingToUid(member.uid);
+    const myName = user.displayName || user.email?.split("@")[0] || "A crew member";
+    try {
+      // Strip local-only fields and undefined values (Firestore rejects them)
+      const { docId: _docId, savedAt: _savedAt, ...rest } = trip;
+      const payload = JSON.parse(JSON.stringify(rest)) as Record<string, unknown>;
+      await addDoc(collection(db, "users", member.uid, "shared_trips"), {
+        ...payload,
+        fromUid: user.uid,
+        fromName: myName,
+        sharedAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, "users", member.uid, "notifications"), {
+        type: "trip_share",
+        title: "Trip plan shared with you",
+        body: `${myName} shared "${trip.title}" — find it under MY TRIPS in your garage.`,
+        read: false,
+        fromUid: user.uid,
+        fromName: myName,
+        createdAt: serverTimestamp(),
+      });
+      setShareTrip(null);
+      Alert.alert("Trip shared", `"${trip.title}" was sent to ${member.displayName}.`);
+    } catch {
+      Alert.alert("Share failed", "Couldn't send the trip plan. Check your connection and try again.");
+    } finally {
+      setSharingToUid(null);
+    }
+  }, [user, sharingToUid]);
+
+  // Copy a trip that was shared with me into my own MY TRIPS list.
+  const saveSharedTrip = useCallback(async (trip: SharedTrip) => {
+    if (!user) return;
+    try {
+      const { docId, fromUid: _f, fromName: _n, sharedAt: _s, savedAt: _sa, ...rest } = trip;
+      const payload = JSON.parse(JSON.stringify(rest)) as Record<string, unknown>;
+      await setDoc(doc(db, "users", user.uid, "itineraries", `shared_${docId}`), {
+        ...payload,
+        savedAt: serverTimestamp(),
+      });
+      Alert.alert("Saved", `"${trip.title}" is now in your MY TRIPS.`);
+    } catch {
+      Alert.alert("Save failed", "Couldn't save the trip plan. Check your connection and try again.");
+    }
+  }, [user]);
+
+  const removeSharedTrip = useCallback((trip: SharedTrip) => {
+    if (!user) return;
+    Alert.alert("Remove shared trip?", `"${trip.title}" will be removed. ${trip.fromName} can share it again.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          deleteDoc(doc(db, "users", user.uid, "shared_trips", trip.docId)).catch(() => {});
           setViewItinerary((prev) => (prev?.docId === trip.docId ? null : prev));
         },
       },
@@ -1386,7 +1491,7 @@ export default function GarageScreen() {
           contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
           showsVerticalScrollIndicator={false}
         >
-          {savedItineraries.length === 0 ? (
+          {savedItineraries.length === 0 && sharedTrips.length === 0 ? (
             <View style={styles.emptyCenter}>
               <Feather name="calendar" size={48} color={colors.border} />
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved trips yet</Text>
@@ -1405,9 +1510,11 @@ export default function GarageScreen() {
             </View>
           ) : (
             <>
-              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {savedItineraries.length} saved trip{savedItineraries.length === 1 ? "" : "s"} — tap one to see the full plan.
-              </Text>
+              {savedItineraries.length > 0 && (
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {savedItineraries.length} saved trip{savedItineraries.length === 1 ? "" : "s"} — tap one to see the full plan.
+                </Text>
+              )}
               {savedItineraries.map((trip) => (
                 <TouchableOpacity
                   key={trip.docId}
@@ -1436,8 +1543,15 @@ export default function GarageScreen() {
                       ) : null}
                     </View>
                     <TouchableOpacity
+                      onPress={() => setShareTrip(trip)}
+                      hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                      style={{ padding: 4 }}
+                    >
+                      <Feather name="share-2" size={17} color={colors.accent} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={() => removeItinerary(trip)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 6, right: 10 }}
                       style={{ padding: 4 }}
                     >
                       <Feather name="trash-2" size={17} color={colors.mutedForeground} />
@@ -1445,6 +1559,49 @@ export default function GarageScreen() {
                   </View>
                 </TouchableOpacity>
               ))}
+              {sharedTrips.length > 0 && (
+                <>
+                  <Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 1, color: colors.mutedForeground, marginTop: savedItineraries.length > 0 ? 8 : 0 }}>
+                    SHARED WITH YOU
+                  </Text>
+                  {sharedTrips.map((trip) => (
+                    <TouchableOpacity
+                      key={trip.docId}
+                      style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      activeOpacity={0.75}
+                      onPress={() => setViewItinerary(trip)}
+                    >
+                      <View style={styles.mapCardHeader}>
+                        <View style={[styles.vehicleIconWrap, { backgroundColor: colors.secondary }]}>
+                          <Feather name="users" size={18} color={colors.accent} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={2}>
+                            {trip.title}
+                          </Text>
+                          <Text style={[styles.vehicleSub, { color: colors.accent }]} numberOfLines={1}>
+                            From {trip.fromName || "a crew member"}
+                          </Text>
+                          <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                            {[
+                              trip.dates,
+                              `${trip.days.length} day${trip.days.length === 1 ? "" : "s"}`,
+                              trip.destinationName,
+                            ].filter(Boolean).join(" · ")}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => removeSharedTrip(trip)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          style={{ padding: 4 }}
+                        >
+                          <Feather name="trash-2" size={17} color={colors.mutedForeground} />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
             </>
           )}
         </ScrollView>
@@ -1930,6 +2087,14 @@ export default function GarageScreen() {
                 <Text style={[styles.modalTitle, { color: colors.foreground, marginBottom: 4 }]}>
                   {viewItinerary.title.toUpperCase()}
                 </Text>
+                {"fromUid" in viewItinerary && viewItinerary.fromUid ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                    <Feather name="users" size={12} color={colors.accent} />
+                    <Text style={{ color: colors.accent, fontSize: 12, fontWeight: "700" }}>
+                      Shared by {(viewItinerary as SharedTrip).fromName || "a crew member"}
+                    </Text>
+                  </View>
+                ) : null}
                 {(viewItinerary.dates || viewItinerary.destinationName) ? (
                   <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600", marginBottom: 12 }}>
                     {[viewItinerary.dates, viewItinerary.destinationName].filter(Boolean).join(" · ")}
@@ -2026,15 +2191,105 @@ export default function GarageScreen() {
                       <Text style={[styles.btnText, { color: "#fff" }]}>VIEW ON MAP</Text>
                     </TouchableOpacity>
                   ) : null}
-                  <TouchableOpacity
-                    style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
-                    onPress={() => removeItinerary(viewItinerary)}
-                  >
-                    <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
-                  </TouchableOpacity>
+                  {"fromUid" in viewItinerary && viewItinerary.fromUid ? (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.accent, borderWidth: 1 }]}
+                        onPress={() => saveSharedTrip(viewItinerary as SharedTrip)}
+                      >
+                        <Text style={[styles.btnText, { color: colors.accent }]}>SAVE TO MY TRIPS</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                        onPress={() => removeSharedTrip(viewItinerary as SharedTrip)}
+                      >
+                        <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.accent, borderWidth: 1 }]}
+                        onPress={() => setShareTrip(viewItinerary as SavedItinerary)}
+                      >
+                        <Text style={[styles.btnText, { color: colors.accent }]}>SHARE</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                        onPress={() => removeItinerary(viewItinerary as SavedItinerary)}
+                      >
+                        <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </>
             )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Share Trip — crew picker ──────────────────────────────────────── */}
+      <Modal
+        visible={shareTrip !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => { if (!sharingToUid) setShareTrip(null); }}
+      >
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => { if (!sharingToUid) setShareTrip(null); }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "65%" }]}
+            onPress={() => {}}
+          >
+            <View style={styles.handle} />
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>SHARE WITH YOUR CREW</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }} numberOfLines={2}>
+              {shareTrip ? `Send "${shareTrip.title}" to a crew member — they'll see the full day-by-day plan.` : ""}
+            </Text>
+            {crew.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 24, gap: 8 }}>
+                <Feather name="users" size={36} color={colors.border} />
+                <Text style={[styles.emptyTitle, { color: colors.foreground, fontSize: 14 }]}>No crew yet</Text>
+                <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                  Send friend requests in the Riders tab to build your crew, then share trips with them.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {crew.map((member) => (
+                  <TouchableOpacity
+                    key={member.uid}
+                    style={[styles.modVehicleRow, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: sharingToUid && sharingToUid !== member.uid ? 0.5 : 1 }]}
+                    disabled={!!sharingToUid}
+                    onPress={() => { if (shareTrip) sendTripToCrewMember(shareTrip, member); }}
+                  >
+                    {member.photoURL ? (
+                      <Image source={{ uri: member.photoURL }} style={styles.crewAvatar} />
+                    ) : (
+                      <View style={[styles.crewAvatar, { backgroundColor: colors.card, alignItems: "center", justifyContent: "center" }]}>
+                        <Feather name="user" size={18} color={colors.mutedForeground} />
+                      </View>
+                    )}
+                    <Text style={{ flex: 1, color: colors.foreground, fontWeight: "900", fontSize: 14 }} numberOfLines={1}>
+                      {member.displayName}
+                    </Text>
+                    {sharingToUid === member.uid ? (
+                      <ActivityIndicator size="small" color={colors.accent} />
+                    ) : (
+                      <Feather name="send" size={16} color={colors.accent} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, marginTop: 10 }]}
+              disabled={!!sharingToUid}
+              onPress={() => setShareTrip(null)}
+            >
+              <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>

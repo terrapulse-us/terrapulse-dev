@@ -89,7 +89,7 @@ const SECTIONS = ["gallery", "achievements", "rides", "settings", "notifications
 
 interface AppNotification {
   id: string;
-  type: "friend_request" | "friend_accepted" | "system";
+  type: "friend_request" | "friend_accepted" | "trip_share" | "system";
   title: string;
   body: string;
   read: boolean;
@@ -832,7 +832,7 @@ export default function ProfileScreen() {
                         styles.notifIconWrap,
                         {
                           backgroundColor:
-                            notif.type === "friend_request"
+                            notif.type === "friend_request" || notif.type === "trip_share"
                               ? colors.accent + "22"
                               : notif.type === "friend_accepted"
                               ? colors.success + "22"
@@ -846,6 +846,8 @@ export default function ProfileScreen() {
                             ? "user-plus"
                             : notif.type === "friend_accepted"
                             ? "users"
+                            : notif.type === "trip_share"
+                            ? "map"
                             : "bell"
                         }
                         size={18}

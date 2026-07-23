@@ -104,6 +104,19 @@ service cloud.firestore {
       match /itineraries/{itineraryId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // users/{uid}/shared_trips/{tripId} — trip plans shared by crew members
+      // (My Trips > SHARED WITH YOU). Any authenticated user can create one
+      // (the sharer writes into the recipient's list, stamped with their own
+      // fromUid); only the owner can read or delete. No updates — a shared
+      // trip is an immutable snapshot; re-share to send a newer version.
+      match /shared_trips/{tripId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.keys().hasAll(['title', 'days', 'fromUid', 'fromName', 'sharedAt']);
+        allow update: if false;
+      }
     }
 
     // ── friendRequests/{requestId} ───────────────────────────────────────
