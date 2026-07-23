@@ -930,11 +930,13 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     },
     itineraryDayMetaRow: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 5,
     },
     itineraryDayMeta: {
+      flex: 1,
       fontSize: 11,
+      lineHeight: 15,
       color: colors.mutedForeground,
     },
     itineraryDates: {
@@ -944,6 +946,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       marginTop: 1,
     },
     itineraryDestination: {
+      flex: 1,
       fontSize: 12,
       fontWeight: "700",
       color: colors.foreground,

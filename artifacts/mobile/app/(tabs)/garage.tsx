@@ -2145,27 +2145,27 @@ export default function GarageScreen() {
                           </Text>
                         )}
                         {!!(day.plan && day.trailWindow) && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 5 }}>
                             <Feather name="flag" size={11} color={colors.mutedForeground} />
-                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.trailWindow}</Text>
+                            <Text style={{ flex: 1, fontSize: 11, lineHeight: 15, color: colors.mutedForeground }}>{day.trailWindow}</Text>
                           </View>
                         )}
                         {!!day.driveTime && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 5 }}>
                             <Feather name="clock" size={11} color={colors.mutedForeground} />
-                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.driveTime}</Text>
+                            <Text style={{ flex: 1, fontSize: 11, lineHeight: 15, color: colors.mutedForeground }}>{day.driveTime}</Text>
                           </View>
                         )}
                         {!!day.weatherNote && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 5 }}>
                             <Feather name="cloud" size={11} color={colors.mutedForeground} />
-                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.weatherNote}</Text>
+                            <Text style={{ flex: 1, fontSize: 11, lineHeight: 15, color: colors.mutedForeground }}>{day.weatherNote}</Text>
                           </View>
                         )}
                         {!!day.campground && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 5 }}>
                             <Feather name="home" size={11} color={colors.mutedForeground} />
-                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.campground}</Text>
+                            <Text style={{ flex: 1, fontSize: 11, lineHeight: 15, color: colors.mutedForeground }}>{day.campground}</Text>
                           </View>
                         )}
                         {!!day.reserveUrl && (
