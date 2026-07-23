@@ -3106,28 +3106,42 @@ export default function MapScreen() {
         {regionCatalog.map((region) => {
           const saved = regionDownloadedKeys.has(region.key);
           const prog = regionDlProgress[region.key];
+          const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
           return (
+            // anchor="bottom" floats the pill ABOVE the region center so it
+            // never sits on top of the trail marker at the same coords (the
+            // trail marker was stealing the tap). Press is on the Marker
+            // itself — same native hit-testing the trail markers use.
             <Marker
               key={`region-chip-${region.key}`}
               lngLat={regionCenter(region)}
-              anchor="center"
+              anchor="bottom"
+              onPress={() => handleRegionChipPress(region)}
             >
-              <TouchableOpacity
-                onPress={() => handleRegionChipPress(region)}
-                style={[styles.regionBadge, saved && styles.regionBadgeSaved]}
-                activeOpacity={0.8}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                {prog != null ? (
-                  <Text style={styles.regionBadgeProgress}>{prog}</Text>
-                ) : (
+              <View style={styles.regionBadgeWrap}>
+                <View
+                  style={[styles.regionBadge, saved && styles.regionBadgeSaved]}
+                >
                   <MaterialIcons
                     name={saved ? "offline-pin" : "download-for-offline"}
-                    size={15}
+                    size={13}
                     color="#fff"
                   />
-                )}
-              </TouchableOpacity>
+                  <Text style={styles.regionBadgeText}>
+                    {prog != null
+                      ? `${prog}%`
+                      : saved
+                        ? "SAVED"
+                        : `${mb} MB`}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.regionBadgeStem,
+                    saved && styles.regionBadgeStemSaved,
+                  ]}
+                />
+              </View>
             </Marker>
           );
         })}
@@ -5721,23 +5735,37 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  regionBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  regionBadgeWrap: {
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(94,53,177,0.85)",
+    paddingBottom: 14,
+  },
+  regionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(94,53,177,0.9)",
     borderColor: "#fff",
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   regionBadgeSaved: {
-    backgroundColor: "rgba(46,125,50,0.85)",
+    backgroundColor: "rgba(46,125,50,0.9)",
   },
-  regionBadgeProgress: {
+  regionBadgeText: {
     color: "#fff",
     fontSize: 9,
     fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  regionBadgeStem: {
+    width: 2,
+    height: 8,
+    backgroundColor: "rgba(94,53,177,0.9)",
+  },
+  regionBadgeStemSaved: {
+    backgroundColor: "rgba(46,125,50,0.9)",
   },
   topBar: {
     position: "absolute",
