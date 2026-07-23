@@ -359,8 +359,9 @@ interface BlmCampRawFeature {
 }
 
 async function fetchBlmCampLayer(
-  layer: 2 | 3,
+  layer: number,
   minLng: number, minLat: number, maxLng: number, maxLat: number,
+  fallbackName = "BLM Campground",
 ): Promise<BlmCampground[]> {
   const envelope = JSON.stringify({
     xmin: minLng, ymin: minLat, xmax: maxLng, ymax: maxLat,
@@ -385,7 +386,7 @@ async function fetchBlmCampLayer(
     const raw = (await resp.json()) as { features?: BlmCampRawFeature[] };
     return (raw.features ?? []).map((f) => ({
       id: (f.properties.OBJECTID as number) ?? 0,
-      name: (f.properties.FET_NAME as string) ?? "BLM Campground",
+      name: (f.properties.FET_NAME as string) ?? fallbackName,
       subtype: (f.properties.FET_SUBTYPE as string) ?? "Campground",
       state: (f.properties.ADMIN_ST as string) ?? "",
       description: (f.properties.DESCRIPTION as string | null) ?? null,
@@ -415,6 +416,38 @@ export async function fetchBlmCampgrounds(
     fetchBlmCampLayer(3, minLng, minLat, maxLng, maxLat),
   ]);
   const combined = [...layer2, ...layer3];
+  if (combined.length > 0) await setCached(key, combined);
+  return combined;
+}
+
+// ─── BLM Recreation Points (generic layers) ──────────────────────────────────
+// Same BLM_Natl_Recs_pts service as campgrounds; other layers carry hiking
+// POIs: 9 Picnic Area, 11 Potable Water, 13 Scenic Overlook, 14 Trail Head.
+
+export interface BlmRecPoint extends BlmCampground {
+  layer: number;
+}
+
+/**
+ * Fetch arbitrary BLM_Natl_Recs_pts layers within `radiusMiles` of a point.
+ * Each returned point carries the source `layer` id so callers can classify.
+ */
+export async function fetchBlmRecPoints(
+  layerIds: number[],
+  lat: number, lng: number, radiusMiles = 25,
+): Promise<BlmRecPoint[]> {
+  const deg = radiusMiles / 69.0;
+  const [minLng, minLat, maxLng, maxLat] = [lng - deg, lat - deg, lng + deg, lat + deg];
+  const key = `blm_recpts_v1_${layerIds.join("-")}_${minLng.toFixed(2)}_${minLat.toFixed(2)}_${maxLng.toFixed(2)}_${maxLat.toFixed(2)}`;
+  const cached = await getCached<BlmRecPoint[]>(key);
+  if (cached) return cached;
+  const lists = await Promise.all(
+    layerIds.map(async (id) => {
+      const pts = await fetchBlmCampLayer(id, minLng, minLat, maxLng, maxLat, "BLM Recreation Site");
+      return pts.map((p) => ({ ...p, layer: id }));
+    }),
+  );
+  const combined = lists.flat();
   if (combined.length > 0) await setCached(key, combined);
   return combined;
 }

@@ -131,6 +131,17 @@ import {
   type Campground,
 } from "@/lib/campgrounds";
 import {
+  fetchHikingPoisNear,
+  hikingPoiChips,
+  hikingPoiSourceLabel,
+  HIKING_POI_COLORS,
+  HIKING_POI_LABELS,
+  HIKING_POI_ICONS,
+  HIKING_POI_KINDS,
+  type HikingPoi,
+  type HikingPoiKind,
+} from "@/lib/hiking-pois";
+import {
   fetchRidbTrailheadsNear,
   ridbFacilityCoord,
   ridbHasApiKey,
@@ -1207,11 +1218,12 @@ export default function MapScreen() {
     [regionCatalog, regionDownloadedKeys]
   );
   // Deep-link params from Profile > Offline Maps ("view on map" for a saved pack).
-  const { focusLat, focusLng, focusTrailId, focusCampsite } = useLocalSearchParams<{
+  const { focusLat, focusLng, focusTrailId, focusCampsite, focusHikeSpot } = useLocalSearchParams<{
     focusLat?: string;
     focusLng?: string;
     focusTrailId?: string;
     focusCampsite?: string;
+    focusHikeSpot?: string;
   }>();
   const focusHandledRef = useRef<string | null>(null);
   // OSM fetch center — null until GPS arrives so we always load trails for the
@@ -1277,6 +1289,24 @@ export default function MapScreen() {
     [savedCampgrounds]
   );
 
+  // ── Hiking POIs (USFS + RIDB + BLM + OSM merged) — mirrors the campground layer
+  const [showHikePois, setShowHikePois] = useState(false);
+  const [hikePois, setHikePois] = useState<HikingPoi[]>([]);
+  const [hikePoisLoading, setHikePoisLoading] = useState(false);
+  const [selectedHikePoi, setSelectedHikePoi] = useState<HikingPoi | null>(null);
+  // Empty set = show all kinds; chips in the hiking filter section toggle kinds.
+  const [hikePoiKindFilter, setHikePoiKindFilter] = useState<Set<HikingPoiKind>>(new Set());
+  // One-shot auto-enable of the hiking POI layer when entering hiking mode —
+  // a manual toggle-off afterwards sticks.
+  const hikeAutoEnabledRef = useRef(false);
+  // Saved hiking spots (users/{uid}/hiking_spots) — full docs so saved spots
+  // render as markers even outside the fetched radius or offline.
+  const [savedHikeSpots, setSavedHikeSpots] = useState<HikingPoi[]>([]);
+  const savedHikeSpotIds = useMemo(
+    () => new Set(savedHikeSpots.map((p) => campsiteDocId(p.id))),
+    [savedHikeSpots]
+  );
+
   const [activeRide, setActiveRide] = useState<GroupRide | null>(null);
   const [activeRideInfo, setActiveRideInfo] = useState<{ memberCount: number } | null>(null);
   const [guideActiveRideInfo, setGuideActiveRideInfo] = useState<{ memberCount: number } | null>(null);
@@ -1307,6 +1337,21 @@ export default function MapScreen() {
       (c) => !rendered.has(c.id) && Number.isFinite(c.lat) && Number.isFinite(c.lng)
     );
   }, [visibleCampgrounds, savedCampgrounds]);
+
+  const visibleHikePois = useMemo(() => {
+    if (activityMode !== "hiking" || hikePoiKindFilter.size === 0) return hikePois;
+    return hikePois.filter((p) => hikePoiKindFilter.has(p.kind));
+  }, [hikePois, activityMode, hikePoiKindFilter]);
+
+  // Saved hiking spots not already rendered by the fetched layer — shown
+  // whenever the layer is on, regardless of distance/kind filter, so
+  // "view on map" from the rucksack always has a marker to land on.
+  const extraSavedHikeSpots = useMemo(() => {
+    const rendered = new Set(visibleHikePois.slice(0, 150).map((p) => p.id));
+    return savedHikeSpots.filter(
+      (p) => !rendered.has(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+    );
+  }, [visibleHikePois, savedHikeSpots]);
 
   const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
   const [showNpsOverlay, setShowNpsOverlay] = useState(false);
@@ -1938,6 +1983,57 @@ export default function MapScreen() {
     } catch { /* offline or rules — button state simply won't flip */ }
   }, [user, savedCampsiteIds]);
 
+  // ── Hiking POIs fetch (USFS + RIDB + BLM + OSM merged) ────────────────────
+  useEffect(() => {
+    if (!showHikePois) { setHikePois([]); return; }
+    if (!isOnline) return; // all four sources need network; cached merges load via fetchHikingPoisNear when back online
+    if (userLocation && hikePois.length > 0) return;
+    let cancelled = false;
+    setHikePoisLoading(true);
+    const center = userLocation ?? selectedTrail?.coords ?? { latitude: 36.7783, longitude: -119.4179 };
+    fetchHikingPoisNear(center.latitude, center.longitude, 25)
+      .then(data => { if (!cancelled) setHikePois(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setHikePoisLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHikePois, selectedTrail, userLocation, isOnline]);
+
+  // Auto-enable the hiking POI layer the first time the user enters hiking mode.
+  useEffect(() => {
+    if (activityMode === "hiking" && !hikeAutoEnabledRef.current) {
+      hikeAutoEnabledRef.current = true;
+      setShowHikePois(true);
+    }
+  }, [activityMode]);
+
+  // ── Saved hiking spots (users/{uid}/hiking_spots) ─────────────────────────
+  useEffect(() => {
+    if (!user) { setSavedHikeSpots([]); return; }
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "hiking_spots"),
+      (snap) => setSavedHikeSpots(snap.docs.map((d) => d.data() as HikingPoi)),
+      () => {}
+    );
+    return unsub;
+  }, [user]);
+
+  const toggleSaveHikeSpot = useCallback(async (poi: HikingPoi) => {
+    if (!user) return;
+    const docId = campsiteDocId(poi.id);
+    const poiRef = doc(db, "users", user.uid, "hiking_spots", docId);
+    try {
+      if (savedHikeSpotIds.has(docId)) {
+        await deleteDoc(poiRef);
+      } else {
+        // JSON round-trip drops `undefined` fields, which Firestore rejects
+        // at write time (nulls are fine).
+        const clean = JSON.parse(JSON.stringify(poi)) as Record<string, unknown>;
+        await setDoc(poiRef, { ...clean, savedAt: serverTimestamp() });
+      }
+    } catch { /* offline or rules — button state simply won't flip */ }
+  }, [user, savedHikeSpotIds]);
+
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
   // (Central Valley has no National Forest land). Re-runs when GPS first arrives.
@@ -2030,7 +2126,7 @@ export default function MapScreen() {
   // saved pack's location and open its trail sheet if it's a known trail.
   useEffect(() => {
     if (!mapStyleLoaded || !focusLat || !focusLng) return;
-    const key = `${focusLat},${focusLng},${focusTrailId ?? ""},${focusCampsite ?? ""}`;
+    const key = `${focusLat},${focusLng},${focusTrailId ?? ""},${focusCampsite ?? ""},${focusHikeSpot ?? ""}`;
     if (focusHandledRef.current === key) return;
     focusHandledRef.current = key;
     const lat = parseFloat(focusLat);
@@ -2039,10 +2135,12 @@ export default function MapScreen() {
     // Coming from Campsites in the hub — make sure the campground layer is on
     // so the tent marker is actually visible at the destination.
     if (focusCampsite === "1") setShowCampgrounds(true);
+    // Coming from Saved Spots in the rucksack — same idea for hiking POIs.
+    if (focusHikeSpot === "1") setShowHikePois(true);
     cameraRef.current?.flyTo({ center: [lng, lat], zoom: 12, duration: 1200 });
     const trail = focusTrailId ? ALL_TRAILS.find((t) => t.id === focusTrailId) : undefined;
     if (trail) setSelectedTrail(enrichWithRoute(trail));
-  }, [mapStyleLoaded, focusLat, focusLng, focusTrailId, focusCampsite]);
+  }, [mapStyleLoaded, focusLat, focusLng, focusTrailId, focusCampsite, focusHikeSpot]);
 
   // Tapping anywhere along an OSM trail line opens that trail's info sheet.
   // Match the pressed feature back to our full OsmFeature (with geometry) by id.
@@ -3422,6 +3520,39 @@ export default function MapScreen() {
           </Marker>
         ))}
 
+        {/* ── Hiking POI markers (USFS + RIDB + BLM + OSM merged) ─────────── */}
+        {/* Color-coded by kind: green trailheads, purple viewpoints, blue-grey */}
+        {/* peaks, blue waterfalls, teal water, brown shelters, orange picnic. */}
+        {/* List is pre-sorted nearest-first, so the 150 cap drops far points. */}
+        {showHikePois && visibleHikePois.slice(0, 150).map((poi) => (
+          <Marker
+            key={`hike-poi-${poi.id}`}
+            lngLat={[poi.lng, poi.lat]}
+            anchor="center"
+            onPress={() => setSelectedHikePoi(poi)}
+          >
+            <View style={[styles.blmCampMarker, { backgroundColor: HIKING_POI_COLORS[poi.kind] }]}>
+              <MaterialCommunityIcons name={HIKING_POI_ICONS[poi.kind] as keyof typeof MaterialCommunityIcons.glyphMap} size={13} color="#fff" />
+            </View>
+          </Marker>
+        ))}
+
+        {/* ── Saved hiking spot markers ────────────────────────────────────── */}
+        {/* Rendered from the user's saved docs so a saved spot is always visible */}
+        {/* — even outside the 25-mile fetch radius or fully offline. */}
+        {showHikePois && extraSavedHikeSpots.map((poi) => (
+          <Marker
+            key={`hike-saved-${poi.id}`}
+            lngLat={[poi.lng, poi.lat]}
+            anchor="center"
+            onPress={() => setSelectedHikePoi(poi)}
+          >
+            <View style={[styles.blmCampMarker, { backgroundColor: HIKING_POI_COLORS[poi.kind] ?? "#2E7D32" }]}>
+              <MaterialCommunityIcons name={(HIKING_POI_ICONS[poi.kind] ?? "hiking") as keyof typeof MaterialCommunityIcons.glyphMap} size={13} color="#fff" />
+            </View>
+          </Marker>
+        ))}
+
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
         {/* Tapping anywhere on the line (not just the endpoint pins) opens the trail info sheet. */}
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
@@ -4751,6 +4882,131 @@ export default function MapScreen() {
         })()}
       </Modal>
 
+      {/* ── HIKING POI DETAIL SHEET (merged USFS/RIDB/BLM/OSM) ────────────── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={!!selectedHikePoi}
+        onRequestClose={() => setSelectedHikePoi(null)}
+      >
+        {selectedHikePoi && (() => {
+          const poi = selectedHikePoi;
+          const kindColor = HIKING_POI_COLORS[poi.kind];
+          const chips = hikingPoiChips(poi);
+          const isSaved = savedHikeSpotIds.has(campsiteDocId(poi.id));
+          return (
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setSelectedHikePoi(null)}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                style={[styles.modalContent, { backgroundColor: colors.card, borderColor: kindColor, borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
+                onPress={() => {}}
+              >
+                <View style={styles.modalHandle} />
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <View style={[styles.blmCampHeaderIcon, { backgroundColor: kindColor }]}>
+                    <MaterialCommunityIcons name={HIKING_POI_ICONS[poi.kind] as keyof typeof MaterialCommunityIcons.glyphMap} size={20} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.blmCampDetailTitle, { color: kindColor }]}>
+                      {HIKING_POI_LABELS[poi.kind]} · {hikingPoiSourceLabel(poi)}
+                    </Text>
+                    <Text style={[{ fontSize: 16, fontWeight: "800", color: colors.foreground }]} numberOfLines={2}>
+                      {poi.name}
+                    </Text>
+                  </View>
+                  {user ? (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        borderWidth: 1.5,
+                        borderColor: kindColor,
+                        backgroundColor: isSaved ? kindColor : "transparent",
+                        borderRadius: 16,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                      }}
+                      onPress={() => toggleSaveHikeSpot(poi)}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons
+                        name={isSaved ? "bookmark-check" : "bookmark-outline"}
+                        size={15}
+                        color={isSaved ? "#fff" : kindColor}
+                      />
+                      <Text style={{ fontSize: 11, fontWeight: "900", letterSpacing: 0.8, color: isSaved ? "#fff" : kindColor }}>
+                        {isSaved ? "SAVED" : "SAVE"}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                    <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>STATUS</Text>
+                    <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                      {poi.openStatus ?? HIKING_POI_LABELS[poi.kind]}
+                      {poi.season ? ` · ${poi.season}` : ""}
+                    </Text>
+                  </View>
+                  <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                    <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>MANAGED BY</Text>
+                    <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                      {poi.operator ?? hikingPoiSourceLabel(poi)}
+                    </Text>
+                  </View>
+                </View>
+
+                {chips.length > 0 ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                    {chips.map((chip) => (
+                      <View key={chip} style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: colors.foreground }}>{chip}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {poi.description ? (
+                  <View style={[styles.blmCampDesc, { backgroundColor: colors.background, borderColor: colors.border, maxHeight: 150 }]}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text style={[{ fontSize: 13, lineHeight: 19, color: colors.foreground }]}>
+                        {poi.description}
+                      </Text>
+                    </ScrollView>
+                  </View>
+                ) : null}
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {poi.website ? (
+                    <TouchableOpacity
+                      style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: kindColor, flex: 1 }]}
+                      onPress={() => Linking.openURL(poi.website!).catch(() => {})}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: kindColor }]}>WEBSITE</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: colors.border, flex: 1 }]}
+                    onPress={() => setSelectedHikePoi(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: colors.foreground }]}>CLOSE</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        })()}
+      </Modal>
+
       {/* ── GROUP RIDE CHAT MODAL ────────────────────────────────────────── */}
       <Modal
         animationType="slide"
@@ -5020,6 +5276,26 @@ export default function MapScreen() {
                 : <MaterialIcons name={showCampgrounds ? "toggle-on" : "toggle-off"} size={28} color={showCampgrounds ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
+            {/* Hiking POIs toggle (merged USFS + RIDB + BLM + OSM) */}
+            <TouchableOpacity
+              style={[styles.overlayToggle, showHikePois ? styles.overlayToggleActive : styles.overlayToggleInactive, { borderColor: showHikePois ? "#2E7D32" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowHikePois((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="hiking" size={20} color={showHikePois ? "#fff" : "#6B6B5A"} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.overlayLabel, { color: showHikePois ? "#fff" : "#2A2A1E" }]}>
+                  HIKING POINTS{hikePoisLoading ? "  ⏳" : visibleHikePois.length > 0 ? `  (${visibleHikePois.length})` : ""}
+                </Text>
+                <Text style={[styles.overlaySubLabel, { color: showHikePois ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  Trailheads · viewpoints · peaks · waterfalls · water · shelters · picnic within 25 mi
+                </Text>
+              </View>
+              {hikePoisLoading
+                ? <ActivityIndicator size="small" color={showHikePois ? "#fff" : "#2E7D32"} />
+                : <MaterialIcons name={showHikePois ? "toggle-on" : "toggle-off"} size={28} color={showHikePois ? "#fff" : "#A8A89A"} />}
+            </TouchableOpacity>
+
             {/* NFS Trail System toggle */}
             <TouchableOpacity
               style={[styles.overlayToggle, showNfsOverlay ? styles.overlayToggleNfsActive : styles.overlayToggleInactive, { borderColor: showNfsOverlay ? "#2D6A4F" : "#C8C2B8", marginTop: 8 }]}
@@ -5258,6 +5534,42 @@ export default function MapScreen() {
                     );
                   })}
                 </View>
+
+                <Text style={styles.overlaysSectionTitle}>POINTS OF INTEREST</Text>
+                <View style={styles.vehicleFilterGrid}>
+                  {HIKING_POI_KINDS.map((k) => {
+                    const active = hikePoiKindFilter.has(k);
+                    const kindColor = HIKING_POI_COLORS[k];
+                    return (
+                      <TouchableOpacity
+                        key={k}
+                        style={[
+                          styles.vehiclePill,
+                          {
+                            backgroundColor: active ? kindColor : "#EDE7DC",
+                            borderColor: active ? kindColor : "#D0C9BC",
+                          },
+                        ]}
+                        onPress={() =>
+                          setHikePoiKindFilter((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(k)) next.delete(k);
+                            else next.add(k);
+                            return next;
+                          })
+                        }
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.vehiclePillText, { color: active ? "#fff" : "#2A2A1E" }]}>
+                          {HIKING_POI_LABELS[k]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={[styles.overlaySubLabel, { color: "#7A7A6A", marginTop: 2 }]}>
+                  Filters HIKING POINTS markers by type — turn that layer on to see trailheads, viewpoints &amp; more
+                </Text>
 
                 <Text style={styles.overlaysSectionTitle}>MAX DISTANCE</Text>
                 <View style={styles.vehicleFilterGrid}>

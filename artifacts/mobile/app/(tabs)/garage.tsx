@@ -55,6 +55,14 @@ import {
   campgroundAmenityChips,
   type Campground,
 } from "@/lib/campgrounds";
+import {
+  HIKING_POI_COLORS,
+  HIKING_POI_LABELS,
+  HIKING_POI_ICONS,
+  hikingPoiSourceLabel,
+  hikingPoiChips,
+  type HikingPoi,
+} from "@/lib/hiking-pois";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,12 +106,16 @@ interface CrewMember {
   location?: { lat: number; lng: number; updatedAt: number; active: boolean };
 }
 
-type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "gear";
+type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "spots";
 
 // A campground saved from the map's detail sheet, stored at
 // users/{uid}/campsites/{docId}. `docId` is the sanitized Firestore doc id
 // (camp ids like "osm:way/123" have "/" replaced) — needed for deletes.
 type SavedCampsite = Campground & { docId: string; savedAt?: { seconds: number } | null };
+
+// A hiking POI saved from the map's detail sheet, stored at
+// users/{uid}/hiking_spots/{docId} (same sanitized-doc-id scheme as campsites).
+type SavedHikeSpot = HikingPoi & { docId: string; savedAt?: { seconds: number } | null };
 
 const HUB_TITLE: Record<ActivityMode, string> = {
   offroad: "MY GARAGE",
@@ -114,7 +126,7 @@ const HUB_TITLE: Record<ActivityMode, string> = {
 const HUB_SECTIONS: Record<ActivityMode, GarageSection[]> = {
   offroad: ["rides", "maps", "crew", "mods"],
   camping: ["campsites", "maps", "crew", "mods"],
-  hiking: ["gear", "maps", "crew", "mods"],
+  hiking: ["spots", "maps", "crew", "mods"],
 };
 
 interface ModResult {
@@ -619,6 +631,42 @@ export default function GarageScreen() {
     setModsError("");
   }, [mode]);
 
+  // ── Saved hiking spots (hiking mode) ──────────────────────────────────────
+  const [savedSpots, setSavedSpots] = useState<SavedHikeSpot[]>([]);
+
+  useEffect(() => {
+    if (!user) { setSavedSpots([]); return; }
+    let live = false;
+    cacheGet<SavedHikeSpot[]>(`hikespots:${user.uid}`).then((cached) => {
+      if (!live && cached) setSavedSpots(cached);
+    });
+    const unsub = onSnapshot(
+      query(collection(db, "users", user.uid, "hiking_spots"), orderBy("savedAt", "desc")),
+      (snap) => {
+        live = true;
+        const items = snap.docs.map((d) => ({ ...(d.data() as HikingPoi), docId: d.id } as SavedHikeSpot));
+        setSavedSpots(items);
+        cacheSet(`hikespots:${user.uid}`, items);
+      },
+      () => { live = true; setSavedSpots([]); }
+    );
+    return unsub;
+  }, [user]);
+
+  const removeSpot = useCallback((spot: SavedHikeSpot) => {
+    if (!user) return;
+    Alert.alert("Remove saved spot?", `"${spot.name}" will be removed from your saved spots.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          deleteDoc(doc(db, "users", user.uid, "hiking_spots", spot.docId)).catch(() => {});
+        },
+      },
+    ]);
+  }, [user]);
+
   // ── Saved campsites (camping mode) ────────────────────────────────────────
   const [savedCampsites, setSavedCampsites] = useState<SavedCampsite[]>([]);
 
@@ -1065,7 +1113,7 @@ export default function GarageScreen() {
               ? { icon: "tool",         label: "FIND MODS" }
               : { icon: "shopping-bag", label: "FIND GEAR" },
             campsites: { icon: "tent", mci: true,       label: "CAMPSITES" },
-            gear:      { icon: "bag-personal-outline", mci: true, label: "MY GEAR" },
+            spots:     { icon: "map-marker-star", mci: true, label: "MY SPOTS" },
           };
           return (
             <TouchableOpacity
@@ -1182,21 +1230,100 @@ export default function GarageScreen() {
         </ScrollView>
       )}
 
-      {/* ── MY GEAR (hiking mode stub) ──────────────────────────────────── */}
-      {section === "gear" && (
+      {/* ── MY SPOTS (hiking mode) ──────────────────────────────────────── */}
+      {section === "spots" && (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.emptyCenter}>
-            <MaterialCommunityIcons name="bag-personal-outline" size={48} color={colors.border} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Your rucksack is empty</Text>
-            <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-              Gear checklists and packing lists for your hikes are coming soon.
-              Browse hiking trails on the map to plan your next trek.
-            </Text>
-          </View>
+          {savedSpots.length === 0 ? (
+            <View style={styles.emptyCenter}>
+              <MaterialCommunityIcons name="map-marker-star" size={48} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved spots yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Turn on the HIKING POINTS layer on the map, tap a marker —
+                trailheads, viewpoints, peaks, waterfalls — and hit SAVE. Your
+                favorite spots will show up right here.
+              </Text>
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, borderWidth: 1.5, borderColor: colors.accent, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 9 }}
+                onPress={() => router.push("/(tabs)/map")}
+                activeOpacity={0.8}
+              >
+                <Feather name="map" size={14} color={colors.accent} />
+                <Text style={[styles.mapActionText, { color: colors.accent }]}>GO TO MAP</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                {savedSpots.length} saved spot{savedSpots.length === 1 ? "" : "s"} — tap one to see it on the map.
+              </Text>
+              {savedSpots.map((spot) => {
+                const kindColor = HIKING_POI_COLORS[spot.kind] ?? colors.accent;
+                const chips = hikingPoiChips(spot).slice(0, 4);
+                return (
+                  <TouchableOpacity
+                    key={spot.docId}
+                    style={[styles.mapCard, { backgroundColor: colors.card, borderColor: kindColor }]}
+                    activeOpacity={0.75}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/map",
+                        params: { focusLat: String(spot.lat), focusLng: String(spot.lng), focusHikeSpot: "1" },
+                      })
+                    }
+                  >
+                    <View style={styles.mapCardHeader}>
+                      <View style={[styles.vehicleIconWrap, { backgroundColor: kindColor + "22" }]}>
+                        <MaterialCommunityIcons name={(HIKING_POI_ICONS[spot.kind] ?? "hiking") as never} size={18} color={kindColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={2}>
+                          {spot.name}
+                        </Text>
+                        <Text style={[styles.vehicleSub, { color: kindColor }]} numberOfLines={1}>
+                          {HIKING_POI_LABELS[spot.kind] ?? "SPOT"} · {hikingPoiSourceLabel(spot)}
+                        </Text>
+                        {(spot.operator || spot.season) ? (
+                          <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                            {[spot.operator, spot.season].filter(Boolean).join(" · ")}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => removeSpot(spot)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather name="trash-2" size={17} color={colors.mutedForeground} />
+                      </TouchableOpacity>
+                    </View>
+                    {chips.length > 0 ? (
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                        {chips.map((chip) => (
+                          <View key={chip} style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4 }}>
+                            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.foreground }}>{chip}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {spot.website ? (
+                      <TouchableOpacity
+                        style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 10 }}
+                        onPress={() => Linking.openURL(spot.website!).catch(() => {})}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Feather name="external-link" size={13} color={kindColor} />
+                        <Text style={[styles.mapActionText, { color: kindColor }]}>OPEN WEBSITE</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
         </ScrollView>
       )}
 

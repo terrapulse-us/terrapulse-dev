@@ -154,6 +154,47 @@ export async function fetchRidbCampsNear(
   }
 }
 
+/**
+ * Fetch hiking-related facilities near a point (activity filter: HIKING).
+ * NOTE: RIDB's /facilities endpoint ignores the facilitytype param — callers
+ * must filter by FacilityTypeDescription client-side (verified live, same
+ * caveat as campgrounds).
+ */
+export async function fetchRidbHikingNear(
+  lat: number,
+  lng: number,
+  radiusMiles = 25,
+): Promise<RidbFacility[]> {
+  const key = getApiKey();
+  if (!key) return [];
+
+  const cacheKey = `ridb_hike_${lat.toFixed(2)}_${lng.toFixed(2)}_${radiusMiles}`;
+  const cached = await getCached<RidbFacility[]>(cacheKey);
+  if (cached) return cached;
+
+  const params = new URLSearchParams({
+    latitude: String(lat),
+    longitude: String(lng),
+    radius: String(radiusMiles),
+    activity: "HIKING",
+    limit: "50",
+    offset: "0",
+  });
+
+  try {
+    const resp = await fetch(`${RIDB_BASE}/facilities?${params}`, {
+      headers: { apikey: key, Accept: "application/json" },
+    });
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as RidbResponse;
+    const facilities = json.RECDATA ?? [];
+    await setCached(cacheKey, facilities);
+    return facilities;
+  } catch {
+    return [];
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function ridbFacilityCoord(f: RidbFacility): [number, number] | null {

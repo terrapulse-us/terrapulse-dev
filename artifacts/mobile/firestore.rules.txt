@@ -90,6 +90,13 @@ service cloud.firestore {
       match /campsites/{campsiteId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // users/{uid}/hiking_spots/{spotId} — hiking POIs (trailheads, viewpoints,
+      // peaks, waterfalls, water, shelters, picnic areas) saved from the map
+      // (My Rucksack > My Spots). Strictly private — only the owner reads or writes.
+      match /hiking_spots/{spotId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // ── friendRequests/{requestId} ───────────────────────────────────────
