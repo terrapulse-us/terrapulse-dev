@@ -117,13 +117,19 @@ import {
 } from "@/lib/osm-api";
 import {
   fetchBlmOhvNear,
-  fetchBlmCampgrounds,
   fetchSmaPolygons,
   SMA_CATEGORIES,
   type BlmOhvCollection,
-  type BlmCampground,
   type SmaVectorCollection,
 } from "@/lib/blm-api";
+import {
+  fetchCampgroundsNear,
+  campgroundAmenityChips,
+  campgroundSourceLabel,
+  CAMPGROUND_KIND_COLORS,
+  CAMPGROUND_KIND_LABELS,
+  type Campground,
+} from "@/lib/campgrounds";
 import {
   fetchRidbTrailheadsNear,
   ridbFacilityCoord,
@@ -1249,10 +1255,13 @@ export default function MapScreen() {
   );
   const [blmOhvData, setBlmOhvData] = useState<BlmOhvCollection | null>(null);
   const [smaVectorData, setSmaVectorData] = useState<SmaVectorCollection | null>(null);
-  const [showBlmCampgrounds, setShowBlmCampgrounds] = useState(false);
-  const [blmCampgrounds, setBlmCampgrounds] = useState<BlmCampground[]>([]);
-  const [blmCampgroundsLoading, setBlmCampgroundsLoading] = useState(false);
-  const [selectedCampground, setSelectedCampground] = useState<BlmCampground | null>(null);
+  const [showCampgrounds, setShowCampgrounds] = useState(false);
+  const [campgrounds, setCampgrounds] = useState<Campground[]>([]);
+  const [campgroundsLoading, setCampgroundsLoading] = useState(false);
+  const [selectedCampground, setSelectedCampground] = useState<Campground | null>(null);
+  // One-shot auto-enable of the campground layer when entering camping mode —
+  // a manual toggle-off afterwards sticks.
+  const campAutoEnabledRef = useRef(false);
 
   const [activeRide, setActiveRide] = useState<GroupRide | null>(null);
   const [activeRideInfo, setActiveRideInfo] = useState<{ memberCount: number } | null>(null);
@@ -1268,19 +1277,12 @@ export default function MapScreen() {
   const [ridbFacilities, setRidbFacilities] = useState<RidbFacility[]>([]);
   const [showRidbOverlay, setShowRidbOverlay] = useState(false);
 
-  const visibleBlmCampgrounds = useMemo(() => {
-    if (activityMode !== "camping" || campTerrainFilter.size === 0) return blmCampgrounds;
-    return blmCampgrounds.filter((c) =>
+  const visibleCampgrounds = useMemo(() => {
+    if (activityMode !== "camping" || campTerrainFilter.size === 0) return campgrounds;
+    return campgrounds.filter((c) =>
       campTerrainMatches(`${c.name} ${c.description ?? ""}`, campTerrainFilter)
     );
-  }, [blmCampgrounds, activityMode, campTerrainFilter]);
-
-  const visibleRidbFacilities = useMemo(() => {
-    if (activityMode !== "camping" || campTerrainFilter.size === 0) return ridbFacilities;
-    return ridbFacilities.filter((f) =>
-      campTerrainMatches(`${f.FacilityName} ${f.FacilityDescription ?? ""}`, campTerrainFilter)
-    );
-  }, [ridbFacilities, activityMode, campTerrainFilter]);
+  }, [campgrounds, activityMode, campTerrainFilter]);
 
   const [npsParks, setNpsParks] = useState<NpsPark[]>([]);
   const [showNpsOverlay, setShowNpsOverlay] = useState(false);
@@ -1861,20 +1863,29 @@ export default function MapScreen() {
     });
   }, [activeRide, showRideChat]);
 
-  // ── BLM Campgrounds fetch ────────────────────────────────────────────────────
+  // ── Campgrounds fetch (RIDB + USFS + BLM + OSM merged) ──────────────────────
   useEffect(() => {
-    if (!showBlmCampgrounds) { setBlmCampgrounds([]); return; }
-    if (userLocation && blmCampgrounds.length > 0) return;
+    if (!showCampgrounds) { setCampgrounds([]); return; }
+    if (!isOnline) return; // all four sources need network; cached merges load via fetchCampgroundsNear when back online
+    if (userLocation && campgrounds.length > 0) return;
     let cancelled = false;
-    setBlmCampgroundsLoading(true);
+    setCampgroundsLoading(true);
     const center = userLocation ?? selectedTrail?.coords ?? { latitude: 36.7783, longitude: -119.4179 };
-    fetchBlmCampgrounds(center.latitude, center.longitude, 40)
-      .then(data => { if (!cancelled) setBlmCampgrounds(data); })
+    fetchCampgroundsNear(center.latitude, center.longitude, 40)
+      .then(data => { if (!cancelled) setCampgrounds(data); })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setBlmCampgroundsLoading(false); });
+      .finally(() => { if (!cancelled) setCampgroundsLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showBlmCampgrounds, selectedTrail, userLocation]);
+  }, [showCampgrounds, selectedTrail, userLocation, isOnline]);
+
+  // Auto-enable the campground layer the first time the user enters camping mode.
+  useEffect(() => {
+    if (activityMode === "camping" && !campAutoEnabledRef.current) {
+      campAutoEnabledRef.current = true;
+      setShowCampgrounds(true);
+    }
+  }, [activityMode]);
 
   // Fetch real USFS GeoJSON routes whenever the USFS overlay is toggled on.
   // Waits for a real GPS fix — fetching the CA-center fallback returns 0 results
@@ -3325,15 +3336,17 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {/* ── BLM Campground markers ─────────────────────────────────────── */}
-        {showBlmCampgrounds && visibleBlmCampgrounds.map((camp) => (
+        {/* ── Campground markers (RIDB + USFS + BLM + OSM merged) ─────────── */}
+        {/* Color-coded by kind: brown developed, green reservable, orange dispersed. */}
+        {/* List is pre-sorted nearest-first, so the 150 cap drops far points. */}
+        {showCampgrounds && visibleCampgrounds.slice(0, 150).map((camp) => (
           <Marker
-            key={`blm-camp-${camp.id}`}
+            key={`camp-${camp.id}`}
             lngLat={[camp.lng, camp.lat]}
             anchor="center"
             onPress={() => setSelectedCampground(camp)}
           >
-            <View style={styles.blmCampMarker}>
+            <View style={[styles.blmCampMarker, { backgroundColor: CAMPGROUND_KIND_COLORS[camp.kind] }]}>
               <MaterialCommunityIcons name="tent" size={13} color="#fff" />
             </View>
           </Marker>
@@ -3419,7 +3432,7 @@ export default function MapScreen() {
         })}
 
         {/* ── RIDB trailhead markers ────────────────────────────────────── */}
-        {visibleRidbFacilities.map((f, i) => {
+        {ridbFacilities.map((f, i) => {
           const coord = ridbFacilityCoord(f);
           if (!coord) return null;
           return (
@@ -3582,7 +3595,7 @@ export default function MapScreen() {
                 (usfsGeoJSON?.features.length ?? 0) +
                 (osmGeoJSON?.features.length ?? 0) +
                 (nfsGeoJSON?.features.length ?? 0) +
-                visibleRidbFacilities.length +
+                ridbFacilities.length +
                 npsParks.length} TRAILS ·{" "}
               {selectedState === "All States"
                 ? "NATIONWIDE"
@@ -4507,71 +4520,138 @@ export default function MapScreen() {
         )}
       </Modal>
 
-      {/* ── BLM CAMPGROUND DETAIL SHEET ─────────────────────────────────── */}
+      {/* ── CAMPGROUND DETAIL SHEET (merged RIDB/USFS/BLM/OSM) ───────────── */}
       <Modal
         animationType="slide"
         transparent
         visible={!!selectedCampground}
         onRequestClose={() => setSelectedCampground(null)}
       >
-        {selectedCampground && (
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setSelectedCampground(null)}
-          >
+        {selectedCampground && (() => {
+          const camp = selectedCampground;
+          const kindColor = CAMPGROUND_KIND_COLORS[camp.kind];
+          const chips = campgroundAmenityChips(camp);
+          return (
             <TouchableOpacity
+              style={styles.modalBackdrop}
               activeOpacity={1}
-              style={[styles.modalContent, { backgroundColor: colors.card, borderColor: "#795548", borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
-              onPress={() => {}}
+              onPress={() => setSelectedCampground(null)}
             >
-              <View style={styles.modalHandle} />
-
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <View style={[styles.blmCampHeaderIcon]}>
-                  <MaterialCommunityIcons name="tent" size={20} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.blmCampDetailTitle, { color: "#795548" }]}>BLM CAMPGROUND</Text>
-                  <Text style={[{ fontSize: 16, fontWeight: "800", color: colors.foreground }]} numberOfLines={2}>
-                    {selectedCampground.name}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-                <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
-                  <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>TYPE</Text>
-                  <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
-                    {selectedCampground.subtype.replace("Campsite - ", "").replace(" - Non Reservable - Fee", " (Fee)").replace(" - Non Reservable", "")}
-                  </Text>
-                </View>
-                <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
-                  <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>MANAGED BY</Text>
-                  <Text style={[styles.blmCampStatValue, { color: colors.foreground }]}>
-                    BLM — {selectedCampground.state || "Federal"}
-                  </Text>
-                </View>
-              </View>
-
-              {selectedCampground.description ? (
-                <View style={[styles.blmCampDesc, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  <Text style={[{ fontSize: 13, lineHeight: 19, color: colors.foreground }]}>
-                    {selectedCampground.description}
-                  </Text>
-                </View>
-              ) : null}
-
               <TouchableOpacity
-                style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
-                onPress={() => setSelectedCampground(null)}
-                activeOpacity={0.8}
+                activeOpacity={1}
+                style={[styles.modalContent, { backgroundColor: colors.card, borderColor: kindColor, borderTopWidth: 3, paddingBottom: insets.bottom + 20 }]}
+                onPress={() => {}}
               >
-                <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: colors.foreground }]}>CLOSE</Text>
+                <View style={styles.modalHandle} />
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <View style={[styles.blmCampHeaderIcon, { backgroundColor: kindColor }]}>
+                    <MaterialCommunityIcons name="tent" size={20} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.blmCampDetailTitle, { color: kindColor }]}>
+                      {CAMPGROUND_KIND_LABELS[camp.kind]} · {campgroundSourceLabel(camp)}
+                    </Text>
+                    <Text style={[{ fontSize: 16, fontWeight: "800", color: colors.foreground }]} numberOfLines={2}>
+                      {camp.name}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                    <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>STATUS</Text>
+                    <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                      {camp.openStatus ?? CAMPGROUND_KIND_LABELS[camp.kind]}
+                      {camp.season ? ` · ${camp.season}` : ""}
+                    </Text>
+                  </View>
+                  <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                    <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>MANAGED BY</Text>
+                    <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                      {camp.operator ?? campgroundSourceLabel(camp)}
+                    </Text>
+                  </View>
+                </View>
+
+                {(camp.fee || camp.capacity) ? (
+                  <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                    {camp.fee ? (
+                      <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                        <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>FEES</Text>
+                        <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={3}>
+                          {camp.fee}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {camp.capacity ? (
+                      <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                        <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>CAPACITY</Text>
+                        <Text style={[styles.blmCampStatValue, { color: colors.foreground }]}>
+                          {camp.capacity}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {chips.length > 0 ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                    {chips.map((chip) => (
+                      <View key={chip} style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: colors.foreground }}>{chip}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {camp.reservationInfo && !camp.reservationUrl ? (
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 10 }} numberOfLines={3}>
+                    {camp.reservationInfo}
+                  </Text>
+                ) : null}
+
+                {camp.description ? (
+                  <View style={[styles.blmCampDesc, { backgroundColor: colors.background, borderColor: colors.border, maxHeight: 150 }]}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text style={[{ fontSize: 13, lineHeight: 19, color: colors.foreground }]}>
+                        {camp.description}
+                      </Text>
+                    </ScrollView>
+                  </View>
+                ) : null}
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {camp.reservationUrl ? (
+                    <TouchableOpacity
+                      style={[styles.blmCampCloseBtn, { backgroundColor: "#2E7D32", borderColor: "#2E7D32", flex: 1 }]}
+                      onPress={() => Linking.openURL(camp.reservationUrl!).catch(() => {})}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: "#fff" }]}>RESERVE</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {camp.website ? (
+                    <TouchableOpacity
+                      style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: kindColor, flex: 1 }]}
+                      onPress={() => Linking.openURL(camp.website!).catch(() => {})}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: kindColor }]}>WEBSITE</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.blmCampCloseBtn, { backgroundColor: colors.background, borderColor: colors.border, flex: 1 }]}
+                    onPress={() => setSelectedCampground(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: colors.foreground }]}>CLOSE</Text>
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             </TouchableOpacity>
-          </TouchableOpacity>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* ── GROUP RIDE CHAT MODAL ────────────────────────────────────────── */}
@@ -4823,24 +4903,24 @@ export default function MapScreen() {
               {blmLoading ? <ActivityIndicator size="small" color={showBlmOverlay ? "#fff" : "#D4860A"} /> : <MaterialIcons name={showBlmOverlay ? "toggle-on" : "toggle-off"} size={28} color={showBlmOverlay ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
-            {/* BLM Campgrounds toggle */}
+            {/* Campgrounds toggle (merged RIDB + USFS + BLM + OSM) */}
             <TouchableOpacity
-              style={[styles.overlayToggle, showBlmCampgrounds ? styles.overlayToggleBlmCampActive : styles.overlayToggleInactive, { borderColor: showBlmCampgrounds ? "#795548" : "#C8C2B8", marginTop: 8 }]}
-              onPress={() => setShowBlmCampgrounds((v) => !v)}
+              style={[styles.overlayToggle, showCampgrounds ? styles.overlayToggleBlmCampActive : styles.overlayToggleInactive, { borderColor: showCampgrounds ? "#795548" : "#C8C2B8", marginTop: 8 }]}
+              onPress={() => setShowCampgrounds((v) => !v)}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="tent" size={20} color={showBlmCampgrounds ? "#fff" : "#6B6B5A"} />
+              <MaterialCommunityIcons name="tent" size={20} color={showCampgrounds ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.overlayLabel, { color: showBlmCampgrounds ? "#fff" : "#2A2A1E" }]}>
-                  BLM CAMPGROUNDS{blmCampgroundsLoading ? "  ⏳" : visibleBlmCampgrounds.length > 0 ? `  (${visibleBlmCampgrounds.length})` : ""}
+                <Text style={[styles.overlayLabel, { color: showCampgrounds ? "#fff" : "#2A2A1E" }]}>
+                  CAMPGROUNDS{campgroundsLoading ? "  ⏳" : visibleCampgrounds.length > 0 ? `  (${visibleCampgrounds.length})` : ""}
                 </Text>
-                <Text style={[styles.overlaySubLabel, { color: showBlmCampgrounds ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
-                  Federal campgrounds &amp; developed campsites within 40 mi (brown)
+                <Text style={[styles.overlaySubLabel, { color: showCampgrounds ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
+                  USFS · BLM · Rec.gov · OSM within 40 mi — brown developed, green reservable, orange dispersed
                 </Text>
               </View>
-              {blmCampgroundsLoading
-                ? <ActivityIndicator size="small" color={showBlmCampgrounds ? "#fff" : "#795548"} />
-                : <MaterialIcons name={showBlmCampgrounds ? "toggle-on" : "toggle-off"} size={28} color={showBlmCampgrounds ? "#fff" : "#A8A89A"} />}
+              {campgroundsLoading
+                ? <ActivityIndicator size="small" color={showCampgrounds ? "#fff" : "#795548"} />
+                : <MaterialIcons name={showCampgrounds ? "toggle-on" : "toggle-off"} size={28} color={showCampgrounds ? "#fff" : "#A8A89A"} />}
             </TouchableOpacity>
 
             {/* NFS Trail System toggle */}
@@ -4870,7 +4950,7 @@ export default function MapScreen() {
               <MaterialIcons name="place" size={20} color={showRidbOverlay ? "#fff" : "#6B6B5A"} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.overlayLabel, { color: showRidbOverlay ? "#fff" : "#2A2A1E" }]}>
-                  RECREATION.GOV TRAILHEADS{visibleRidbFacilities.length > 0 ? `  (${visibleRidbFacilities.length})` : ""}
+                  RECREATION.GOV TRAILHEADS{ridbFacilities.length > 0 ? `  (${ridbFacilities.length})` : ""}
                 </Text>
                 <Text style={[styles.overlaySubLabel, { color: showRidbOverlay ? "rgba(255,255,255,0.8)" : "#7A7A6A" }]}>
                   {ridbHasApiKey() ? "Official federal trailheads + OHV facilities (purple)" : "Add EXPO_PUBLIC_RIDB_API_KEY to enable"}

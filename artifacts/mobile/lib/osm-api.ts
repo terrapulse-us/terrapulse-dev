@@ -116,7 +116,7 @@ function makeTimeout(ms: number): Promise<never> {
   );
 }
 
-async function fetchFromOverpassParallel(query: string): Promise<Response> {
+export async function fetchFromOverpassParallel(query: string): Promise<Response> {
   const body = `data=${encodeURIComponent(query)}`;
   return Promise.race([
     Promise.any(

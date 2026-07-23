@@ -30,6 +30,7 @@ Nationwide off-road and hiking trail finder mobile app (all 50 states, 538 trail
 - `artifacts/mobile/lib/trail-routes.ts` — trail polylines: 8 hand-curated CA trails + auto-generated nationwide routes (below the `AUTO-GENERATED` marker; regenerate via `scripts/src/trail-pipeline/codegen-routes.ts`).
 - `lib/trail-data/route-status.json` — per-trail route/area classification + status manifest; source of truth for the trail-line pipeline (`scripts/src/trail-pipeline/`).
 - `artifacts/mobile/lib/usfs-api.ts` / `blm-api.ts` — live USFS EDW + BLM ArcGIS queries (trail networks, MVUM, OHV boundaries, land-ownership overlay).
+- `artifacts/mobile/lib/campgrounds.ts` — merged campground layer (RIDB canonical > USFS EDW > BLM > OSM Overpass; dedupe ~1 km + normalized names, 24h cache `camps_merged_v2_*`). Map shows one CAMPGROUNDS toggle color-coded by kind (brown developed / green reservable / orange dispersed), auto-enabled once in camping mode; detail sheet has season/fees/amenity chips + RESERVE/WEBSITE links. RIDB `/facilities` ignores `facilitytype` — filtered client-side by `FacilityTypeDescription`.
 - `artifacts/mobile/firestore.rules.txt` — source-of-truth Firestore security rules. **Not deployed automatically** — paste into Firebase Console (or `firebase deploy --only firestore:rules`) after every change.
 
 ## Policies & decisions
