@@ -2224,7 +2224,7 @@ export default function GarageScreen() {
                         adjustsFontSizeToFit
                         minimumFontScale={0.65}
                       >
-                        VIEW ON MAP
+                        VIEW MAP
                       </Text>
                     </TouchableOpacity>
                   ) : null}
@@ -2240,7 +2240,7 @@ export default function GarageScreen() {
                           adjustsFontSizeToFit
                           minimumFontScale={0.65}
                         >
-                          SAVE TO MY TRIPS
+                          SAVE TRIP
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -2581,6 +2581,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 13,
+    paddingHorizontal: 10,
     borderRadius: 6,
     gap: 6,
   },

@@ -545,7 +545,7 @@ export default function AssistantScreen() {
                         adjustsFontSizeToFit
                         minimumFontScale={0.65}
                       >
-                        VIEW ON MAP
+                        VIEW MAP
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1004,6 +1004,7 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
       justifyContent: "center",
       gap: 6,
       paddingVertical: 8,
+      paddingHorizontal: 10,
       borderRadius: colors.radius,
       borderWidth: 1,
       borderColor: colors.border,
