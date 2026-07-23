@@ -13,6 +13,7 @@ import {
   Modal,
   Image,
   Linking,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
@@ -245,6 +246,7 @@ function AddVehicleModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => { reset(); onClose(); }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
         <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
           <View style={styles.handle} />
@@ -409,6 +411,7 @@ function AddVehicleModal({
           </ScrollView>
         </View>
       </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -494,6 +497,7 @@ function EditVehicleModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
         <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
           <View style={styles.handle} />
@@ -626,6 +630,7 @@ function EditVehicleModal({
           </ScrollView>
         </View>
       </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1941,7 +1946,7 @@ export default function GarageScreen() {
 
       {/* ── FIND MODS ─────────────────────────────────────────────────────── */}
       {section === "mods" && (
-        <View style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           {/* Search panel */}
           <View style={[styles.modSearchPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
             {/* Vehicle context pill */}
@@ -2077,7 +2082,7 @@ export default function GarageScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </KeyboardAvoidingView>
       )}
 
       <AddVehicleModal
