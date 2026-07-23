@@ -3106,8 +3106,6 @@ export default function MapScreen() {
         {regionCatalog.map((region) => {
           const saved = regionDownloadedKeys.has(region.key);
           const prog = regionDlProgress[region.key];
-          const mb = Math.round(regionDownloadBytes(region) / (1024 * 1024));
-          const shortName = region.name.split(",")[0].toUpperCase();
           return (
             <Marker
               key={`region-chip-${region.key}`}
@@ -3116,21 +3114,19 @@ export default function MapScreen() {
             >
               <TouchableOpacity
                 onPress={() => handleRegionChipPress(region)}
-                style={[styles.regionChip, saved && styles.regionChipSaved]}
+                style={[styles.regionBadge, saved && styles.regionBadgeSaved]}
                 activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <MaterialIcons
-                  name={saved ? "offline-pin" : "download-for-offline"}
-                  size={13}
-                  color="#fff"
-                />
-                <Text style={styles.regionChipText} numberOfLines={1}>
-                  {prog != null
-                    ? `${shortName} · ${prog}%`
-                    : saved
-                      ? `${shortName} · SAVED`
-                      : `${shortName} · ${mb} MB`}
-                </Text>
+                {prog != null ? (
+                  <Text style={styles.regionBadgeProgress}>{prog}</Text>
+                ) : (
+                  <MaterialIcons
+                    name={saved ? "offline-pin" : "download-for-offline"}
+                    size={15}
+                    color="#fff"
+                  />
+                )}
               </TouchableOpacity>
             </Marker>
           );
@@ -5725,25 +5721,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  regionChip: {
-    flexDirection: "row",
+  regionBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(94,53,177,0.92)",
+    justifyContent: "center",
+    backgroundColor: "rgba(94,53,177,0.85)",
     borderColor: "#fff",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderWidth: 1.5,
   },
-  regionChipSaved: {
-    backgroundColor: "rgba(46,125,50,0.92)",
+  regionBadgeSaved: {
+    backgroundColor: "rgba(46,125,50,0.85)",
   },
-  regionChipText: {
+  regionBadgeProgress: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
-    letterSpacing: 0.5,
   },
   topBar: {
     position: "absolute",
