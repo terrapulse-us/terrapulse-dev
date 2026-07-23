@@ -271,6 +271,12 @@ components:
         day:
           type: integer
           description: 1-indexed day number within the itinerary.
+        date:
+          type: string
+          description: Human-readable calendar date for this day (e.g. "Fri, May 15").
+        plan:
+          type: string
+          description: Main activity plan for this day (trails to run, hikes, sights, milestones).
         driveTime:
           type: string
           description: Estimated drive time/distance for this day (free-form, e.g. "2.5 hrs from Sacramento").
@@ -283,6 +289,9 @@ components:
         campground:
           type: string
           description: Suggested campground/lodging for the night of this day, if any.
+        reserveUrl:
+          type: string
+          description: Reservation or info link (e.g. recreation.gov) for this day's campground, if known.
       required:
         - day
     AssistantItinerary:
@@ -292,6 +301,30 @@ components:
         title:
           type: string
           description: Short title for the trip (e.g. "Weekend at Rubicon Trail").
+        dates:
+          type: string
+          description: Human-readable date range for the trip (e.g. "May 15-18, 2026").
+        destinationName:
+          type: string
+          description: Primary destination name (trail, area, or park) the trip centers on.
+        destinationLat:
+          type: number
+          description: Latitude of the primary destination, for map deep-links.
+        destinationLng:
+          type: number
+          description: Longitude of the primary destination, for map deep-links.
+        cellNote:
+          type: string
+          description: Cell-coverage summary for the trip area, from check_cell_coverage.
+        waterNote:
+          type: string
+          description: Water availability/sources note for the trip.
+        shelterNote:
+          type: string
+          description: Shelter/lodging overview note for the trip.
+        packingNote:
+          type: string
+          description: Short packing or gear reminder tailored to conditions.
         days:
           type: array
           items:

@@ -10,6 +10,7 @@ interface RidbFacility {
   FacilityLatitude?: number;
   FacilityLongitude?: number;
   FacilityDirections?: string;
+  Reservable?: boolean;
   [key: string]: unknown;
 }
 
@@ -101,6 +102,12 @@ export async function runCamping(args: { trailNameOrId?: unknown; radiusMiles?: 
       directions: cleanText(f.FacilityDirections),
       lat: f.FacilityLatitude ?? null,
       lng: f.FacilityLongitude ?? null,
+      // Real reservation link — only reservable facilities have a bookable
+      // recreation.gov page; others get null so the model never invents one.
+      reserveUrl:
+        f.Reservable === true
+          ? `https://www.recreation.gov/camping/campgrounds/${f.FacilityID}`
+          : null,
     }));
 
     return {

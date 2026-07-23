@@ -70,12 +70,23 @@ export const GetAssistantConversationResponse = zod.object({
   "structuredData": zod.object({
   "itinerary": zod.object({
   "title": zod.string().describe('Short title for the trip (e.g. \"Weekend at Rubicon Trail\").'),
+  "dates": zod.string().optional().describe('Human-readable date range for the trip (e.g. \"May 15-18, 2026\").'),
+  "destinationName": zod.string().optional().describe('Primary destination name (trail, area, or park) the trip centers on.'),
+  "destinationLat": zod.number().optional().describe('Latitude of the primary destination, for map deep-links.'),
+  "destinationLng": zod.number().optional().describe('Longitude of the primary destination, for map deep-links.'),
+  "cellNote": zod.string().optional().describe('Cell-coverage summary for the trip area, from check_cell_coverage.'),
+  "waterNote": zod.string().optional().describe('Water availability\/sources note for the trip.'),
+  "shelterNote": zod.string().optional().describe('Shelter\/lodging overview note for the trip.'),
+  "packingNote": zod.string().optional().describe('Short packing or gear reminder tailored to conditions.'),
   "days": zod.array(zod.object({
   "day": zod.number().describe('1-indexed day number within the itinerary.'),
+  "date": zod.string().optional().describe('Human-readable calendar date for this day (e.g. \"Fri, May 15\").'),
+  "plan": zod.string().optional().describe('Main activity plan for this day (trails to run, hikes, sights, milestones).'),
   "driveTime": zod.string().optional().describe('Estimated drive time\/distance for this day (free-form, e.g. \"2.5 hrs from Sacramento\").'),
   "trailWindow": zod.string().optional().describe('The trail segment or time window planned for this day.'),
   "weatherNote": zod.string().optional().describe('Weather-aware note for this day (e.g. \"Clear skies, high of 78F\").'),
-  "campground": zod.string().optional().describe('Suggested campground\/lodging for the night of this day, if any.')
+  "campground": zod.string().optional().describe('Suggested campground\/lodging for the night of this day, if any.'),
+  "reserveUrl": zod.string().optional().describe('Reservation or info link (e.g. recreation.gov) for this day\'s campground, if known.')
 }).describe('A single day of a structured trip itinerary.'))
 }).optional().describe('A structured, multi-day trip itinerary rendered as cards in the chat UI (not prose).'),
   "coverageWarning": zod.object({

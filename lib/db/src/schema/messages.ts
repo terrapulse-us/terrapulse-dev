@@ -6,14 +6,25 @@ import { conversations } from "./conversations";
 
 export interface AssistantItineraryDay {
   day: number;
+  date?: string;
+  plan?: string;
   driveTime?: string;
   trailWindow?: string;
   weatherNote?: string;
   campground?: string;
+  reserveUrl?: string;
 }
 
 export interface AssistantItinerary {
   title: string;
+  dates?: string;
+  destinationName?: string;
+  destinationLat?: number;
+  destinationLng?: number;
+  cellNote?: string;
+  waterNote?: string;
+  shelterNote?: string;
+  packingNote?: string;
   days: AssistantItineraryDay[];
 }
 

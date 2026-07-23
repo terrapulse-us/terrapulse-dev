@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { useActivityMode } from "@/context/ActivityModeContext";
+import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContext";
 import type { AssistantMode } from "@/lib/assistant-api";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
@@ -346,6 +346,13 @@ function MountainRidges({ phase }: { phase: SkyPhase }) {
   );
 }
 
+// ── Trip-planning suggestion prompts (one-tap chip under the AI input) ──────
+const TRIP_SUGGESTION: Record<ActivityMode, string> = {
+  offroad: "Plan a 3-day off-road trip for me",
+  camping: "Plan a weekend camping trip for me",
+  hiking: "Plan a 2-day hiking trip for me",
+};
+
 // ── Main screen ──────────────────────────────────────────────────────────────
 export default function AdventureScreen() {
   const insets = useSafeAreaInsets();
@@ -592,6 +599,23 @@ export default function AdventureScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+                {/* One-tap trip-planning suggestion → assistant builds a full itinerary card */}
+                <TouchableOpacity
+                  style={[styles.aiSuggestion, { borderColor: cardBorder }]}
+                  onPress={() =>
+                    router.replace({
+                      pathname: "/(tabs)/assistant",
+                      params: { mode, prompt: TRIP_SUGGESTION[mode] },
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <Feather name="calendar" size={12} color={subColor} />
+                  <Text style={[styles.aiSuggestionText, { color: subColor }]} numberOfLines={1}>
+                    {TRIP_SUGGESTION[mode]}
+                  </Text>
+                  <Feather name="arrow-right" size={12} color={subColor} />
+                </TouchableOpacity>
               </View>
 
               {/* Remember toggle */}
@@ -663,6 +687,16 @@ const styles = StyleSheet.create({
   },
   aiLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 1.6 },
   aiRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  aiSuggestion: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  aiSuggestionText: { flex: 1, fontSize: 11, fontWeight: "700" },
   aiInput: { flex: 1, fontSize: 14, fontWeight: "600", paddingVertical: 6 },
   aiSendBtn: {
     width: 38,

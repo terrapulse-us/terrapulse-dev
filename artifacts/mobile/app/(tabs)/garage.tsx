@@ -35,6 +35,7 @@ import { OfflineManager } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
 import { db } from "@/lib/firebase";
+import type { AssistantItinerary } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivityMode, type ActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
@@ -106,7 +107,7 @@ interface CrewMember {
   location?: { lat: number; lng: number; updatedAt: number; active: boolean };
 }
 
-type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "spots";
+type GarageSection = "rides" | "maps" | "crew" | "mods" | "campsites" | "spots" | "itineraries";
 
 // A campground saved from the map's detail sheet, stored at
 // users/{uid}/campsites/{docId}. `docId` is the sanitized Firestore doc id
@@ -117,6 +118,14 @@ type SavedCampsite = Campground & { docId: string; savedAt?: { seconds: number }
 // users/{uid}/hiking_spots/{docId} (same sanitized-doc-id scheme as campsites).
 type SavedHikeSpot = HikingPoi & { docId: string; savedAt?: { seconds: number } | null };
 
+// A trip itinerary saved from the AI assistant's itinerary card, stored at
+// users/{uid}/itineraries/msg_{messageId}.
+type SavedItinerary = AssistantItinerary & {
+  docId: string;
+  mode?: ActivityMode;
+  savedAt?: { seconds: number } | null;
+};
+
 const HUB_TITLE: Record<ActivityMode, string> = {
   offroad: "MY GARAGE",
   camping: "MY TENT",
@@ -124,9 +133,9 @@ const HUB_TITLE: Record<ActivityMode, string> = {
 };
 
 const HUB_SECTIONS: Record<ActivityMode, GarageSection[]> = {
-  offroad: ["rides", "maps", "crew", "mods"],
-  camping: ["campsites", "maps", "crew", "mods"],
-  hiking: ["spots", "maps", "crew", "mods"],
+  offroad: ["rides", "itineraries", "maps", "crew", "mods"],
+  camping: ["campsites", "itineraries", "maps", "crew", "mods"],
+  hiking: ["spots", "itineraries", "maps", "crew", "mods"],
 };
 
 interface ModResult {
@@ -667,6 +676,48 @@ export default function GarageScreen() {
     ]);
   }, [user]);
 
+  // ── Saved trip itineraries (all modes) ────────────────────────────────────
+  const [savedItineraries, setSavedItineraries] = useState<SavedItinerary[]>([]);
+  const [viewItinerary, setViewItinerary] = useState<SavedItinerary | null>(null);
+
+  useEffect(() => {
+    if (!user) { setSavedItineraries([]); return; }
+    let live = false;
+    // Seed from the offline cache so trip plans survive a cold start without
+    // connectivity; the live snapshot overwrites when it lands.
+    cacheGet<SavedItinerary[]>(`itineraries:${user.uid}`).then((cached) => {
+      if (!live && cached) setSavedItineraries(cached);
+    });
+    const unsub = onSnapshot(
+      query(collection(db, "users", user.uid, "itineraries"), orderBy("savedAt", "desc")),
+      (snap) => {
+        live = true;
+        const items = snap.docs.map(
+          (d) => ({ ...(d.data() as AssistantItinerary), docId: d.id } as SavedItinerary),
+        );
+        setSavedItineraries(items);
+        cacheSet(`itineraries:${user.uid}`, items);
+      },
+      () => { live = true; setSavedItineraries([]); }
+    );
+    return unsub;
+  }, [user]);
+
+  const removeItinerary = useCallback((trip: SavedItinerary) => {
+    if (!user) return;
+    Alert.alert("Remove itinerary?", `"${trip.title}" will be removed from your saved trips.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          deleteDoc(doc(db, "users", user.uid, "itineraries", trip.docId)).catch(() => {});
+          setViewItinerary((prev) => (prev?.docId === trip.docId ? null : prev));
+        },
+      },
+    ]);
+  }, [user]);
+
   // ── Saved campsites (camping mode) ────────────────────────────────────────
   const [savedCampsites, setSavedCampsites] = useState<SavedCampsite[]>([]);
 
@@ -1114,6 +1165,7 @@ export default function GarageScreen() {
               : { icon: "shopping-bag", label: "FIND GEAR" },
             campsites: { icon: "tent", mci: true,       label: "CAMPSITES" },
             spots:     { icon: "map-marker-star", mci: true, label: "MY SPOTS" },
+            itineraries: { icon: "calendar",            label: "MY TRIPS" },
           };
           return (
             <TouchableOpacity
@@ -1322,6 +1374,77 @@ export default function GarageScreen() {
                   </TouchableOpacity>
                 );
               })}
+            </>
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── MY TRIPS (saved itineraries, all modes) ─────────────────────── */}
+      {section === "itineraries" && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 14, paddingBottom: insets.bottom + 90, gap: 12 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {savedItineraries.length === 0 ? (
+            <View style={styles.emptyCenter}>
+              <Feather name="calendar" size={48} color={colors.border} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved trips yet</Text>
+              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
+                Ask the Trip Assistant to plan a trip, then hit SAVE on the
+                itinerary card — your trip plans will show up right here.
+              </Text>
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, borderWidth: 1.5, borderColor: colors.accent, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 9 }}
+                onPress={() => router.push("/(tabs)/assistant")}
+                activeOpacity={0.8}
+              >
+                <Feather name="message-square" size={14} color={colors.accent} />
+                <Text style={[styles.mapActionText, { color: colors.accent }]}>ASK THE ASSISTANT</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                {savedItineraries.length} saved trip{savedItineraries.length === 1 ? "" : "s"} — tap one to see the full plan.
+              </Text>
+              {savedItineraries.map((trip) => (
+                <TouchableOpacity
+                  key={trip.docId}
+                  style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.accent }]}
+                  activeOpacity={0.75}
+                  onPress={() => setViewItinerary(trip)}
+                >
+                  <View style={styles.mapCardHeader}>
+                    <View style={[styles.vehicleIconWrap, { backgroundColor: colors.accent + "22" }]}>
+                      <Feather name="map" size={18} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.vehicleName, { color: colors.foreground }]} numberOfLines={2}>
+                        {trip.title}
+                      </Text>
+                      <Text style={[styles.vehicleSub, { color: colors.accent }]} numberOfLines={1}>
+                        {[
+                          trip.dates,
+                          `${trip.days.length} day${trip.days.length === 1 ? "" : "s"}`,
+                        ].filter(Boolean).join(" · ")}
+                      </Text>
+                      {trip.destinationName ? (
+                        <Text style={[styles.vehicleSub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                          {trip.destinationName}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => removeItinerary(trip)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{ padding: 4 }}
+                    >
+                      <Feather name="trash-2" size={17} color={colors.mutedForeground} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </>
           )}
         </ScrollView>
@@ -1787,6 +1910,134 @@ export default function GarageScreen() {
         onClose={() => setEditVehicle(null)}
         onSave={updateVehicle}
       />
+
+      {/* ── Saved Itinerary Detail ────────────────────────────────────────── */}
+      <Modal
+        visible={viewItinerary !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setViewItinerary(null)}
+      >
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setViewItinerary(null)}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "88%" }]}
+            onPress={() => {}}
+          >
+            <View style={styles.handle} />
+            {viewItinerary && (
+              <>
+                <Text style={[styles.modalTitle, { color: colors.foreground, marginBottom: 4 }]}>
+                  {viewItinerary.title.toUpperCase()}
+                </Text>
+                {(viewItinerary.dates || viewItinerary.destinationName) ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600", marginBottom: 12 }}>
+                    {[viewItinerary.dates, viewItinerary.destinationName].filter(Boolean).join(" · ")}
+                  </Text>
+                ) : (
+                  <View style={{ height: 8 }} />
+                )}
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {viewItinerary.days.map((day) => (
+                    <View key={day.day} style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>D{day.day}</Text>
+                      </View>
+                      <View style={{ flex: 1, gap: 4, paddingTop: 3 }}>
+                        {!!day.date && (
+                          <Text style={{ fontSize: 10, fontWeight: "800", letterSpacing: 0.5, color: colors.mutedForeground, textTransform: "uppercase" }}>
+                            {day.date}
+                          </Text>
+                        )}
+                        {!!(day.plan || day.trailWindow) && (
+                          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground }}>
+                            {day.plan || day.trailWindow}
+                          </Text>
+                        )}
+                        {!!(day.plan && day.trailWindow) && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Feather name="flag" size={11} color={colors.mutedForeground} />
+                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.trailWindow}</Text>
+                          </View>
+                        )}
+                        {!!day.driveTime && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Feather name="clock" size={11} color={colors.mutedForeground} />
+                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.driveTime}</Text>
+                          </View>
+                        )}
+                        {!!day.weatherNote && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Feather name="cloud" size={11} color={colors.mutedForeground} />
+                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.weatherNote}</Text>
+                          </View>
+                        )}
+                        {!!day.campground && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Feather name="home" size={11} color={colors.mutedForeground} />
+                            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{day.campground}</Text>
+                          </View>
+                        )}
+                        {!!day.reserveUrl && (
+                          <TouchableOpacity
+                            style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+                            onPress={() => Linking.openURL(day.reserveUrl!).catch(() => {})}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          >
+                            <Feather name="external-link" size={11} color={colors.accent} />
+                            <Text style={[styles.mapActionText, { color: colors.accent }]}>RESERVE</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                  {(viewItinerary.cellNote || viewItinerary.waterNote || viewItinerary.shelterNote || viewItinerary.packingNote) ? (
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, gap: 6, marginBottom: 4 }}>
+                      {([
+                        ["wifi-off", viewItinerary.cellNote],
+                        ["droplet", viewItinerary.waterNote],
+                        ["home", viewItinerary.shelterNote],
+                        ["package", viewItinerary.packingNote],
+                      ] as const).filter(([, text]) => !!text).map(([icon, text]) => (
+                        <View key={icon} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                          <Feather name={icon} size={12} color={colors.mutedForeground} />
+                          <Text style={{ flex: 1, fontSize: 11, lineHeight: 15, color: colors.mutedForeground }}>{text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </ScrollView>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+                  {typeof viewItinerary.destinationLat === "number" && typeof viewItinerary.destinationLng === "number" ? (
+                    <TouchableOpacity
+                      style={[styles.btn, { flex: 1, backgroundColor: colors.accent }]}
+                      onPress={() => {
+                        const trip = viewItinerary;
+                        setViewItinerary(null);
+                        router.push({
+                          pathname: "/(tabs)/map",
+                          params: {
+                            focusLat: String(trip.destinationLat),
+                            focusLng: String(trip.destinationLng),
+                          },
+                        });
+                      }}
+                    >
+                      <Text style={[styles.btnText, { color: "#fff" }]}>VIEW ON MAP</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                    onPress={() => removeItinerary(viewItinerary)}
+                  >
+                    <Text style={[styles.btnText, { color: colors.destructive }]}>REMOVE</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ── Vehicle Picker (for mod context) ──────────────────────────────── */}
       <Modal visible={showModVehiclePicker} animationType="slide" transparent onRequestClose={() => setShowModVehiclePicker(false)}>

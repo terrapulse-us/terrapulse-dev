@@ -13,5 +13,21 @@ import type { AssistantItineraryDay } from './assistantItineraryDay';
 export interface AssistantItinerary {
   /** Short title for the trip (e.g. "Weekend at Rubicon Trail"). */
   title: string;
+  /** Human-readable date range for the trip (e.g. "May 15-18, 2026"). */
+  dates?: string;
+  /** Primary destination name (trail, area, or park) the trip centers on. */
+  destinationName?: string;
+  /** Latitude of the primary destination, for map deep-links. */
+  destinationLat?: number;
+  /** Longitude of the primary destination, for map deep-links. */
+  destinationLng?: number;
+  /** Cell-coverage summary for the trip area, from check_cell_coverage. */
+  cellNote?: string;
+  /** Water availability/sources note for the trip. */
+  waterNote?: string;
+  /** Shelter/lodging overview note for the trip. */
+  shelterNote?: string;
+  /** Short packing or gear reminder tailored to conditions. */
+  packingNote?: string;
   days: AssistantItineraryDay[];
 }

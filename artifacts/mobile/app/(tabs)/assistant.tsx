@@ -5,6 +5,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -17,7 +18,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQueryClient } from "@tanstack/react-query";
-import { doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import {
   useListAssistantConversations,
   useCreateAssistantConversation,
@@ -103,6 +104,8 @@ export default function AssistantScreen() {
     useState<AssistantCoverageWarning | null>(null);
   const [downloadingTrailId, setDownloadingTrailId] = useState<string | null>(null);
   const [downloadedTrailIds, setDownloadedTrailIds] = useState<Set<string>>(new Set());
+  const [savedItineraryIds, setSavedItineraryIds] = useState<Set<string>>(new Set());
+  const [savingItineraryId, setSavingItineraryId] = useState<string | null>(null);
   const listRef = useRef<FlatList<DisplayMessage>>(null);
 
   // Follow the app-wide activity mode (adventure page pills / map filter switcher)
@@ -173,6 +176,36 @@ export default function AssistantScreen() {
     });
     return unsub;
   }, [uid]);
+
+  // Track which itineraries this user has saved so cards can show a
+  // "Saved" state; the same collection powers My Itineraries in the garage.
+  useEffect(() => {
+    if (!uid) { setSavedItineraryIds(new Set()); return; }
+    const unsub = onSnapshot(
+      collection(db, "users", uid, "itineraries"),
+      (snap) => setSavedItineraryIds(new Set(snap.docs.map((d) => d.id))),
+      () => {},
+    );
+    return unsub;
+  }, [uid]);
+
+  const handleSaveItinerary = async (messageId: string, itinerary: AssistantItinerary) => {
+    if (!uid || savingItineraryId) return;
+    setSavingItineraryId(messageId);
+    try {
+      // Firestore rejects undefined values — strip unset optional fields.
+      const clean = JSON.parse(JSON.stringify(itinerary)) as AssistantItinerary;
+      await setDoc(doc(db, "users", uid, "itineraries", `msg_${messageId}`), {
+        ...clean,
+        mode,
+        savedAt: serverTimestamp(),
+      });
+    } catch {
+      Alert.alert("Save failed", "Could not save this itinerary. Please try again.");
+    } finally {
+      setSavingItineraryId(null);
+    }
+  };
 
   const authHeaders = useMemo(() => ({ "X-User-Id": uid }), [uid]);
 
@@ -406,44 +439,134 @@ export default function AssistantScreen() {
             )}
           </View>
         )}
-        {!!item.itinerary && (
-          <View style={[styles.itineraryCard, styles.bubble]}>
-            <View style={styles.itineraryHeader}>
-              <Feather name="map" size={15} color={colors.primary} />
-              <Text style={styles.itineraryTitle}>{item.itinerary.title}</Text>
-            </View>
-            {item.itinerary.days.map((day) => (
-              <View key={day.day} style={styles.itineraryDay}>
-                <View style={styles.itineraryDayBadge}>
-                  <Text style={styles.itineraryDayBadgeText}>D{day.day}</Text>
-                </View>
-                <View style={styles.itineraryDayBody}>
-                  {!!day.trailWindow && (
-                    <Text style={styles.itineraryDayLine}>{day.trailWindow}</Text>
-                  )}
-                  {!!day.driveTime && (
-                    <View style={styles.itineraryDayMetaRow}>
-                      <Feather name="clock" size={11} color={colors.mutedForeground} />
-                      <Text style={styles.itineraryDayMeta}>{day.driveTime}</Text>
-                    </View>
-                  )}
-                  {!!day.weatherNote && (
-                    <View style={styles.itineraryDayMetaRow}>
-                      <Feather name="cloud" size={11} color={colors.mutedForeground} />
-                      <Text style={styles.itineraryDayMeta}>{day.weatherNote}</Text>
-                    </View>
-                  )}
-                  {!!day.campground && (
-                    <View style={styles.itineraryDayMetaRow}>
-                      <Feather name="home" size={11} color={colors.mutedForeground} />
-                      <Text style={styles.itineraryDayMeta}>{day.campground}</Text>
-                    </View>
-                  )}
+        {!!item.itinerary && (() => {
+          const it = item.itinerary;
+          const hasCoords =
+            typeof it.destinationLat === "number" && typeof it.destinationLng === "number";
+          const saved = savedItineraryIds.has(`msg_${item.id}`);
+          const saving = savingItineraryId === item.id;
+          const notes: Array<{ icon: React.ComponentProps<typeof Feather>["name"]; text: string }> = [
+            ...(it.cellNote ? [{ icon: "wifi-off" as const, text: it.cellNote }] : []),
+            ...(it.waterNote ? [{ icon: "droplet" as const, text: it.waterNote }] : []),
+            ...(it.shelterNote ? [{ icon: "home" as const, text: it.shelterNote }] : []),
+            ...(it.packingNote ? [{ icon: "package" as const, text: it.packingNote }] : []),
+          ];
+          return (
+            <View style={[styles.itineraryCard, styles.bubble]}>
+              <View style={styles.itineraryHeader}>
+                <Feather name="map" size={15} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itineraryTitle}>{it.title}</Text>
+                  {!!it.dates && <Text style={styles.itineraryDates}>{it.dates}</Text>}
                 </View>
               </View>
-            ))}
-          </View>
-        )}
+              {!!it.destinationName && (
+                <View style={styles.itineraryDayMetaRow}>
+                  <Feather name="map-pin" size={12} color={colors.mutedForeground} />
+                  <Text style={styles.itineraryDestination}>{it.destinationName}</Text>
+                </View>
+              )}
+              {it.days.map((day) => (
+                <View key={day.day} style={styles.itineraryDay}>
+                  <View style={styles.itineraryDayBadge}>
+                    <Text style={styles.itineraryDayBadgeText}>D{day.day}</Text>
+                  </View>
+                  <View style={styles.itineraryDayBody}>
+                    {!!day.date && <Text style={styles.itineraryDayDate}>{day.date}</Text>}
+                    {!!(day.plan || day.trailWindow) && (
+                      <Text style={styles.itineraryDayLine}>{day.plan || day.trailWindow}</Text>
+                    )}
+                    {!!(day.plan && day.trailWindow) && (
+                      <View style={styles.itineraryDayMetaRow}>
+                        <Feather name="flag" size={11} color={colors.mutedForeground} />
+                        <Text style={styles.itineraryDayMeta}>{day.trailWindow}</Text>
+                      </View>
+                    )}
+                    {!!day.driveTime && (
+                      <View style={styles.itineraryDayMetaRow}>
+                        <Feather name="clock" size={11} color={colors.mutedForeground} />
+                        <Text style={styles.itineraryDayMeta}>{day.driveTime}</Text>
+                      </View>
+                    )}
+                    {!!day.weatherNote && (
+                      <View style={styles.itineraryDayMetaRow}>
+                        <Feather name="cloud" size={11} color={colors.mutedForeground} />
+                        <Text style={styles.itineraryDayMeta}>{day.weatherNote}</Text>
+                      </View>
+                    )}
+                    {!!day.campground && (
+                      <View style={styles.itineraryDayMetaRow}>
+                        <Feather name="home" size={11} color={colors.mutedForeground} />
+                        <Text style={styles.itineraryDayMeta}>{day.campground}</Text>
+                      </View>
+                    )}
+                    {!!day.reserveUrl && (
+                      <TouchableOpacity
+                        style={styles.itineraryDayMetaRow}
+                        onPress={() => Linking.openURL(day.reserveUrl!).catch(() => {})}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Feather name="external-link" size={11} color={colors.primary} />
+                        <Text style={styles.itineraryReserveText}>RESERVE</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+              {notes.length > 0 && (
+                <View style={styles.itineraryNotes}>
+                  {notes.map((note) => (
+                    <View key={note.icon} style={styles.itineraryNoteRow}>
+                      <Feather name={note.icon} size={12} color={colors.mutedForeground} />
+                      <Text style={styles.itineraryNoteText}>{note.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {(hasCoords || !item.pending) && (
+                <View style={styles.itineraryActions}>
+                  {hasCoords && (
+                    <TouchableOpacity
+                      style={styles.itineraryActionBtn}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(tabs)/map",
+                          params: {
+                            focusLat: String(it.destinationLat),
+                            focusLng: String(it.destinationLng),
+                          },
+                        })
+                      }
+                    >
+                      <Feather name="navigation" size={13} color={colors.primary} />
+                      <Text style={styles.itineraryActionText}>VIEW ON MAP</Text>
+                    </TouchableOpacity>
+                  )}
+                  {!item.pending &&
+                    (saved ? (
+                      <View style={styles.itineraryActionBtn}>
+                        <Feather name="check-circle" size={13} color={colors.mutedForeground} />
+                        <Text style={styles.itinerarySavedText}>SAVED</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.itinerarySaveBtn}
+                        onPress={() => handleSaveItinerary(item.id, it)}
+                        disabled={saving || !uid}
+                      >
+                        {saving ? (
+                          <ActivityIndicator size="small" color={colors.primaryForeground} />
+                        ) : (
+                          <Feather name="bookmark" size={13} color={colors.primaryForeground} />
+                        )}
+                        <Text style={styles.itinerarySaveText}>{saving ? "SAVING…" : "SAVE"}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              )}
+            </View>
+          );
+        })()}
       </View>
     );
   };
@@ -813,6 +936,94 @@ function makeStyles(colors: ReturnType<typeof useColors>) {
     itineraryDayMeta: {
       fontSize: 11,
       color: colors.mutedForeground,
+    },
+    itineraryDates: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.mutedForeground,
+      marginTop: 1,
+    },
+    itineraryDestination: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.foreground,
+    },
+    itineraryDayDate: {
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: colors.mutedForeground,
+      textTransform: "uppercase",
+    },
+    itineraryReserveText: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: colors.primary,
+    },
+    itineraryNotes: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 8,
+      gap: 6,
+    },
+    itineraryNoteRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
+    },
+    itineraryNoteText: {
+      flex: 1,
+      fontSize: 11,
+      lineHeight: 15,
+      color: colors.mutedForeground,
+    },
+    itineraryActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 8,
+    },
+    itineraryActionBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+      borderRadius: colors.radius,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    itineraryActionText: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: colors.primary,
+    },
+    itinerarySavedText: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: colors.mutedForeground,
+    },
+    itinerarySaveBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+      borderRadius: colors.radius,
+      backgroundColor: colors.primary,
+    },
+    itinerarySaveText: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: colors.primaryForeground,
     },
     inputRow: {
       flexDirection: "row",

@@ -34,6 +34,10 @@ export const AssistantMessageRole = {
 export interface AssistantItineraryDay {
   /** 1-indexed day number within the itinerary. */
   day: number;
+  /** Human-readable calendar date for this day (e.g. "Fri, May 15"). */
+  date?: string;
+  /** Main activity plan for this day (trails to run, hikes, sights, milestones). */
+  plan?: string;
   /** Estimated drive time/distance for this day (free-form, e.g. "2.5 hrs from Sacramento"). */
   driveTime?: string;
   /** The trail segment or time window planned for this day. */
@@ -42,6 +46,8 @@ export interface AssistantItineraryDay {
   weatherNote?: string;
   /** Suggested campground/lodging for the night of this day, if any. */
   campground?: string;
+  /** Reservation or info link (e.g. recreation.gov) for this day's campground, if known. */
+  reserveUrl?: string;
 }
 
 /**
@@ -50,6 +56,22 @@ export interface AssistantItineraryDay {
 export interface AssistantItinerary {
   /** Short title for the trip (e.g. "Weekend at Rubicon Trail"). */
   title: string;
+  /** Human-readable date range for the trip (e.g. "May 15-18, 2026"). */
+  dates?: string;
+  /** Primary destination name (trail, area, or park) the trip centers on. */
+  destinationName?: string;
+  /** Latitude of the primary destination, for map deep-links. */
+  destinationLat?: number;
+  /** Longitude of the primary destination, for map deep-links. */
+  destinationLng?: number;
+  /** Cell-coverage summary for the trip area, from check_cell_coverage. */
+  cellNote?: string;
+  /** Water availability/sources note for the trip. */
+  waterNote?: string;
+  /** Shelter/lodging overview note for the trip. */
+  shelterNote?: string;
+  /** Short packing or gear reminder tailored to conditions. */
+  packingNote?: string;
   days: AssistantItineraryDay[];
 }
 
