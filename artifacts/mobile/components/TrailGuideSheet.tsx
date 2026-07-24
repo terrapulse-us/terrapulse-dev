@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useActivityMode } from "@/context/ActivityModeContext";
 import type { TrailGuide } from "@/lib/trail-guide";
 import { SOURCE_CONFIG } from "@/lib/trail-guide";
 
@@ -72,6 +73,10 @@ const chipStyles = StyleSheet.create({
 export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRide, activeRideInfo }: TrailGuideSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { mode } = useActivityMode();
+  const isHike = mode === "hiking";
+  const activityWord = isHike ? "HIKE" : "RIDE";
+  const memberWord = isHike ? "HIKER" : "RIDER";
 
   const handleNavigate = useCallback(() => {
     if (!guide?.routeCoordinates?.length) return;
@@ -266,8 +271,8 @@ export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRid
             <MaterialCommunityIcons name="account-group" size={17} color="#fff" />
             <Text style={[styles.navBtnText, { color: "#fff" }]}>
               {activeRideInfo
-                ? `JOIN GROUP RIDE  (${activeRideInfo.memberCount} RIDER${activeRideInfo.memberCount !== 1 ? "S" : ""})`
-                : "START GROUP RIDE"}
+                ? `JOIN GROUP ${activityWord}  (${activeRideInfo.memberCount} ${memberWord}${activeRideInfo.memberCount !== 1 ? "S" : ""})`
+                : `START GROUP ${activityWord}`}
             </Text>
           </TouchableOpacity>
         )}

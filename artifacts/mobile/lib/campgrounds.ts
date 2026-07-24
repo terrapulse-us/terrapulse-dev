@@ -248,7 +248,7 @@ async function fetchOsmCampsites(
           lng: lon,
           kind: (dispersed ? "dispersed" : "developed") as CampgroundKind,
           sources: ["osm"] as CampgroundSource[],
-          description: null,
+          description: stripHtml(t.description ?? t.note ?? null),
           amenities,
           fee,
           season: null,
@@ -391,7 +391,8 @@ export async function fetchCampgroundsNear(
   radiusMiles = 40,
 ): Promise<Campground[]> {
   // v2: v1 caches could contain non-campground RIDB facilities (filter added).
-  const cacheKey = `camps_merged_v2_${lat.toFixed(2)}_${lng.toFixed(2)}_${radiusMiles}`;
+  // v3: OSM description/note tags now captured — invalidate v2 payloads.
+  const cacheKey = `camps_merged_v3_${lat.toFixed(2)}_${lng.toFixed(2)}_${radiusMiles}`;
   const cached = await getCached<Campground[]>(cacheKey);
   if (cached) return cached;
 

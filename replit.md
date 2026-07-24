@@ -31,7 +31,7 @@ Nationwide off-road and hiking trail finder mobile app (all 50 states, 538 trail
 - `lib/trail-data/route-status.json` — per-trail route/area classification + status manifest; source of truth for the trail-line pipeline (`scripts/src/trail-pipeline/`).
 - `artifacts/mobile/lib/usfs-api.ts` / `blm-api.ts` — live USFS EDW + BLM ArcGIS queries (trail networks, MVUM, OHV boundaries, land-ownership overlay).
 - `artifacts/mobile/lib/hiking-pois.ts` — merged hiking POI layer (USFS EDW trailheads > RIDB > BLM rec points layers 14/13/11/9 > OSM Overpass; 7 kinds: trailhead/viewpoint/peak/waterfall/water/shelter/picnic; dedupe same-kind ~0.31 mi + name match, unnamed merge only <0.09 mi; 24h cache `hike_pois_v1_*`). Map shows one HIKING POINTS toggle color-coded by kind; RIDB filtered client-side to `FacilityTypeDescription === "Trailhead"`. Saved spots surface in garage.tsx MY SPOTS (hiking mode, replaced the MY GEAR stub; cache seed `hikespots:${uid}`).
-- `artifacts/mobile/lib/campgrounds.ts` — merged campground layer (RIDB canonical > USFS EDW > BLM > OSM Overpass; dedupe ~1 km + normalized names, 24h cache `camps_merged_v2_*`). Map shows one CAMPGROUNDS toggle color-coded by kind (brown developed / green reservable / orange dispersed); detail sheet has season/fees/amenity chips + RESERVE/WEBSITE links. RIDB `/facilities` ignores `facilitytype` — filtered client-side by `FacilityTypeDescription`.
+- `artifacts/mobile/lib/campgrounds.ts` — merged campground layer (RIDB canonical > USFS EDW > BLM > OSM Overpass; dedupe ~1 km + normalized names, 24h cache `camps_merged_v3_*`). Map shows one CAMPGROUNDS toggle color-coded by kind (brown developed / green reservable / orange dispersed); detail sheet has season/fees/amenity chips + RESERVE/WEBSITE links, on-tap Open-Meteo enrichment (`lib/campsite-enrich.ts`: elevation, current conditions, 3-day forecast, sunrise/sunset; 1h cache, 10s timeout, keyless API) and an ASK AI button that hands the site off to the assistant tab with a canned prompt. RIDB `/facilities` ignores `facilitytype` — filtered client-side by `FacilityTypeDescription`.
 - `artifacts/mobile/firestore.rules.txt` — source-of-truth Firestore security rules. **Not deployed automatically** — paste into Firebase Console (or `firebase deploy --only firestore:rules`) after every change.
 
 ## Policies & decisions
@@ -42,6 +42,7 @@ Nationwide off-road and hiking trail finder mobile app (all 50 states, 538 trail
 - **Assistant reliability:** coverage warnings/itinerary cards are gated deterministically server-side, never inferred from model prose; `present_itinerary` input is zod-validated with errors fed back as `is_error` tool results.
 - Community Notes store a client-side `createdAtFallback` alongside `serverTimestamp()` so the 48h-expiry filter works while the server timestamp resolves.
 - Friend requests: `friendRequests/{id}` + recipient notification; accept writes mutual `users/{uid}/crew/{memberId}` docs.
+- Group ride wording is mode-aware: hiking shows GROUP HIKE / HIKERS (TrailDetailScreen keys off `trail.category`, TrailGuideSheet + map.tsx HUD/alerts/chat key off activity mode); offroad/camping keep RIDE / RIDERS.
 
 ## User preferences
 

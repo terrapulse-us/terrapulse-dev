@@ -134,6 +134,7 @@ import {
   CAMPGROUND_KIND_LABELS,
   type Campground,
 } from "@/lib/campgrounds";
+import { fetchCampsiteExtras, type CampsiteExtras } from "@/lib/campsite-enrich";
 import {
   fetchHikingPoisNear,
   hikingPoiChips,
@@ -1295,6 +1296,32 @@ export default function MapScreen() {
   const [campgrounds, setCampgrounds] = useState<Campground[]>([]);
   const [campgroundsLoading, setCampgroundsLoading] = useState(false);
   const [selectedCampground, setSelectedCampground] = useState<Campground | null>(null);
+  // On-tap enrichment (elevation + weather via Open-Meteo) for the campground
+  // detail sheet — BLM/dispersed/OSM sites carry almost no metadata of their own.
+  const [campExtras, setCampExtras] = useState<CampsiteExtras | null>(null);
+  const [campExtrasLoading, setCampExtrasLoading] = useState(false);
+  // Fetch elevation/weather extras whenever a campground sheet opens.
+  useEffect(() => {
+    if (!selectedCampground) {
+      setCampExtras(null);
+      setCampExtrasLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCampExtras(null);
+    setCampExtrasLoading(true);
+    fetchCampsiteExtras(selectedCampground.lat, selectedCampground.lng)
+      .then((extras) => {
+        if (!cancelled) setCampExtras(extras);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCampExtrasLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCampground]);
   // Saved campsites (users/{uid}/campsites) — full docs so saved spots render
   // as markers even when they're outside the fetched radius or the app is
   // offline; ids drive the SAVE/SAVED button state on the detail sheet.
@@ -1658,12 +1685,15 @@ export default function MapScreen() {
       setSelectedTrail(null);
       setFollowedTrailIds(prev => prev.includes(selectedTrail.id) ? prev : [...prev, selectedTrail.id]);
       setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedTrail.id) }, { merge: true }).catch(() => {});
-      Alert.alert("Group Ride Started 🚙", `Share the trail with friends — they can join from ${selectedTrail.title}'s trail page.`);
+      Alert.alert(
+        activityMode === "hiking" ? "Group Hike Started 🥾" : "Group Ride Started 🚙",
+        `Share the trail with friends — they can join from ${selectedTrail.title}'s trail page.`,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet. Check the Rules tab in your Firebase Console." : "An error occurred. Please try again.");
+      Alert.alert(activityMode === "hiking" ? "Could Not Start Hike" : "Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet. Check the Rules tab in your Firebase Console." : "An error occurred. Please try again.");
     }
-  }, [user, selectedTrail, userLocation]);
+  }, [user, selectedTrail, userLocation, activityMode]);
 
   const handleJoinGroupRide = useCallback(async () => {
     if (!user || !selectedTrail) return;
@@ -1737,10 +1767,13 @@ export default function MapScreen() {
         setSelectedGuide(null);
         setFollowedTrailIds(prev => prev.includes(selectedGuide.id) ? prev : [...prev, selectedGuide.id]);
         setDoc(doc(db, "users", user.uid), { followedTrailIds: arrayUnion(selectedGuide.id) }, { merge: true }).catch(() => {});
-        Alert.alert("Group Ride Started 🚙", `Friends can join from this trail's sheet.`);
+        Alert.alert(
+          activityMode === "hiking" ? "Group Hike Started 🥾" : "Group Ride Started 🚙",
+          `Friends can join from this trail's sheet.`,
+        );
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        Alert.alert("Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
+        Alert.alert(activityMode === "hiking" ? "Could Not Start Hike" : "Could Not Start Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
       }
     } else {
       const result = await getActiveRideForTrail(selectedGuide.id);
@@ -1757,7 +1790,7 @@ export default function MapScreen() {
         Alert.alert("Could Not Join Ride", msg.includes("permission") ? "Firebase rules may not be published yet." : "An error occurred. Please try again.");
       }
     }
-  }, [user, selectedGuide, userLocation]);
+  }, [user, selectedGuide, userLocation, activityMode]);
 
   // ── NFS overlay fetch ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -4565,7 +4598,7 @@ export default function MapScreen() {
             <View style={[styles.rideHudDot, { backgroundColor: "#43A047" }]} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.rideHudTitle, { color: colors.foreground }]} numberOfLines={1}>
-                GROUP RIDE · {rideMembers.length} {rideMembers.length === 1 ? "RIDER" : "RIDERS"}
+                GROUP {activityMode === "hiking" ? "HIKE" : "RIDE"} · {rideMembers.length} {activityMode === "hiking" ? (rideMembers.length === 1 ? "HIKER" : "HIKERS") : (rideMembers.length === 1 ? "RIDER" : "RIDERS")}
               </Text>
               <Text style={[styles.rideHudSub, { color: colors.mutedForeground }]} numberOfLines={1}>
                 {activeRide.trailName}
@@ -5230,6 +5263,65 @@ export default function MapScreen() {
                   </View>
                 </View>
 
+                {/* On-tap enrichment: elevation + live conditions (Open-Meteo) —
+                    gives BLM/dispersed/OSM sites real substance beyond the pin. */}
+                {campExtrasLoading ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <ActivityIndicator size="small" color={kindColor} />
+                    <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
+                      Checking elevation & conditions…
+                    </Text>
+                  </View>
+                ) : campExtras ? (
+                  <>
+                    {(campExtras.elevationFt !== null || campExtras.currentTempF !== null || campExtras.sunrise || campExtras.sunset) ? (
+                      <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                        {campExtras.elevationFt !== null ? (
+                          <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                            <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>ELEVATION</Text>
+                            <Text style={[styles.blmCampStatValue, { color: colors.foreground }]}>
+                              {campExtras.elevationFt.toLocaleString()} ft
+                            </Text>
+                          </View>
+                        ) : null}
+                        {campExtras.currentTempF !== null ? (
+                          <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                            <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>RIGHT NOW</Text>
+                            <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                              {campExtras.currentTempF}°F{campExtras.currentLabel ? ` · ${campExtras.currentLabel}` : ""}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {(campExtras.sunrise || campExtras.sunset) ? (
+                          <View style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                            <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>SUNRISE / SET</Text>
+                            <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={2}>
+                              {[campExtras.sunrise, campExtras.sunset].filter(Boolean).join(" · ")}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {campExtras.days.length > 0 ? (
+                      <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                        {campExtras.days.map((d, i) => (
+                          <View key={`${d.day}-${i}`} style={[styles.blmCampStat, { backgroundColor: colors.background, flex: 1 }]}>
+                            <Text style={[styles.blmCampStatLabel, { color: colors.mutedForeground }]}>
+                              {i === 0 ? "TODAY" : d.day}
+                            </Text>
+                            <Text style={[styles.blmCampStatValue, { color: colors.foreground }]} numberOfLines={1}>
+                              {d.hiF}° / {d.loF}°{d.precipPct >= 15 ? ` · ${d.precipPct}%💧` : ""}
+                            </Text>
+                            <Text style={{ fontSize: 10, fontWeight: "600", color: colors.mutedForeground, marginTop: 1 }} numberOfLines={1}>
+                              {d.label}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </>
+                ) : null}
+
                 {(camp.fee || camp.capacity) ? (
                   <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                     {camp.fee ? (
@@ -5276,6 +5368,20 @@ export default function MapScreen() {
                     </ScrollView>
                   </View>
                 ) : null}
+
+                {/* Hand the site to the AI Trip Assistant for the deep dive —
+                    road access, cell coverage, packing, nearby trails. */}
+                <TouchableOpacity
+                  style={[styles.blmCampCloseBtn, { backgroundColor: kindColor, borderColor: kindColor, marginBottom: 8 }]}
+                  onPress={() => {
+                    const prompt = `Tell me about camping at ${camp.name} (coordinates ${camp.lat.toFixed(4)}, ${camp.lng.toFixed(4)}${camp.operator ? `, managed by ${camp.operator}` : ""}). What is road access like, is there cell coverage, what are current conditions, and what should I pack?`;
+                    setSelectedCampground(null);
+                    router.push({ pathname: "/(tabs)/assistant", params: { mode: "camping", prompt } });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[{ fontSize: 12, fontWeight: "900", letterSpacing: 1.5, color: "#fff" }]}>✨ ASK AI ABOUT THIS SPOT</Text>
+                </TouchableOpacity>
 
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   {camp.reservationUrl ? (
@@ -5459,9 +5565,11 @@ export default function MapScreen() {
                 <MaterialCommunityIcons name="account-group" size={18} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rideChatTitle, { color: "#1E88E5" }]}>GROUP RIDE CHAT</Text>
+                <Text style={[styles.rideChatTitle, { color: "#1E88E5" }]}>
+                  GROUP {activityMode === "hiking" ? "HIKE" : "RIDE"} CHAT
+                </Text>
                 <Text style={[{ fontSize: 13, fontWeight: "700", color: colors.foreground }]} numberOfLines={1}>
-                  {activeRide?.trailName}  ·  {rideMembers.length} riders
+                  {activeRide?.trailName}  ·  {rideMembers.length} {activityMode === "hiking" ? "hikers" : "riders"}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setShowRideChat(false)}>

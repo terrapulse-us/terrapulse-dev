@@ -525,24 +525,29 @@ export default function TrailDetailScreen({
           </TouchableOpacity>
         )}
 
-        {/* ── GROUP RIDE ── */}
-        {!!onGroupRide && (
-          <TouchableOpacity
-            style={[s.followTrailBtn, {
-              backgroundColor: activeRideInfo ? "#1E88E5" : "#43A047",
-              borderBottomColor: colors.border,
-            }]}
-            onPress={() => onGroupRide(activeRideInfo ? "join" : "start")}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="account-group" size={18} color="#fff" />
-            <Text style={[s.followTrailText, { color: "#fff" }]}>
-              {activeRideInfo
-                ? `JOIN GROUP RIDE  (${activeRideInfo.memberCount} RIDER${activeRideInfo.memberCount !== 1 ? "S" : ""})`
-                : "START GROUP RIDE"}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* ── GROUP RIDE / GROUP HIKE ── */}
+        {!!onGroupRide && (() => {
+          const isHike = trail.category === "hiking";
+          const activityWord = isHike ? "HIKE" : "RIDE";
+          const memberWord = isHike ? "HIKER" : "RIDER";
+          return (
+            <TouchableOpacity
+              style={[s.followTrailBtn, {
+                backgroundColor: activeRideInfo ? "#1E88E5" : "#43A047",
+                borderBottomColor: colors.border,
+              }]}
+              onPress={() => onGroupRide(activeRideInfo ? "join" : "start")}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="account-group" size={18} color="#fff" />
+              <Text style={[s.followTrailText, { color: "#fff" }]}>
+                {activeRideInfo
+                  ? `JOIN GROUP ${activityWord}  (${activeRideInfo.memberCount} ${memberWord}${activeRideInfo.memberCount !== 1 ? "S" : ""})`
+                  : `START GROUP ${activityWord}`}
+              </Text>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* ── TAB BAR ── */}
         <View style={[s.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>

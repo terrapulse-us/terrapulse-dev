@@ -120,10 +120,15 @@ export default function AssistantScreen() {
   const params = useLocalSearchParams<{ mode?: string; prompt?: string }>();
   const consumedParamsRef = useRef(false);
   useEffect(() => {
-    if (consumedParamsRef.current) return;
     const paramMode = typeof params.mode === "string" ? params.mode : undefined;
     const paramPrompt = typeof params.prompt === "string" ? params.prompt.trim() : "";
-    if (!paramMode && !paramPrompt) return;
+    if (!paramMode && !paramPrompt) {
+      // Params were cleared after the last hand-off — re-arm so the next
+      // hand-off (e.g. tapping ASK AI on another campsite) is consumed too.
+      consumedParamsRef.current = false;
+      return;
+    }
+    if (consumedParamsRef.current) return;
     consumedParamsRef.current = true;
     if (paramMode === "offroad" || paramMode === "camping" || paramMode === "hiking") {
       setMode(paramMode);
