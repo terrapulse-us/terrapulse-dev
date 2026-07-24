@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,16 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { MaterialIcons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useActivityMode } from "@/context/ActivityModeContext";
 import type { TrailGuide } from "@/lib/trail-guide";
 import { SOURCE_CONFIG } from "@/lib/trail-guide";
+import { fetchCampsiteExtras, type CampsiteExtras } from "@/lib/campsite-enrich";
 
 interface TrailGuideSheetProps {
   guide: TrailGuide | null;
@@ -73,16 +76,63 @@ const chipStyles = StyleSheet.create({
 export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRide, activeRideInfo }: TrailGuideSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { mode } = useActivityMode();
   const isHike = mode === "hiking";
   const activityWord = isHike ? "HIKE" : "RIDE";
   const memberWord = isHike ? "HIKER" : "RIDER";
+
+  // On-open enrichment (elevation + weather via Open-Meteo) — same treatment
+  // the campground sheet gets; USFS/OSM/BLM points carry no conditions data.
+  const [extras, setExtras] = useState<CampsiteExtras | null>(null);
+  const [extrasLoading, setExtrasLoading] = useState(false);
+  const guideLng = guide?.startCoord?.[0] ?? 0;
+  const guideLat = guide?.startCoord?.[1] ?? 0;
+  useEffect(() => {
+    // startCoord falls back to [0,0] for a few sources — skip the fetch then.
+    if (!guide || (guideLat === 0 && guideLng === 0)) {
+      setExtras(null);
+      setExtrasLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setExtras(null);
+    setExtrasLoading(true);
+    fetchCampsiteExtras(guideLat, guideLng)
+      .then((e) => {
+        if (!cancelled) setExtras(e);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setExtrasLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [guide?.id, guideLat, guideLng]);
 
   const handleNavigate = useCallback(() => {
     if (!guide?.routeCoordinates?.length) return;
     onNavigate(guide.routeCoordinates, guide.name);
     onClose();
   }, [guide, onNavigate, onClose]);
+
+  const handleAskAi = useCallback(() => {
+    if (!guide) return;
+    const coordPart =
+      guideLat !== 0 || guideLng !== 0
+        ? ` (coordinates ${guideLat.toFixed(4)}, ${guideLng.toFixed(4)}${guide.managingOrg ? `, managed by ${guide.managingOrg}` : ""})`
+        : guide.managingOrg
+          ? ` (managed by ${guide.managingOrg})`
+          : "";
+    const prompt = isHike
+      ? `Tell me about hiking at ${guide.name}${coordPart}. What is the trail like, is there cell coverage, what are current conditions, and what should I bring?`
+      : mode === "camping"
+        ? `Tell me about visiting and camping near ${guide.name}${coordPart}. What is road access like, is there cell coverage, what are current conditions, and what should I pack?`
+        : `Tell me about riding at ${guide.name}${coordPart}. What is the terrain and road access like, is there cell coverage, what are current conditions, and what should I pack?`;
+    onClose();
+    router.push({ pathname: "/(tabs)/assistant", params: { mode, prompt } });
+  }, [guide, guideLat, guideLng, isHike, mode, onClose, router]);
 
   if (!guide) return null;
 
@@ -168,6 +218,70 @@ export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRid
               <StatChip icon="speed" label="Class" value={guide.trailClass} color={src.color} />
             ) : null}
           </View>
+
+          {/* On-tap enrichment: elevation + live conditions (Open-Meteo) —
+              same treatment the campground sheet gets. */}
+          {extrasLoading ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+              <ActivityIndicator size="small" color={src.color} />
+              <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
+                Checking elevation & conditions…
+              </Text>
+            </View>
+          ) : extras ? (
+            <>
+              {(extras.elevationFt !== null || extras.currentTempF !== null || extras.sunrise || extras.sunset) ? (
+                <View style={[styles.statsRow, { marginTop: 10 }]}>
+                  {extras.elevationFt !== null ? (
+                    <StatChip
+                      icon="landscape"
+                      label="Elevation"
+                      value={`${extras.elevationFt.toLocaleString()} ft`}
+                      color={src.color}
+                    />
+                  ) : null}
+                  {extras.currentTempF !== null ? (
+                    <StatChip
+                      icon="wb-sunny"
+                      label="Right now"
+                      value={`${extras.currentTempF}°F${extras.currentLabel ? ` · ${extras.currentLabel}` : ""}`}
+                      color={src.color}
+                    />
+                  ) : null}
+                  {(extras.sunrise || extras.sunset) ? (
+                    <StatChip
+                      icon="schedule"
+                      label="Sunrise / set"
+                      value={[extras.sunrise, extras.sunset].filter(Boolean).join(" · ")}
+                      color={src.color}
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+              {extras.days.length > 0 ? (
+                <View style={[styles.statsRow, { marginTop: 8 }]}>
+                  {extras.days.map((d, i) => (
+                    <View
+                      key={`${d.day}-${i}`}
+                      style={[chipStyles.chip, { backgroundColor: colors.background, borderColor: colors.border }]}
+                    >
+                      <View style={chipStyles.chipTextWrap}>
+                        <Text style={[chipStyles.chipLabel, { color: colors.mutedForeground }]} numberOfLines={1}>
+                          {i === 0 ? "Today" : d.day}
+                        </Text>
+                        <Text style={[chipStyles.chipValue, { color: colors.foreground }]} numberOfLines={1}>
+                          {d.hiF}° / {d.loF}°{d.precipPct >= 15 ? ` · ${d.precipPct}%💧` : ""}
+                        </Text>
+                        <Text style={{ fontSize: 10, fontWeight: "600", color: colors.mutedForeground, marginTop: 1 }} numberOfLines={1}>
+                          {d.label}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          ) : null}
 
           {/* Allowed use */}
           {guide.allowedUse ? (
@@ -276,6 +390,15 @@ export default function TrailGuideSheet({ guide, onClose, onNavigate, onGroupRid
             </Text>
           </TouchableOpacity>
         )}
+
+        {/* Hand the spot to the AI Trip Assistant — matches the campground sheet */}
+        <TouchableOpacity
+          style={[styles.navBtn, { backgroundColor: "#7B3F9E", marginTop: 8 }]}
+          onPress={handleAskAi}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.navBtnText, { color: "#fff" }]}>✨ ASK AI ABOUT THIS SPOT</Text>
+        </TouchableOpacity>
       </View>
     </Modal>
   );
