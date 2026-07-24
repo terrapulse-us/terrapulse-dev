@@ -48,3 +48,6 @@ EXPO_PUBLIC_FIREBASE_PROJECT_ID = "california-offroad-explorer"
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET = "california-offroad-explorer.firebasestorage.app"
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "516913346465"
 EXPO_PUBLIC_FIREBASE_APP_ID = "1:516913346465:web:2b01f1220d182a3911bde0"
+
+[nix]
+channel = "stable-25_05"

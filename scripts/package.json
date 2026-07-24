@@ -10,15 +10,18 @@
     "trails:fetch-routes": "tsx ./src/trail-pipeline/fetch-route.ts",
     "trails:fetch-areas": "tsx ./src/trail-pipeline/fetch-area.ts",
     "trails:validate": "tsx ./src/trail-pipeline/validate-route.ts",
-    "region:build": "tsx ./src/regions/build-region.ts"
+    "region:build": "tsx ./src/regions/build-region.ts",
+    "map-icons:generate": "tsx ./src/map-icons/generate.ts"
   },
   "dependencies": {
     "@workspace/trail-data": "workspace:*"
   },
   "devDependencies": {
     "@google-cloud/storage": "^7.21.0",
+    "@mdi/js": "^7.4.47",
     "@types/node": "catalog:",
     "google-auth-library": "^10.9.0",
+    "sharp": "^0.35.3",
     "tsx": "catalog:"
   }
 }

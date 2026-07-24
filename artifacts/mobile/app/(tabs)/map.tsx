@@ -14,6 +14,8 @@ import {
   Linking,
   KeyboardAvoidingView,
   type NativeSyntheticEvent,
+  type StyleProp,
+  type TextStyle,
 } from "react-native";
 import {
   Map as MapLibreMap,
@@ -27,6 +29,7 @@ import {
   VectorSource,
   Layer,
   ImageSource,
+  Images,
   type PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native";
 import {
@@ -278,6 +281,24 @@ function formatElapsed(secs: number): string {
   if (h > 0)
     return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+// Self-ticking elapsed-time display. Keeps the 1-second timer state INSIDE
+// this tiny component so the tick re-renders one <Text>, not the entire
+// 7k-line MapScreen tree (recording-mode jank fix).
+function ElapsedTicker({ startTime, style }: { startTime: number; style?: StyleProp<TextStyle> }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!startTime) {
+      setElapsed(0);
+      return;
+    }
+    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+  return <Text style={style}>{formatElapsed(elapsed)}</Text>;
 }
 
 
@@ -959,8 +980,6 @@ export default function MapScreen() {
   const [trailPoints, setTrailPoints] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const trailPointsRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
   const trailWatchRef = useRef<Location.LocationSubscription | null>(null);
-  const trailTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [trailElapsed, setTrailElapsed] = useState(0);
   const [trailStartTime, setTrailStartTime] = useState(0);
   const [trailDistanceMi, setTrailDistanceMi] = useState(0);
   const trailDistRef = useRef(0);
@@ -1236,11 +1255,9 @@ export default function MapScreen() {
   const [rideTotalMiles, setRideTotalMiles] = useState(0);
   const [rideTopSpeedMph, setRideTopSpeedMph] = useState(0);
   const [rideElevGainFt, setRideElevGainFt] = useState(0);
-  const [rideElapsed, setRideElapsed] = useState(0);
   const [rideStartTime, setRideStartTime] = useState(0);
   const [rideCurSpeedMph, setRideCurSpeedMph] = useState(0);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ridePointsRef = useRef<RidePoint[]>([]);
   const rideMilesRef = useRef(0);
   const rideTopRef = useRef(0);
@@ -2591,15 +2608,10 @@ export default function MapScreen() {
     setRideTotalMiles(0);
     setRideTopSpeedMph(0);
     setRideElevGainFt(0);
-    setRideElapsed(0);
     setRideCurSpeedMph(0);
     const start = Date.now();
     setRideStartTime(start);
     setIsRecording(true);
-
-    timerRef.current = setInterval(() => {
-      setRideElapsed(Math.floor((Date.now() - start) / 1000));
-    }, 1000);
 
     watchRef.current = await Location.watchPositionAsync(
       {
@@ -2641,10 +2653,6 @@ export default function MapScreen() {
   const stopRecording = useCallback(async () => {
     watchRef.current?.remove();
     watchRef.current = null;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
     setIsRecording(false);
 
     const pts = ridePointsRef.current;
@@ -2973,14 +2981,10 @@ export default function MapScreen() {
     setTrailPoints([]);
     setTrailDistanceMi(0);
     setTrailKeypoints([]);
-    setTrailElapsed(0);
     const start = Date.now();
     setTrailStartTime(start);
     setIsTrailRecording(true);
     setFollowUser(true);
-    trailTimerRef.current = setInterval(() => {
-      setTrailElapsed(Math.floor((Date.now() - start) / 1000));
-    }, 1000);
     trailWatchRef.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5, timeInterval: 2000 },
       (loc) => {
@@ -3003,10 +3007,6 @@ export default function MapScreen() {
   const stopTrailRecording = useCallback(() => {
     trailWatchRef.current?.remove();
     trailWatchRef.current = null;
-    if (trailTimerRef.current) {
-      clearInterval(trailTimerRef.current);
-      trailTimerRef.current = null;
-    }
     setIsTrailRecording(false);
     if (trailPointsRef.current.length < 2) {
       Alert.alert("Too Short", "Not enough GPS points. Try recording a longer stretch.");
@@ -3111,6 +3111,357 @@ export default function MapScreen() {
     return "#FF5500";
   };
 
+  // Memoized so the source's `data` prop keeps a stable reference across
+  // unrelated MapScreen re-renders (GeoJSONSource diffs data by reference —
+  // a new object each render means re-serializing over the bridge).
+  const sosGuideGeoJSON = useMemo(() => {
+    if (!sosGuideTarget || !userLocation) return null;
+    return {
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: [
+          [userLocation.longitude, userLocation.latitude],
+          [sosGuideTarget.lng, sosGuideTarget.lat],
+        ],
+      },
+      properties: {},
+    };
+  }, [sosGuideTarget, userLocation]);
+
+  const visibleUserTrails = useMemo(
+    () => userTrails.filter((t) => selectedState === "All States" || t.state === selectedState),
+    [userTrails, selectedState]
+  );
+
+  // ── GPU trail-dot sources (perf) ──────────────────────────────────────
+  // Hundreds of native-view <Marker>s were the main pan/zoom bottleneck —
+  // each one is a real platform view the map repositions every frame.
+  // These FeatureCollections feed CircleLayers rendered on the GPU instead.
+  // Press lookup: feature id → trail object via the byId map.
+  const ohvTrailsGeo = useMemo(() => {
+    const byId = new Map<string, (typeof ohvTrails)[number]>();
+    const features = ohvTrails.map((t) => {
+      byId.set(String(t.id), t);
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [t.coords.longitude, t.coords.latitude],
+        },
+        properties: { id: t.id, color: markerColor(t.difficultyRating) },
+      };
+    });
+    return { collection: { type: "FeatureCollection" as const, features }, byId };
+  }, [ohvTrails]);
+
+  const hikingTrailsGeo = useMemo(() => {
+    const byId = new Map<string, (typeof hikingTrails)[number]>();
+    const features = hikingTrails.map((t) => {
+      byId.set(String(t.id), t);
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [t.coords.longitude, t.coords.latitude],
+        },
+        properties: { id: t.id },
+      };
+    });
+    return { collection: { type: "FeatureCollection" as const, features }, byId };
+  }, [hikingTrails]);
+
+  const userTrailsGeo = useMemo(() => {
+    const byId = new Map<string, (typeof visibleUserTrails)[number]>();
+    const features = visibleUserTrails.map((t) => {
+      byId.set(String(t.id), t);
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [t.coords.longitude, t.coords.latitude],
+        },
+        properties: { id: t.id, color: markerColor(t.difficultyRating) },
+      };
+    });
+    return { collection: { type: "FeatureCollection" as const, features }, byId };
+  }, [visibleUserTrails]);
+
+  const handleOhvDotPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const id = e.nativeEvent.features?.[0]?.properties?.id;
+      if (id == null) return;
+      const trail = ohvTrailsGeo.byId.get(String(id));
+      if (!trail) return;
+      const enriched = enrichWithRoute(trail);
+      setSelectedTrail(enriched);
+      // If no hardcoded route, silently try USFS API in background
+      if (!enriched.routeCoordinates?.length) {
+        fetchUsfsRouteNear(trail.coords.latitude, trail.coords.longitude)
+          .then((col) => {
+            const route = extractBestRoute(col);
+            if (route && route.length >= 5) {
+              setSelectedTrail((prev) =>
+                prev?.id === trail.id ? { ...prev, routeCoordinates: route } : prev
+              );
+            }
+          })
+          .catch(() => {});
+      }
+    },
+    [ohvTrailsGeo]
+  );
+
+  const handleHikingDotPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const id = e.nativeEvent.features?.[0]?.properties?.id;
+      if (id == null) return;
+      const trail = hikingTrailsGeo.byId.get(String(id));
+      if (trail) setSelectedTrail(enrichWithRoute(trail as UserTrail));
+    },
+    [hikingTrailsGeo]
+  );
+
+  const handleUserTrailDotPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const id = e.nativeEvent.features?.[0]?.properties?.id;
+      if (id == null) return;
+      const trail = userTrailsGeo.byId.get(String(id));
+      if (trail) setSelectedTrail(enrichWithRoute(trail));
+    },
+    [userTrailsGeo]
+  );
+
+  // ── GPU pin sources for NFS / RIDB / NPS / USFS point markers ────────
+  // Same pattern: index stored in feature properties, press handler looks
+  // the original object back up in `items`.
+  const nfsPinsGeo = useMemo(() => {
+    const items = (nfsGeoJSON?.features ?? []).slice(0, 100);
+    const features = items
+      .map((f, i) => {
+        const coord = nfsFeatureStartCoord(f);
+        return coord
+          ? {
+              type: "Feature" as const,
+              geometry: { type: "Point" as const, coordinates: coord },
+              properties: { i },
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null);
+    return { collection: { type: "FeatureCollection" as const, features }, items };
+  }, [nfsGeoJSON]);
+
+  const ridbPinsGeo = useMemo(() => {
+    const features = ridbFacilities
+      .map((f, i) => {
+        const coord = ridbFacilityCoord(f);
+        return coord
+          ? {
+              type: "Feature" as const,
+              geometry: { type: "Point" as const, coordinates: coord },
+              properties: { i },
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null);
+    return { collection: { type: "FeatureCollection" as const, features }, items: ridbFacilities };
+  }, [ridbFacilities]);
+
+  const npsPinsGeo = useMemo(() => {
+    const features = npsParks
+      .map((p, i) => {
+        const coord = npsParkCoord(p);
+        return coord
+          ? {
+              type: "Feature" as const,
+              geometry: { type: "Point" as const, coordinates: coord },
+              properties: { i },
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null);
+    return { collection: { type: "FeatureCollection" as const, features }, items: npsParks };
+  }, [npsParks]);
+
+  const usfsPinsGeo = useMemo(() => {
+    const items = (usfsGeoJSON?.features ?? []).slice(0, 100);
+    const features = items
+      .map((f, i) => {
+        const coord = featureStartCoord(f);
+        return coord
+          ? {
+              type: "Feature" as const,
+              geometry: { type: "Point" as const, coordinates: coord },
+              properties: { i },
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null);
+    return { collection: { type: "FeatureCollection" as const, features }, items };
+  }, [usfsGeoJSON]);
+
+  const handleNfsPinPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const i = Number(e.nativeEvent.features?.[0]?.properties?.i);
+      if (!Number.isFinite(i)) return;
+      const f = nfsPinsGeo.items[i];
+      if (f) setSelectedGuide(fromUsfsNfsFeature(f));
+    },
+    [nfsPinsGeo]
+  );
+
+  const handleRidbPinPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const i = Number(e.nativeEvent.features?.[0]?.properties?.i);
+      if (!Number.isFinite(i)) return;
+      const f = ridbPinsGeo.items[i];
+      if (f) setSelectedGuide(fromRidbFacility(f));
+    },
+    [ridbPinsGeo]
+  );
+
+  const handleNpsPinPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const i = Number(e.nativeEvent.features?.[0]?.properties?.i);
+      if (!Number.isFinite(i)) return;
+      const p = npsPinsGeo.items[i];
+      if (p) setSelectedGuide(fromNpsPark(p));
+    },
+    [npsPinsGeo]
+  );
+
+  const handleUsfsPinPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const i = Number(e.nativeEvent.features?.[0]?.properties?.i);
+      if (!Number.isFinite(i)) return;
+      const f = usfsPinsGeo.items[i];
+      if (f) setSelectedGuide(fromUsfsFeature(f));
+    },
+    [usfsPinsGeo]
+  );
+
+  // ── GPU icon-marker sources: campgrounds, hike POIs, OSM flags ──────────
+  // Circle drawn by a CircleLayer, glyph by a SymbolLayer using the PNGs
+  // registered via <Images> (see assets/map-icons, generated by
+  // scripts/src/map-icons/generate.ts).
+  const campgroundsGeo = useMemo(() => {
+    const list = [...visibleCampgrounds.slice(0, 150), ...extraSavedCampgrounds];
+    const byId = new Map<string, (typeof list)[number]>();
+    const features: Array<{
+      type: "Feature";
+      geometry: { type: "Point"; coordinates: number[] };
+      properties: { id: string; color: string };
+    }> = [];
+    for (const camp of list) {
+      const key = String(camp.id);
+      if (byId.has(key)) continue;
+      byId.set(key, camp);
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [camp.lng, camp.lat] },
+        properties: {
+          id: key,
+          color: CAMPGROUND_KIND_COLORS[camp.kind] ?? "#795548",
+        },
+      });
+    }
+    return { collection: { type: "FeatureCollection" as const, features }, byId };
+  }, [visibleCampgrounds, extraSavedCampgrounds]);
+
+  const handleCampgroundPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const id = e.nativeEvent.features?.[0]?.properties?.id;
+      if (id == null) return;
+      const camp = campgroundsGeo.byId.get(String(id));
+      if (camp) setSelectedCampground(camp);
+    },
+    [campgroundsGeo]
+  );
+
+  const hikePoisGeo = useMemo(() => {
+    const list = [...visibleHikePois.slice(0, 150), ...extraSavedHikeSpots];
+    const byId = new Map<string, (typeof list)[number]>();
+    const features: Array<{
+      type: "Feature";
+      geometry: { type: "Point"; coordinates: number[] };
+      properties: { id: string; color: string; icon: string };
+    }> = [];
+    for (const poi of list) {
+      const key = String(poi.id);
+      if (byId.has(key)) continue;
+      byId.set(key, poi);
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [poi.lng, poi.lat] },
+        properties: {
+          id: key,
+          color: HIKING_POI_COLORS[poi.kind] ?? "#2E7D32",
+          icon: HIKING_POI_ICONS[poi.kind] ? `poi-${poi.kind}` : "poi-trailhead",
+        },
+      });
+    }
+    return { collection: { type: "FeatureCollection" as const, features }, byId };
+  }, [visibleHikePois, extraSavedHikeSpots]);
+
+  const handleHikePoiPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const id = e.nativeEvent.features?.[0]?.properties?.id;
+      if (id == null) return;
+      const poi = hikePoisGeo.byId.get(String(id));
+      if (poi) setSelectedHikePoi(poi);
+    },
+    [hikePoisGeo]
+  );
+
+  const osmFlagsGeo = useMemo(() => {
+    const items = (osmGeoJSON?.features ?? []).slice(0, 120);
+    const features: Array<{
+      type: "Feature";
+      geometry: { type: "Point"; coordinates: number[] };
+      properties: { i: number; icon: string; color: string };
+    }> = [];
+    items.forEach((f, i) => {
+      const start = osmFeatureStartCoord(f);
+      const end = osmFeatureEndCoord(f);
+      if (start) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: start },
+          properties: { i, icon: "flag-start", color: "#1B5E20" },
+        });
+      }
+      if (end) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: end },
+          properties: { i, icon: "flag-end", color: "#B71C1C" },
+        });
+      }
+    });
+    return { collection: { type: "FeatureCollection" as const, features }, items };
+  }, [osmGeoJSON]);
+
+  const handleOsmFlagPress = useCallback(
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      e.stopPropagation();
+      const i = Number(e.nativeEvent.features?.[0]?.properties?.i);
+      if (!Number.isFinite(i)) return;
+      const f = osmFlagsGeo.items[i];
+      if (f) setSelectedGuide(fromOsmFeature(f));
+    },
+    [osmFlagsGeo]
+  );
+
   const rideRouteGeoJSON = useMemo(
     () => ({
       type: "Feature" as const,
@@ -3214,46 +3565,24 @@ export default function MapScreen() {
           <UserLocation />
         )}
 
-        {ohvVisible && ohvTrails.map((trail) => (
-          <Marker
-            key={trail.id}
-            lngLat={[trail.coords.longitude, trail.coords.latitude]}
-            onPress={() => {
-              const enriched = enrichWithRoute(trail);
-              setSelectedTrail(enriched);
-              // If no hardcoded route, silently try USFS API in background
-              if (!enriched.routeCoordinates?.length) {
-                fetchUsfsRouteNear(trail.coords.latitude, trail.coords.longitude)
-                  .then(col => {
-                    const route = extractBestRoute(col);
-                    if (route && route.length >= 5) {
-                      setSelectedTrail(prev =>
-                        prev?.id === trail.id ? { ...prev, routeCoordinates: route } : prev
-                      );
-                    }
-                  })
-                  .catch(() => {});
-              }
-            }}
-          >
-            <View
-              style={[
-                styles.trailMarker,
-                { backgroundColor: markerColor(trail.difficultyRating) },
-              ]}
-            />
-          </Marker>
-        ))}
-
-        {hikingVisible && hikingTrails.map((trail) => (
-          <Marker
-            key={trail.id}
-            lngLat={[trail.coords.longitude, trail.coords.latitude]}
-            onPress={() => setSelectedTrail(enrichWithRoute(trail as UserTrail))}
-          >
-            <View style={styles.hikingMarker} />
-          </Marker>
-        ))}
+        {/* ── Glyph images for GPU SymbolLayers ────────────────────────────
+             PNGs generated by scripts/src/map-icons/generate.ts. White glyphs
+             sit on colored CircleLayers; the flags are pre-colored (white
+             circle underneath). */}
+        <Images
+          images={{
+            tent: require("../../assets/map-icons/tent.png"),
+            "poi-trailhead": require("../../assets/map-icons/poi-trailhead.png"),
+            "poi-viewpoint": require("../../assets/map-icons/poi-viewpoint.png"),
+            "poi-peak": require("../../assets/map-icons/poi-peak.png"),
+            "poi-waterfall": require("../../assets/map-icons/poi-waterfall.png"),
+            "poi-water": require("../../assets/map-icons/poi-water.png"),
+            "poi-shelter": require("../../assets/map-icons/poi-shelter.png"),
+            "poi-picnic": require("../../assets/map-icons/poi-picnic.png"),
+            "flag-start": require("../../assets/map-icons/flag-start.png"),
+            "flag-end": require("../../assets/map-icons/flag-end.png"),
+          }}
+        />
 
         {/* ── Offline region boundaries ────────────────────────────────────
              Dashed bbox outlines for every catalog region (green = saved,
@@ -3518,71 +3847,6 @@ export default function MapScreen() {
           </Marker>
         ))}
 
-        {/* ── Campground markers (RIDB + USFS + BLM + OSM merged) ─────────── */}
-        {/* Color-coded by kind: brown developed, green reservable, orange dispersed. */}
-        {/* List is pre-sorted nearest-first, so the 150 cap drops far points. */}
-        {showCampgrounds && visibleCampgrounds.slice(0, 150).map((camp) => (
-          <Marker
-            key={`camp-${camp.id}`}
-            lngLat={[camp.lng, camp.lat]}
-            anchor="center"
-            onPress={() => setSelectedCampground(camp)}
-          >
-            <View style={[styles.blmCampMarker, { backgroundColor: CAMPGROUND_KIND_COLORS[camp.kind] }]}>
-              <MaterialCommunityIcons name="tent" size={13} color="#fff" />
-            </View>
-          </Marker>
-        ))}
-
-        {/* ── Saved campsite markers ───────────────────────────────────────── */}
-        {/* Rendered from the user's saved docs so a saved spot is always visible */}
-        {/* — even outside the 40-mile fetch radius or fully offline. */}
-        {showCampgrounds && extraSavedCampgrounds.map((camp) => (
-          <Marker
-            key={`camp-saved-${camp.id}`}
-            lngLat={[camp.lng, camp.lat]}
-            anchor="center"
-            onPress={() => setSelectedCampground(camp)}
-          >
-            <View style={[styles.blmCampMarker, { backgroundColor: CAMPGROUND_KIND_COLORS[camp.kind] ?? "#795548" }]}>
-              <MaterialCommunityIcons name="tent" size={13} color="#fff" />
-            </View>
-          </Marker>
-        ))}
-
-        {/* ── Hiking POI markers (USFS + RIDB + BLM + OSM merged) ─────────── */}
-        {/* Color-coded by kind: green trailheads, purple viewpoints, blue-grey */}
-        {/* peaks, blue waterfalls, teal water, brown shelters, orange picnic. */}
-        {/* List is pre-sorted nearest-first, so the 150 cap drops far points. */}
-        {showHikePois && visibleHikePois.slice(0, 150).map((poi) => (
-          <Marker
-            key={`hike-poi-${poi.id}`}
-            lngLat={[poi.lng, poi.lat]}
-            anchor="center"
-            onPress={() => setSelectedHikePoi(poi)}
-          >
-            <View style={[styles.blmCampMarker, { backgroundColor: HIKING_POI_COLORS[poi.kind] }]}>
-              <MaterialCommunityIcons name={HIKING_POI_ICONS[poi.kind] as keyof typeof MaterialCommunityIcons.glyphMap} size={13} color="#fff" />
-            </View>
-          </Marker>
-        ))}
-
-        {/* ── Saved hiking spot markers ────────────────────────────────────── */}
-        {/* Rendered from the user's saved docs so a saved spot is always visible */}
-        {/* — even outside the 25-mile fetch radius or fully offline. */}
-        {showHikePois && extraSavedHikeSpots.map((poi) => (
-          <Marker
-            key={`hike-saved-${poi.id}`}
-            lngLat={[poi.lng, poi.lat]}
-            anchor="center"
-            onPress={() => setSelectedHikePoi(poi)}
-          >
-            <View style={[styles.blmCampMarker, { backgroundColor: HIKING_POI_COLORS[poi.kind] ?? "#2E7D32" }]}>
-              <MaterialCommunityIcons name={(HIKING_POI_ICONS[poi.kind] ?? "hiking") as keyof typeof MaterialCommunityIcons.glyphMap} size={13} color="#fff" />
-            </View>
-          </Marker>
-        ))}
-
         {/* ── OSM trail GeoJSON lines ────────────────────────────────────── */}
         {/* Tapping anywhere on the line (not just the endpoint pins) opens the trail info sheet. */}
         {mapStyleLoaded && osmGeoJSON && osmGeoJSON.features.length > 0 && (
@@ -3610,29 +3874,35 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {/* ── Start/stop checkered-flag markers (cap 120) ───────────────── */}
-        {mapStyleLoaded && showOsmOverlay && osmGeoJSON && osmGeoJSON.features.slice(0, 120).map((f, i) => {
-          const start = osmFeatureStartCoord(f);
-          const end = osmFeatureEndCoord(f);
-          return (
-            <React.Fragment key={`osm-${i}`}>
-              {start && (
-                <Marker lngLat={start} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
-                  <View style={[styles.osmFlagMarker, styles.osmFlagMarkerStart]}>
-                    <MaterialCommunityIcons name="flag-checkered" size={11} color="#1B5E20" />
-                  </View>
-                </Marker>
-              )}
-              {end && (
-                <Marker lngLat={end} onPress={() => setSelectedGuide(fromOsmFeature(f))}>
-                  <View style={[styles.osmFlagMarker, styles.osmFlagMarkerEnd]}>
-                    <MaterialCommunityIcons name="flag-checkered" size={11} color="#B71C1C" />
-                  </View>
-                </Marker>
-              )}
-            </React.Fragment>
-          );
-        })}
+        {/* ── Start/stop checkered-flag markers (GPU, cap 120) ──────────── */}
+        {mapStyleLoaded && showOsmOverlay && osmFlagsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="osm-flag-pins"
+            data={osmFlagsGeo.collection as never}
+            onPress={handleOsmFlagPress}
+          >
+            <Layer
+              id="osm-flag-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 10,
+                "circle-color": "#FFFFFF",
+                "circle-stroke-width": 1.5,
+                "circle-stroke-color": ["get", "color"] as never,
+              }}
+            />
+            <Layer
+              id="osm-flag-pins-icon"
+              type="symbol"
+              layout={{
+                "icon-image": ["get", "icon"] as never,
+                "icon-size": 0.21,
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+              }}
+            />
+          </GeoJSONSource>
+        )}
 
         {/* ── NFS Trail System GeoJSON lines ────────────────────────────── */}
         {mapStyleLoaded && nfsGeoJSON && nfsGeoJSON.features.length > 0 && (
@@ -3651,39 +3921,6 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {/* ── Tappable NFS pins (cap 100) ───────────────────────────────── */}
-        {nfsGeoJSON && nfsGeoJSON.features.slice(0, 100).map((f, i) => {
-          const coord = nfsFeatureStartCoord(f);
-          if (!coord) return null;
-          return (
-            <Marker key={`nfs-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromUsfsNfsFeature(f))}>
-              <View style={styles.nfsMarker} />
-            </Marker>
-          );
-        })}
-
-        {/* ── RIDB trailhead markers ────────────────────────────────────── */}
-        {ridbFacilities.map((f, i) => {
-          const coord = ridbFacilityCoord(f);
-          if (!coord) return null;
-          return (
-            <Marker key={`ridb-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromRidbFacility(f))}>
-              <View style={styles.ridbMarker} />
-            </Marker>
-          );
-        })}
-
-        {/* ── NPS parks markers ─────────────────────────────────────────── */}
-        {npsParks.map((p, i) => {
-          const coord = npsParkCoord(p);
-          if (!coord) return null;
-          return (
-            <Marker key={`nps-${i}`} lngLat={coord} onPress={() => setSelectedGuide(fromNpsPark(p))}>
-              <View style={styles.npsMarker} />
-            </Marker>
-          );
-        })}
-
         {/* ── USFS live GeoJSON routes layer ────────────────────────────── */}
         {mapStyleLoaded && usfsGeoJSON && usfsGeoJSON.features.length > 0 && (
           <GeoJSONSource id="usfs-routes" data={usfsGeoJSON as never}>
@@ -3701,37 +3938,210 @@ export default function MapScreen() {
           </GeoJSONSource>
         )}
 
-        {/* Tappable pins at the start of each USFS feature (capped at 100) */}
-        {usfsGeoJSON && usfsGeoJSON.features.slice(0, 100).map((f, i) => {
-          const coord = featureStartCoord(f);
-          if (!coord) return null;
-          return (
-            <Marker
-              key={`usfs-${i}`}
-              lngLat={coord}
-              onPress={() => setSelectedGuide(fromUsfsFeature(f))}
-            >
-              <View style={styles.usfsMarker} />
-            </Marker>
-          );
-        })}
+        {/* ── GPU trail-dot layers (replace hundreds of native <Marker>s) ──
+             Mounted AFTER all line sources so the dots draw above trail
+             lines. Press events use the source onPress (44px hitbox,
+             topmost layer wins); stopPropagation keeps Map onPress quiet. */}
+        {mapStyleLoaded && ohvVisible && ohvTrailsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="ohv-trail-dots"
+            data={ohvTrailsGeo.collection as never}
+            onPress={handleOhvDotPress}
+          >
+            <Layer
+              id="ohv-trail-dots-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 7,
+                "circle-color": ["get", "color"] as never,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#000000",
+              }}
+            />
+          </GeoJSONSource>
+        )}
 
-        {userTrails
-          .filter((t) => selectedState === "All States" || t.state === selectedState)
-          .map((trail) => (
-            <Marker
-              key={trail.id}
-              lngLat={[trail.coords.longitude, trail.coords.latitude]}
-              onPress={() => setSelectedTrail(enrichWithRoute(trail))}
-            >
-              <View
-                style={[
-                  styles.userTrailMarker,
-                  { borderColor: markerColor(trail.difficultyRating) },
-                ]}
-              />
-            </Marker>
-          ))}
+        {mapStyleLoaded && hikingVisible && hikingTrailsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="hiking-trail-dots"
+            data={hikingTrailsGeo.collection as never}
+            onPress={handleHikingDotPress}
+          >
+            <Layer
+              id="hiking-trail-dots-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 8,
+                "circle-color": "#2E7D32",
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {mapStyleLoaded && userTrailsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="user-trail-dots"
+            data={userTrailsGeo.collection as never}
+            onPress={handleUserTrailDotPress}
+          >
+            <Layer
+              id="user-trail-dots-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 7,
+                "circle-color": "rgba(0,0,0,0)",
+                "circle-stroke-width": 2,
+                "circle-stroke-color": ["get", "color"] as never,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── GPU pin layers: NFS / RIDB / NPS / USFS (replace native pins) ── */}
+        {mapStyleLoaded && nfsPinsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="nfs-pins"
+            data={nfsPinsGeo.collection as never}
+            onPress={handleNfsPinPress}
+          >
+            <Layer
+              id="nfs-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 5,
+                "circle-color": "#2D6A4F",
+                "circle-stroke-width": 1.5,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {mapStyleLoaded && ridbPinsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="ridb-pins"
+            data={ridbPinsGeo.collection as never}
+            onPress={handleRidbPinPress}
+          >
+            <Layer
+              id="ridb-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 6,
+                "circle-color": "#7B3F9E",
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {mapStyleLoaded && npsPinsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="nps-pins"
+            data={npsPinsGeo.collection as never}
+            onPress={handleNpsPinPress}
+          >
+            <Layer
+              id="nps-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 6.5,
+                "circle-color": "#1B5E20",
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {mapStyleLoaded && usfsPinsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="usfs-pins"
+            data={usfsPinsGeo.collection as never}
+            onPress={handleUsfsPinPress}
+          >
+            <Layer
+              id="usfs-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 5,
+                "circle-color": "#1A6B9E",
+                "circle-stroke-width": 1.5,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── Campground markers (GPU; RIDB + USFS + BLM + OSM merged) ────
+             Color-coded by kind: brown developed, green reservable, orange
+             dispersed. List is pre-sorted nearest-first (150 cap drops far
+             points); saved campsites are always included so "view on map"
+             lands on a marker even offline or out of radius. */}
+        {mapStyleLoaded && showCampgrounds && campgroundsGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="campground-pins"
+            data={campgroundsGeo.collection as never}
+            onPress={handleCampgroundPress}
+          >
+            <Layer
+              id="campground-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 13,
+                "circle-color": ["get", "color"] as never,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+            <Layer
+              id="campground-pins-icon"
+              type="symbol"
+              layout={{
+                "icon-image": "tent",
+                "icon-size": 0.25,
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* ── Hiking POI markers (GPU; USFS + RIDB + BLM + OSM merged) ────
+             Color-coded by kind: green trailheads, purple viewpoints,
+             blue-grey peaks, blue waterfalls, teal water, brown shelters,
+             orange picnic. Saved spots always included (see above). */}
+        {mapStyleLoaded && showHikePois && hikePoisGeo.collection.features.length > 0 && (
+          <GeoJSONSource
+            id="hike-poi-pins"
+            data={hikePoisGeo.collection as never}
+            onPress={handleHikePoiPress}
+          >
+            <Layer
+              id="hike-poi-pins-circle"
+              type="circle"
+              paint={{
+                "circle-radius": 13,
+                "circle-color": ["get", "color"] as never,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#FFFFFF",
+              }}
+            />
+            <Layer
+              id="hike-poi-pins-icon"
+              type="symbol"
+              layout={{
+                "icon-image": ["get", "icon"] as never,
+                "icon-size": 0.25,
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+              }}
+            />
+          </GeoJSONSource>
+        )}
 
         {isTrailRecording && trailKeypoints.map((kp, i) => {
           const kpConfig = KEYPOINT_CONFIGS.find(k => k.id === kp.type);
@@ -3760,20 +4170,10 @@ export default function MapScreen() {
         })}
 
         {/* SOS guide — straight bearing line from me to the rider in distress */}
-        {mapStyleLoaded && sosGuideTarget && userLocation && (
+        {mapStyleLoaded && sosGuideGeoJSON && (
           <GeoJSONSource
             id="sos-guide"
-            data={{
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: [
-                  [userLocation.longitude, userLocation.latitude],
-                  [sosGuideTarget.lng, sosGuideTarget.lat],
-                ],
-              },
-              properties: {},
-            } as never}
+            data={sosGuideGeoJSON as never}
           >
             <Layer
               id="sos-guide-line"
@@ -3895,9 +4295,7 @@ export default function MapScreen() {
           </View>
           <View style={styles.recStats}>
             <View style={styles.recStat}>
-              <Text style={[styles.recValue, { color: "#FFF" }]}>
-                {formatElapsed(rideElapsed)}
-              </Text>
+              <ElapsedTicker startTime={rideStartTime} style={[styles.recValue, { color: "#FFF" }]} />
               <Text
                 style={[styles.recUnit, { color: colors.mutedForeground }]}
               >
@@ -3959,7 +4357,7 @@ export default function MapScreen() {
           </View>
           <View style={styles.recStats}>
             <View style={styles.recStat}>
-              <Text style={[styles.recValue, { color: "#FFF" }]}>{formatElapsed(trailElapsed)}</Text>
+              <ElapsedTicker startTime={trailStartTime} style={[styles.recValue, { color: "#FFF" }]} />
               <Text style={[styles.recUnit, { color: colors.mutedForeground }]}>TIME</Text>
             </View>
             <View style={styles.recDivider} />
@@ -6255,29 +6653,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter_400Regular",
   },
-  osmFlagMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  osmFlagMarkerStart: {
-    borderColor: "#1B5E20",
-  },
-  osmFlagMarkerEnd: {
-    borderColor: "#B71C1C",
-  },
-  usfsMarker: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#1A6B9E",
-    borderWidth: 1.5,
-    borderColor: "#fff",
-  },
   usfsPopup: {
     position: "absolute",
     left: 12,
@@ -6304,21 +6679,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   usfsNavBtnText: { fontSize: 12, fontWeight: "900", letterSpacing: 1 },
-  trailMarker: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: "#000",
-  },
-  hikingMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#2E7D32",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
   regionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -6696,38 +7056,6 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: "#fff",
   },
-  userTrailMarker: {
-    width: 14,
-    height: 14,
-    borderRadius: 2,
-    borderWidth: 2,
-    backgroundColor: "transparent",
-    transform: [{ rotate: "45deg" }],
-  },
-  nfsMarker: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#2D6A4F",
-    borderWidth: 1.5,
-    borderColor: "#fff",
-  },
-  ridbMarker: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#7B3F9E",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  npsMarker: {
-    width: 13,
-    height: 13,
-    borderRadius: 3,
-    backgroundColor: "#1B5E20",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
   trailNameInput: {
     borderWidth: 1,
     borderRadius: 4,
@@ -6765,21 +7093,6 @@ const styles = StyleSheet.create({
   overlayToggleNfsActive:     { backgroundColor: "#2D6A4F" },
   overlayToggleHikingActive:  { backgroundColor: "#2E7D32" },
   overlayToggleRidbActive:    { backgroundColor: "#7B3F9E" },
-  blmCampMarker: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#795548",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.35,
-    shadowRadius: 2,
-  },
   blmCampHeaderIcon: {
     width: 38,
     height: 38,
