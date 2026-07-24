@@ -41,5 +41,6 @@
 - [PMTiles offline spike](pmtiles-offline-spike.md) — v1+v2 PASSED; style-JSON sources need full `pmtiles://file:///abs/path` form; DEM z13 + zoom-faded hillshade for crispness; pipeline is go
 - [topo-v2 packs already contain DEM](topo-v2-dem-already-packed.md) — terrain_rgb source == 3D tileset, so offline 3D topo needed only persisted style JSON, no pack/styleVersion change
 - [Campground data source quirks](campground-data-sources.md) — RIDB /facilities ignores facilitytype (filter client-side); USFS EDW returns literal "none" strings + lowercase f=json keys; RIDB↔USFS dupes need ~1km dedupe
-- [Android keyboard under SDK 54 edge-to-edge](android-keyboard-edge-to-edge.md) — adjustResize is dead; every input screen/modal needs KAV behavior="padding" on both platforms; padding only adds measured overlap so it never double-compensates
-- [flex:1 Text collapse in content-sized cards](rn-flex1-text-card-collapse.md) — fixing Android text wrap with flex:1 collapses cards in flex-start columns to icon-width; must pair with alignSelf:"stretch" on the card
+- [Android keyboard under SDK 54 edge-to-edge](android-keyboard-edge-to-edge.md) — adjustResize is dead; every input screen/modal needs KAV behavior="padding" on both platforms
+- [flex:1 Text collapse in content-sized cards](rn-flex1-text-card-collapse.md) — flex:1 text-wrap fix collapses flex-start-column cards to icon-width; pair with alignSelf:"stretch"
+- [ScrollView in maxHeight modal never scrolls](rn-scrollview-maxheight-modal.md) — RN children default flexShrink:0, so the ScrollView overflows instead of scrolling; add flexShrink:1

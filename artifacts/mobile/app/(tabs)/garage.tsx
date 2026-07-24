@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
+import { openDirections } from "@/lib/directions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   collection,
@@ -252,7 +253,7 @@ function AddVehicleModal({
           <View style={styles.handle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>ADD VEHICLE</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>VEHICLE TYPE</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
@@ -503,7 +504,7 @@ function EditVehicleModal({
           <View style={styles.handle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>EDIT VEHICLE</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginBottom: 6 }]}>VEHICLE TYPE</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
@@ -2132,7 +2133,7 @@ export default function GarageScreen() {
                 ) : (
                   <View style={{ height: 8 }} />
                 )}
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
                   {viewItinerary.days.map((day) => (
                     <View key={day.day} style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
                       <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
@@ -2202,8 +2203,8 @@ export default function GarageScreen() {
                     </View>
                   ) : null}
                 </ScrollView>
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-                  {typeof viewItinerary.destinationLat === "number" && typeof viewItinerary.destinationLng === "number" ? (
+                {typeof viewItinerary.destinationLat === "number" && typeof viewItinerary.destinationLng === "number" ? (
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
                     <TouchableOpacity
                       style={[styles.btn, { flex: 1, backgroundColor: colors.accent }]}
                       onPress={() => {
@@ -2227,7 +2228,23 @@ export default function GarageScreen() {
                         VIEW MAP
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
+                    <TouchableOpacity
+                      style={[styles.btn, { flex: 1, backgroundColor: colors.secondary, borderColor: colors.accent, borderWidth: 1 }]}
+                      onPress={() => openDirections(viewItinerary.destinationLat!, viewItinerary.destinationLng!)}
+                    >
+                      <Feather name="corner-up-right" size={14} color={colors.accent} />
+                      <Text
+                        style={[styles.btnText, { color: colors.accent }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                      >
+                        DIRECTIONS
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
                   {"fromUid" in viewItinerary && viewItinerary.fromUid ? (
                     <>
                       <TouchableOpacity
@@ -2306,7 +2323,7 @@ export default function GarageScreen() {
                 </Text>
               </View>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
                 {crew.map((member) => (
                   <TouchableOpacity
                     key={member.uid}
@@ -2353,7 +2370,7 @@ export default function GarageScreen() {
             <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 14 }}>
               Your vehicle tailors the search results
             </Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
               {vehicles.map((v) => {
                 const av = modVehicle ?? vehicles.find((v2) => v2.isFavorite) ?? vehicles[0];
                 const selected = v.id === av?.id;

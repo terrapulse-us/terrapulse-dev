@@ -33,6 +33,7 @@ import {
 import "@/lib/api-client";
 import { streamAssistantMessage, type AssistantStreamEvent, type AssistantMode } from "@/lib/assistant-api";
 import { downloadTrailArea } from "@/lib/offline-maps";
+import { openDirections } from "@/lib/directions";
 import { useAuth } from "@/context/AuthContext";
 import { useActivityMode } from "@/context/ActivityModeContext";
 import { useColors } from "@/hooks/useColors";
@@ -546,6 +547,22 @@ export default function AssistantScreen() {
                         minimumFontScale={0.65}
                       >
                         VIEW MAP
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {hasCoords && (
+                    <TouchableOpacity
+                      style={styles.itineraryActionBtn}
+                      onPress={() => openDirections(it.destinationLat!, it.destinationLng!)}
+                    >
+                      <Feather name="corner-up-right" size={13} color={colors.primary} />
+                      <Text
+                        style={styles.itineraryActionText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                      >
+                        DIRECTIONS
                       </Text>
                     </TouchableOpacity>
                   )}
