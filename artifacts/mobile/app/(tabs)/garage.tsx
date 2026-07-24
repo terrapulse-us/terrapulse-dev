@@ -14,6 +14,7 @@ import {
   Image,
   Linking,
   KeyboardAvoidingView,
+  Pressable,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TerraPulseLogo from "@/components/TerraPulseLogo";
@@ -248,7 +249,7 @@ function AddVehicleModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={() => { reset(); onClose(); }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
+      <View style={styles.modalBg}>
         <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
           <View style={styles.handle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>ADD VEHICLE</Text>
@@ -411,7 +412,7 @@ function AddVehicleModal({
             </View>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -499,7 +500,7 @@ function EditVehicleModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => {}}>
+      <View style={styles.modalBg}>
         <View style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "90%" }]}>
           <View style={styles.handle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>EDIT VEHICLE</Text>
@@ -630,7 +631,7 @@ function EditVehicleModal({
             </View>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -2106,11 +2107,10 @@ export default function GarageScreen() {
         transparent
         onRequestClose={() => setViewItinerary(null)}
       >
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setViewItinerary(null)}>
-          <TouchableOpacity
-            activeOpacity={1}
+        <View style={styles.modalBg}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setViewItinerary(null)} />
+          <View
             style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "88%" }]}
-            onPress={() => {}}
           >
             <View style={styles.handle} />
             {viewItinerary && (
@@ -2292,8 +2292,8 @@ export default function GarageScreen() {
                 </View>
               </>
             )}
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       {/* ── Share Trip — crew picker ──────────────────────────────────────── */}
@@ -2303,11 +2303,10 @@ export default function GarageScreen() {
         transparent
         onRequestClose={() => { if (!sharingToUid) setShareTrip(null); }}
       >
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => { if (!sharingToUid) setShareTrip(null); }}>
-          <TouchableOpacity
-            activeOpacity={1}
+        <View style={styles.modalBg}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => { if (!sharingToUid) setShareTrip(null); }} />
+          <View
             style={[styles.modal, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, maxHeight: "65%" }]}
-            onPress={() => {}}
           >
             <View style={styles.handle} />
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>SHARE WITH YOUR CREW</Text>
@@ -2357,8 +2356,8 @@ export default function GarageScreen() {
             >
               <Text style={[styles.btnText, { color: colors.mutedForeground }]}>CANCEL</Text>
             </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       {/* ── Vehicle Picker (for mod context) ──────────────────────────────── */}

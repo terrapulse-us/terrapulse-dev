@@ -9,4 +9,4 @@ A ScrollView inside a container with `maxHeight` (e.g. a bottom-sheet modal card
 
 **Why:** saved-itinerary detail modal shipped unscrollable; three sibling modals (crew picker, vehicle picker, add/edit vehicle) had the same latent bug.
 
-**How to apply:** any vertical ScrollView whose ancestor uses `maxHeight` needs `flexShrink: 1`. Nested-in-TouchableOpacity is NOT the problem — native RCTScrollView steals drag gestures fine. Pinned footers (action rows) belong outside the ScrollView.
+**How to apply:** any vertical ScrollView whose ancestor uses `maxHeight` needs `flexShrink: 1`. SECOND gotcha (proven on-device): a Touchable ancestor (e.g. TouchableOpacity backdrop/card wrapper) intermittently blocks the native scroll pan — the JS responder grant beats slow drag starts, so it "sometimes scrolls, mostly doesn't", worst on Android New Arch. Never wrap a ScrollView in a Touchable; for tap-to-dismiss sheets use a plain View container with an absolute-fill Pressable backdrop and the card as a sibling View on top. Pinned footers (action rows) belong outside the ScrollView.
